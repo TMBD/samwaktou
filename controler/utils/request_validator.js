@@ -12,6 +12,13 @@ const validatePostAudioRequest = (req) => {
             details: "keywords field is required !"
         };
     }
+    if(!req.files.audio.mimetype.includes("audio")){
+        return {
+            success: false,
+            details: "Only audio types are accepted !"
+        };
+    }
+
     return {success: true};
 }
 

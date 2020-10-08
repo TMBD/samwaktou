@@ -19,4 +19,4 @@ let AudioSchema = mongoose.Schema({
     }
 });
 
-module.exports = mongoose.model("Post", AudioSchema);
+module.exports = mongoose.model("Audio", AudioSchema);
