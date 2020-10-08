@@ -1,5 +1,18 @@
-const ServerConfig = {
-    port: 8080
+const SERVEUR_CONFIG = {
+    PORT: 8080
 }
 
-module.exports = ServerConfig;
+const HTTP_CODE = {
+    OK: 200,
+    INTERNAL_SERVER_ERROR: 500,
+    PAGE_NOT_FOUND_ERROR: 404,
+    BAD_REQUEST_ERROR: 400
+}
+
+const FILE_LOCATION = {
+    AUDIO_FILE_LOCATION: "files/audios/"
+}
+
+exports.SERVEUR_CONFIG = SERVEUR_CONFIG;
+exports.HTTP_CODE = HTTP_CODE;
+exports.FILE_LOCATION = FILE_LOCATION;
