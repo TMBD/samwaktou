@@ -5,25 +5,25 @@ const DB = {
     postToDB: async (collection) => {
         try {
             await connectToDB();
-            console.log("connected to the db");
-            try{
-                let data = await collection.save();
-                return Promise.resolve({
-                    success: true,
-                    data: data
-                });
-            }catch(saveError) {
-                return Promise.resolve({
-                    success: false,
-                    message: saveError,
-                    details: "Couldn't save object to the db !"
-                });
-            }
         } catch (dbConnectionError) {
-            return Promise.resolve({
+            return Promise.reject({
                 success: false,
                 message: dbConnectionError,
                 details: "Couldn't connect to the db !"
+            });
+        }
+        console.log("connected to the db");
+        try{
+            let data = await collection.save();
+            return Promise.resolve({
+                success: true,
+                data: data
+            });
+        }catch(saveError) {
+            return Promise.reject({
+                success: false,
+                message: saveError,
+                details: "Couldn't save object to the db !"
             });
         }
         
@@ -32,6 +32,14 @@ const DB = {
     deleteFromDB: async (collection, id) => {
         try {
             await connectToDB();
+        } catch (dbConnectionError) {
+            return Promise.reject({
+                success: false,
+                message: dbConnectionError,
+                details: "Couldn't connect to the db !"
+            });
+        }
+        try {
             let removedCollection = await collection.remove({_id: id});
             return Promise.resolve({removedCollection});
         } catch (deleteError) {
@@ -42,16 +50,59 @@ const DB = {
     updateOne: async (collection, id, struct) => {
         try {
             await connectToDB();
+        } catch (dbConnectionError) {
+            return Promise.reject({
+                success: false,
+                message: dbConnectionError,
+                details: "Couldn't connect to the db !"
+            });
+        }
+        try {
             let updatedCollection = await collection.updateOne(
                 {_id: id},
                 {$set: struct}
             );
-            console.log(struct);
             return Promise.resolve(updatedCollection);
         } catch (updateError) {
             return Promise.reject(updateError);
         }
-    }
+    },
+
+    findOne: async (collection, query) => {
+        try {
+            await connectToDB();
+        } catch (dbConnectionError) {
+            return Promise.reject({
+                success: false,
+                message: dbConnectionError,
+                details: "Couldn't connect to the db !"
+            });
+        }
+        try {
+            let result = await collection.findOne(query);
+            return Promise.resolve(result);
+        } catch (findError) {
+            return Promise.reject(findError);
+        }
+    },
+
+    findMany: async (collection, query, fieldsToReturn, skipNumber, limitNumber) => {
+        try {
+            await connectToDB();
+        } catch (dbConnectionError) {
+            return Promise.reject({
+                success: false,
+                message: dbConnectionError,
+                details: "Couldn't connect to the db !"
+            });
+        }
+        try {
+            let result = await collection.find(query, fieldsToReturn, { skip: skipNumber, limit: limitNumber });
+            return Promise.resolve(result);
+        } catch (findError) {
+            return Promise.reject(findError);
+        }
+    },
 
     
 }

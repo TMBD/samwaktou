@@ -1,14 +1,16 @@
+let _ = require("lodash")
 let audioModel = require("./schema/audio");
 let DB = require("../model/db_crud");
 const CONFIG = require("../config/server_config");
 
+
 class Audio{
-    constructor(uri, description, keywords, date){
+    constructor(uri, description, keywords, date, id, name){
         this.uri = uri ? uri : CONFIG.FILE_LOCATION.AUDIO_FILE_LOCATION;
         this.description = description;
         this.keywords = keywords;
         this.date = date;
-        this.id = null;
+        this.id = id;
     }
 
     getUri(){return this.uri;}
@@ -43,10 +45,14 @@ class Audio{
     }
 
     async saveToDB(){
-        let result = await DB.postToDB(this.getAudioModelStruct());
-        this.setId(result.data._id);
-        this.setDate(result.data.date);
-        return Promise.resolve(result);
+        try {
+            let result = await DB.postToDB(this.getAudioModelStruct());
+            this.setId(result.data._id);
+            this.setDate(result.data.date);
+            return Promise.resolve(result);
+        } catch (saveError) {
+            return Promise.resolve(saveError);
+        }
     }
 
     async updateToDB(){
@@ -78,6 +84,101 @@ class Audio{
                 success: false, 
                 message: deleteError,
                 details: "Couldn't delete Audio from database"
+            });
+        }
+    }
+
+    static async findOneAudioFromDBById(id){
+        try {
+            let data = await DB.findOne(audioModel, {_id: id});
+            //let audio = _.isEmpty(data) ? null : new Audio(data.uri, data.description, data.keywords, data.date, data._id);
+            let audio = _.isEmpty(data) ? null : data;
+            return Promise.resolve({
+                success: true, 
+                audio: audio
+            });
+        } catch (deleteError) {
+            return Promise.resolve({
+                success: false, 
+                message: deleteError,
+                details: "Couldn't find Audio from database"
+            });
+        }
+    }
+
+    static async findOneAudioFromDBByUri(uri){
+        try {
+            let data = await DB.findOne(audioModel, {uri: uri});
+            //let audio = _.isEmpty(data) ? null : new Audio(data.uri, data.description, data.keywords, data.date, data._id);
+            let audio = _.isEmpty(data) ? null : data;
+            return Promise.resolve({
+                success: true, 
+                audio: audio
+            });
+        } catch (deleteError) {
+            return Promise.resolve({
+                success: false, 
+                message: deleteError,
+                details: "Couldn't find Audio from database"
+            });
+        }
+    }
+
+    static async findAudiosFromDBByKeywordsMatchAll(keywords, skipNumber, limitNumber){
+        try {
+            let data = await DB.findMany(audioModel, {keywords: { $all: keywords }}, null, skipNumber, limitNumber);
+            if(_.isEmpty(data)){
+                return Promise.resolve({
+                    success: true, 
+                    audios: null
+                });
+            }
+            // var audioList = [];
+            // data.forEach(element => {
+            //     audioList.push(new Audio(element.uri, element.description, element.keywords, element.date. element._id));
+            // });
+            return Promise.resolve({
+                success: true, 
+                audios: data
+            });
+        } catch (deleteError) {
+            return Promise.resolve({
+                success: false, 
+                message: deleteError,
+                details: "Couldn't find Audio from database"
+            });
+        }
+    }
+
+    static async findAudiosFromDBByKeywordsMatchAny(keywords, skipNumber, limitNumber){
+        try {
+            var queryStruct = [];
+            keywords.forEach(element => {
+                queryStruct.push({
+                    keywords: element
+                })
+            });
+            //let data = await DB.findMany(audioModel, {keywords: keywords}, null, skipNumber, limitNumber);
+            let data = await DB.findMany(audioModel, {$or: queryStruct}, null, skipNumber, limitNumber);
+            if(_.isEmpty(data)){
+                return Promise.resolve({
+                    success: true, 
+                    audios: null
+                });
+            }
+            // var audioList = [];
+            // data.forEach(element => {
+            //     audioList.push(new Audio(element.uri, element.description, element.keywords, element.date. element._id));
+            // });
+            return Promise.resolve({
+                success: true, 
+                audios: data
+            });
+        } catch (deleteError) {
+            return Promise.resolve({
+                success: false, 
+                message: deleteError,
+                details: "Couldn't find Audio from database"
             });
         }
     }
