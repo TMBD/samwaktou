@@ -5,6 +5,7 @@ let Audio = require("../model/Audio");
 const CONFIG = require("../config/server_config");
 let requestValidator = require("./utils/request_validator");
 let audioFileUploader = require("./utils/audio_file_uploader");
+let audioUtils = require("./utils/audio_utils");
 const rootDirPath = "../";
 
 let postAudio = async (req, res) => {
@@ -128,6 +129,88 @@ let getAudioFile = async (req, res) => {
     res.sendFile(CONFIG.FILE_LOCATION.AUDIO_FILE_LOCATION+fileName, { root: __dirname+"/../" });
 }
 
+let deleteAudio = async (req, res) => {
+    let findAudioResult = await Audio.findOneAudioFromDBById(req.params.audioId);
+    if(findAudioResult.success){
+        if(findAudioResult.audio === null){
+            res.status(CONFIG.HTTP_CODE.PAGE_NOT_FOUND_ERROR);
+            res.json({
+                message: "Couldn't delete audio !",
+                details: "No audio with this _id has been found in the database !"
+            });
+        }else{
+            let deleteResult = await Audio.deleteFromDB(req.params.audioId);
+            if(deleteResult.success){
+                let deleteAudioFileResult = await audioUtils.removeAudioFile(findAudioResult.audio.uri);
+                if(deleteAudioFileResult.success){
+                    res.status(CONFIG.HTTP_CODE.OK);
+                    res.json(deleteResult.data);
+                }else{
+                    res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+                    res.json({
+                        message: deleteAudioFileResult.message,
+                        details: "The audio has been deleted successfully from the database but couldn't delete the file from the server !"
+                    });
+                }
+            }else{
+                res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+                res.json({
+                    message: deleteResult.message,
+                    details: deleteResult.details
+                });
+            }
+        }
+    }else{
+        res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+        res.json({
+            message: findAudioResult.message,
+            details: findAudioResult.details
+        });
+    } 
+}
+
+
+let updateAudio = async (req, res) => {
+    let reqValidation = requestValidator.validateUpdateAudioRequest(req);
+    if(reqValidation.success){
+        let findAudioResult = await Audio.findOneAudioFromDBById(req.body._id);
+        if(findAudioResult.success){
+            if(findAudioResult.audio === null){
+                res.status(CONFIG.HTTP_CODE.PAGE_NOT_FOUND_ERROR);
+                res.json({
+                    message: "Couldn't update audio !",
+                    details: "No audio with this _id has been found in the database !"
+                });
+            }else{
+                let audio = new Audio(findAudioResult.audio.uri, req.body.description, req.body.keywords, req.body.date, findAudioResult.audio._id);
+                let updateResult = await audio.updateToDB();
+                if(updateResult.success){
+                    res.status(CONFIG.HTTP_CODE.OK);
+                    res.json(updateResult.data);
+                }else{
+                    res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+                    res.json({
+                        message: updateResult.message,
+                        details: updateResult.details
+                    });
+                }
+            }
+        }else{
+            res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+            res.json({
+                message: findAudioResult.message,
+                details: findAudioResult.details
+            });
+        }
+    }else{
+        res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
+        res.json({
+            message: "BAD REQUEST ERROR, PLEASE VERIFY YOUR REQUEST AND ENSURE THAT ALL THE FIELDS ARE SETUP WELL !", 
+            details: reqValidation.details
+        });
+    }
+}
+
 
 
 
@@ -136,3 +219,6 @@ exports.postAudio = postAudio;
 exports.getAudio = getAudio;
 exports.getManyAudios = getManyAudios;
 exports.getAudioFile = getAudioFile;
+exports.getAudioFile = getAudioFile;
+exports.deleteAudio = deleteAudio;
+exports.updateAudio = updateAudio;

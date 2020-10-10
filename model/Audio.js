@@ -5,7 +5,7 @@ const CONFIG = require("../config/server_config");
 
 
 class Audio{
-    constructor(uri, description, keywords, date, id, name){
+    constructor(uri, description, keywords, date, id){
         this.uri = uri ? uri : CONFIG.FILE_LOCATION.AUDIO_FILE_LOCATION;
         this.description = description;
         this.keywords = keywords;
@@ -75,6 +75,22 @@ class Audio{
     async deleteFromDB(){
         try {
             let result = await DB.deleteFromDB(audioModel, this.getId());
+            return Promise.resolve({
+                success: true, 
+                data: result
+            });
+        } catch (deleteError) {
+            return Promise.resolve({
+                success: false, 
+                message: deleteError,
+                details: "Couldn't delete Audio from database"
+            });
+        }
+    }
+
+    static async deleteFromDB(id){
+        try {
+            let result = await DB.deleteFromDB(audioModel, id);
             return Promise.resolve({
                 success: true, 
                 data: result

@@ -1,3 +1,5 @@
+const CONFIG = require("../../config/server_config");
+
 const validatePostAudioRequest = (req) => {
     let body = req.body;
     if(!body.description){
@@ -59,6 +61,12 @@ const validateGetAudioRequest = (req) => {
             details: "limit field is required and different to 0 !"
         };
     }
+    if(body.limit>CONFIG.AUDIO_GET_PARAMS.MAX_LIMIT_NUMBER){
+        return {
+            success: false,
+            details: "limit field can't exceed "+CONFIG.AUDIO_GET_PARAMS.MAX_LIMIT_NUMBER+" !"
+        };
+    }
     if(!(body.skip || body.skip == 0) ){
         return {
             success: false,
@@ -68,5 +76,38 @@ const validateGetAudioRequest = (req) => {
     return {success: true};
 }
 
+
+const validateUpdateAudioRequest = (req) => {
+    let body = req.body;
+    if(!body.description){
+        return {
+            success: false,
+            details: "description field is required !"
+        };
+    } 
+    if(!body.keywords){
+        return {
+            success: false,
+            details: "keywords field is required !"
+        };
+    }
+    if(! Array.isArray(body.keywords)){
+        return {
+            success: false,
+            details: "keywords has to be an array of String !"
+        };
+    }
+    if(!body._id){
+        return {
+            success: false,
+            details: "_id field is required !"
+        };
+    }
+
+    return {
+        success: true
+    };
+}
 exports.validatePostAudioRequest = validatePostAudioRequest;
 exports.validateGetAudioRequest = validateGetAudioRequest;
+exports.validateUpdateAudioRequest = validateUpdateAudioRequest;

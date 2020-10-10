@@ -40,7 +40,7 @@ const DB = {
             });
         }
         try {
-            let removedCollection = await collection.remove({_id: id});
+            let removedCollection = await collection.deleteOne({_id: id});
             return Promise.resolve({removedCollection});
         } catch (deleteError) {
             return Promise.reject({message: deleteError});

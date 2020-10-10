@@ -13,8 +13,18 @@ router.get("/:audioId", (req, res) => {
 router.get("/", (req, res) => {
     audioController.getManyAudios(req, res);
 });
+
 router.get("/file/:fileName", (req, res) => {
     audioController.getAudioFile(req, res);
 });
+
+router.delete("/:audioId", (req, res) => {
+    audioController.deleteAudio(req, res);
+});
+
+router.put("/", (req, res) => {
+    audioController.updateAudio(req, res);
+});
+
 
 module.exports = router;
