@@ -1,11 +1,8 @@
-//let express = require("express");
 let Audio = require("../model/Audio");
-//let mongoose = require("mongoose");
-//let DB = require("../model/db_crud");
 const CONFIG = require("../config/server_config");
-let requestValidator = require("./utils/request_validator");
-let audioFileUploader = require("./utils/audio_file_uploader");
-let audioUtils = require("./utils/audio_utils");
+let requestValidator = require("./utils/audio/audio_request_validator");
+let audioFileUploader = require("./utils/audio/audio_file_uploader");
+let audioUtils = require("./utils/audio/audio_utils");
 const rootDirPath = "../";
 
 let postAudio = async (req, res) => {

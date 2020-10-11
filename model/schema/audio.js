@@ -7,7 +7,8 @@ let AudioSchema = mongoose.Schema({
     },
     description: {
         type: String,
-        required: true
+        required: true,
+        max: 500
     },
     date: {
         type: Date,
@@ -15,7 +16,8 @@ let AudioSchema = mongoose.Schema({
     },
     keywords: {
         type: [String],
-        required: true
+        required: true,
+        max: 25
     }
 });
 

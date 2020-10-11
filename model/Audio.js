@@ -1,4 +1,4 @@
-let _ = require("lodash")
+let _ = require("lodash");
 let audioModel = require("./schema/audio");
 let DB = require("../model/db_crud");
 const CONFIG = require("../config/server_config");
@@ -67,7 +67,7 @@ class Audio{
             return Promise.resolve({
                 success: false, 
                 message: updateError,
-                details: "Couldn't aupdate Audio from database"
+                details: "Couldn't aupdate the audio from the database"
             });
         }
     }
@@ -83,7 +83,7 @@ class Audio{
             return Promise.resolve({
                 success: false, 
                 message: deleteError,
-                details: "Couldn't delete Audio from database"
+                details: "Couldn't delete the audio from the database"
             });
         }
     }
@@ -99,7 +99,7 @@ class Audio{
             return Promise.resolve({
                 success: false, 
                 message: deleteError,
-                details: "Couldn't delete Audio from database"
+                details: "Couldn't delete the audio from the database"
             });
         }
     }
@@ -117,7 +117,7 @@ class Audio{
             return Promise.resolve({
                 success: false, 
                 message: deleteError,
-                details: "Couldn't find Audio from database"
+                details: "Couldn't find the audio from the database"
             });
         }
     }
@@ -135,7 +135,7 @@ class Audio{
             return Promise.resolve({
                 success: false, 
                 message: deleteError,
-                details: "Couldn't find Audio from database"
+                details: "Couldn't find the audio from the database"
             });
         }
     }
@@ -161,7 +161,7 @@ class Audio{
             return Promise.resolve({
                 success: false, 
                 message: deleteError,
-                details: "Couldn't find Audio from database"
+                details: "Couldn't find any audio from the database"
             });
         }
     }
@@ -194,7 +194,7 @@ class Audio{
             return Promise.resolve({
                 success: false, 
                 message: deleteError,
-                details: "Couldn't find Audio from database"
+                details: "Couldn't find any audio from the database"
             });
         }
     }

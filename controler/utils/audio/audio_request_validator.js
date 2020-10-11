@@ -1,4 +1,4 @@
-const CONFIG = require("../../config/server_config");
+const CONFIG = require("../../../config/server_config");
 
 const validatePostAudioRequest = (req) => {
     let body = req.body;

@@ -5,6 +5,7 @@ let expressFileupload = require("express-fileupload");
 //local files requirements
 const CONFIG = require("./config/server_config");
 let audioRoutes = require("./routes/audio");
+let adminRoutes = require("./routes/admin");
 
 
 //MIDDLEWARES
@@ -17,6 +18,7 @@ server.use(expressFileupload({
 
 //ROUTES
 server.use("/audios", audioRoutes);
+server.use("/admins", adminRoutes);
 
 
 //Listening at the port defined in the server_config
