@@ -1,8 +1,9 @@
 let express = require("express");
 let router = express.Router();
+let {verifyAdminToken} = require("../controler/utils/verify_token");
 let audioController = require("../controler/audio");
 
-router.post("/", (req, res) => {
+router.post("/", verifyAdminToken, (req, res) => {
     audioController.postAudio(req, res);
 });
 
@@ -18,11 +19,11 @@ router.get("/file/:fileName", (req, res) => {
     audioController.getAudioFile(req, res);
 });
 
-router.delete("/:audioId", (req, res) => {
+router.delete("/:audioId", verifyAdminToken, (req, res) => {
     audioController.deleteAudio(req, res);
 });
 
-router.put("/", (req, res) => {
+router.put("/", verifyAdminToken, (req, res) => {
     audioController.updateAudio(req, res);
 });
 

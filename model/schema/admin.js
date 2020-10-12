@@ -29,6 +29,10 @@ let AdminSchema = mongoose.Schema({
     date: {
         type: Date,
         default: Date.now()
+    },
+    isSuperAdmin: {
+        type: Boolean,
+        default: false
         
     }
 });

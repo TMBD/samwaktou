@@ -1,5 +1,6 @@
 let bcryptejs = require("bcryptjs");
-let Audio = require("../model/Admin");
+let jwt = require("jsonwebtoken");
+require("dotenv/config");
 const CONFIG = require("../config/server_config");
 let requestValidator = require("./utils/admin/admin_request_validator");
 const Admin = require("../model/Admin");
@@ -13,7 +14,7 @@ let postAdmin = async (req, res) => {
             if(foundAdmin.admin === null){
                 const salt = await bcryptejs.genSalt(10);
                 const hashedPassword = await bcryptejs.hash(req.body.password, salt);
-                let admin = new Admin(req.body.surname, req.body.name, req.body.email, hashedPassword, undefined, null);
+                let admin = new Admin(req.body.surname, req.body.name, req.body.email, hashedPassword, undefined, undefined, undefined);
                 let result = await admin.saveToDB();
                 if(result.success){
                     res.status(CONFIG.HTTP_CODE.OK);
@@ -22,7 +23,8 @@ let postAdmin = async (req, res) => {
                         surname: result.data.surname,
                         name: result.data.name,
                         email: result.data.email,
-                        date: result.data.date
+                        date: result.data.date,
+                        isSuperAdmin: result.data.isSuperAdmin
                     });
                 }else{
                     res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
@@ -50,169 +52,203 @@ let postAdmin = async (req, res) => {
     }
 }
 
-// let getAudio = async (req, res) => {
-//     if(req.params.audioId){
-//         let findAudioResult = await Audio.findOneAudioFromDBById(req.params.audioId);
-//         if(findAudioResult.success){
-//             if(findAudioResult.audio === null){
-//                 res.status(CONFIG.HTTP_CODE.PAGE_NOT_FOUND_ERROR);
-//                 res.json({});
-//             }else{
-//                 res.status(CONFIG.HTTP_CODE.OK);
-//                 res.json(findAudioResult.audio);
-//             }
-            
-//         }
-//         else{
-//             res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
-//             res.json({
-//                 message: findAudioResult.message,
-//                 details: findAudioResult.details
-//             });
-//         }
 
-//     }else{
-//         res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
-//         res.json({
-//             message: "BAD REQUEST ERROR, PLEASE VERIFY YOUR REQUEST AND ENSURE THAT ALL THE FIELDS ARE SETUP WELL !", 
-//             details: "No audio id found"
-//         });
-//     }
+let getAdmin = async (req, res) => {
+    if(req.params.adminId){
+        let findAdminResult = await Admin.findOneAdminFromDBById(req.params.adminId);
+        if(findAdminResult.success){
+            if(findAdminResult.admin === null){
+                res.status(CONFIG.HTTP_CODE.PAGE_NOT_FOUND_ERROR);
+                res.json({});
+            }else{
+                res.status(CONFIG.HTTP_CODE.OK);
+                res.json({
+                    _id: findAdminResult.admin._id,
+                    surname: findAdminResult.admin.surname,
+                    name: findAdminResult.admin.name,
+                    email: findAdminResult.admin.email,
+                    date: findAdminResult.admin.date,
+                    isSuperAdmin: findAdminResult.admin.isSuperAdmin
+                });
+            }
+        }else{
+            res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+            res.json({
+                message: findAdminResult.message,
+                details: findAdminResult.details
+            });
+        }
+    }else{
+        res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
+        res.json({
+            message: "BAD REQUEST ERROR, PLEASE VERIFY YOUR REQUEST AND ENSURE THAT ALL THE FIELDS ARE SETUP WELL !", 
+            details: "No admin id found !"
+        });
+    }
+}
 
-// }
-
-// let getManyAudios = async(req, res) => {
-
-//     let reqValidation = requestValidator.validateGetAudioRequest(req);
-//     if(reqValidation.success){
-//         let matchAll = req.body.matchAll ? req.body.matchAll : false;
-//         console.log(matchAll)
-//         let findAudiosResults;
-//         if(matchAll) findAudiosResults = await Audio.findAudiosFromDBByKeywordsMatchAll(req.body.keywords, req.body.skip, req.body.limit);
-//         else findAudiosResults = await Audio.findAudiosFromDBByKeywordsMatchAny(req.body.keywords, req.body.skip, req.body.limit);
-//         if(findAudiosResults.success){
-//             if(findAudiosResults.audios === null){
-//                 res.status(CONFIG.HTTP_CODE.PAGE_NOT_FOUND_ERROR);
-//                 res.json({});
-//             }else{
-//                 //faire ici le boucle de download du fichier
-//                 res.status(CONFIG.HTTP_CODE.OK);
-//                 res.json(findAudiosResults.audios);
-//             }
-            
-
-//         }else{
-//             res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
-//             res.json({
-//                 message: findAudiosResults.message,
-//                 details: findAudiosResults.details
-//             });
-//         }
-//     }else{
-//         res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
-//         res.json({
-//             message: "BAD REQUEST ERROR, PLEASE VERIFY YOUR REQUEST AND ENSURE THAT ALL THE FIELDS ARE SETUP WELL !", 
-//             details: reqValidation.details
-//         });
-//     }
-    
-// }
-
-// let getAudioFile = async (req, res) => {
-//     let fileName = req.params.fileName;
-//     res.sendFile(CONFIG.FILE_LOCATION.AUDIO_FILE_LOCATION+fileName, { root: __dirname+"/../" });
-// }
-
-// let deleteAudio = async (req, res) => {
-//     let findAudioResult = await Audio.findOneAudioFromDBById(req.params.audioId);
-//     if(findAudioResult.success){
-//         if(findAudioResult.audio === null){
-//             res.status(CONFIG.HTTP_CODE.PAGE_NOT_FOUND_ERROR);
-//             res.json({
-//                 message: "Couldn't delete audio !",
-//                 details: "No audio with this _id has been found in the database !"
-//             });
-//         }else{
-//             let deleteResult = await Audio.deleteFromDB(req.params.audioId);
-//             if(deleteResult.success){
-//                 let deleteAudioFileResult = await audioUtils.removeAudioFile(findAudioResult.audio.uri);
-//                 if(deleteAudioFileResult.success){
-//                     res.status(CONFIG.HTTP_CODE.OK);
-//                     res.json(deleteResult.data);
-//                 }else{
-//                     res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
-//                     res.json({
-//                         message: deleteAudioFileResult.message,
-//                         details: "The audio has been deleted successfully from the database but couldn't delete the file from the server !"
-//                     });
-//                 }
-//             }else{
-//                 res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
-//                 res.json({
-//                     message: deleteResult.message,
-//                     details: deleteResult.details
-//                 });
-//             }
-//         }
-//     }else{
-//         res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
-//         res.json({
-//             message: findAudioResult.message,
-//             details: findAudioResult.details
-//         });
-//     } 
-// }
-
-
-// let updateAudio = async (req, res) => {
-//     let reqValidation = requestValidator.validateUpdateAudioRequest(req);
-//     if(reqValidation.success){
-//         let findAudioResult = await Audio.findOneAudioFromDBById(req.body._id);
-//         if(findAudioResult.success){
-//             if(findAudioResult.audio === null){
-//                 res.status(CONFIG.HTTP_CODE.PAGE_NOT_FOUND_ERROR);
-//                 res.json({
-//                     message: "Couldn't update audio !",
-//                     details: "No audio with this _id has been found in the database !"
-//                 });
-//             }else{
-//                 let audio = new Audio(findAudioResult.audio.uri, req.body.description, req.body.keywords, req.body.date, findAudioResult.audio._id);
-//                 let updateResult = await audio.updateToDB();
-//                 if(updateResult.success){
-//                     res.status(CONFIG.HTTP_CODE.OK);
-//                     res.json(updateResult.data);
-//                 }else{
-//                     res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
-//                     res.json({
-//                         message: updateResult.message,
-//                         details: updateResult.details
-//                     });
-//                 }
-//             }
-//         }else{
-//             res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
-//             res.json({
-//                 message: findAudioResult.message,
-//                 details: findAudioResult.details
-//             });
-//         }
-//     }else{
-//         res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
-//         res.json({
-//             message: "BAD REQUEST ERROR, PLEASE VERIFY YOUR REQUEST AND ENSURE THAT ALL THE FIELDS ARE SETUP WELL !", 
-//             details: reqValidation.details
-//         });
-//     }
-// }
+let getManyAdmins = async(req, res) => {
+    let reqValidation = requestValidator.validateGetAdminRequest(req.body);
+    if(!reqValidation.error){
+        let limitAdminToFind = (req.body.limit) ? req.body.limit : CONFIG.ADMIN_GET_PARAMS.DEFAULT_LIMIT_NUMBER;
+        let skipAdminToFind = (req.body.skip) ? req.body.skip : CONFIG.ADMIN_GET_PARAMS.DEFAULT_SKIP_NUMBER;
+        let findAdminsResults = await Admin.getAdmins(skipAdminToFind, limitAdminToFind);
+        if(findAdminsResults.success){
+            if(findAdminsResults.admins === null){
+                res.status(CONFIG.HTTP_CODE.PAGE_NOT_FOUND_ERROR);
+                res.json({});
+            }else{
+                res.status(CONFIG.HTTP_CODE.OK);
+                res.json(findAdminsResults.admins);
+            }
+        }else{
+            res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+            res.json({
+                message: findAdminsResults.message,
+                details: findAdminsResults.details
+            });
+        }
+    }else{
+        res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
+        res.json(reqValidation.error.details);
+    }
+}
 
 
 
+let deleteAdmin = async (req, res) => {
+    let findAdminResult = await Admin.findOneAdminFromDBById(req.params.adminId);
+    if(findAdminResult.success){
+        if(findAdminResult.admin === null){
+            res.status(CONFIG.HTTP_CODE.PAGE_NOT_FOUND_ERROR);
+            res.json({
+                message: "Couldn't delete admin !",
+                details: "No admin with this _id has been found in the database !"
+            });
+        }else{
+            let deleteResult = await Admin.deleteFromDB(req.params.adminId);
+            if(deleteResult.success){
+                res.status(CONFIG.HTTP_CODE.OK);
+                res.json(deleteResult.data);
+            }else{
+                res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+                res.json({
+                    message: deleteResult.message,
+                    details: deleteResult.details
+                });
+            }
+        }
+    }else{
+        res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+        res.json({
+            message: findAdminResult.message,
+            details: findAdminResult.details
+        });
+    } 
+}
 
+
+
+let updateAdmin = async (req, res) => {
+    let reqValidation = requestValidator.validateUpdateAdminRequest(req.body);
+    if(!reqValidation.error){
+        let findAdminResult = await Admin.findOneAdminFromDBById(req.body._id);
+        if(findAdminResult.success){
+            if(findAdminResult.admin === null){
+                res.status(CONFIG.HTTP_CODE.PAGE_NOT_FOUND_ERROR);
+                res.json({
+                    message: "Couldn't update admin !",
+                    details: "No admin with this _id has been found in the database !"
+                });
+            }else{
+                let findIfEmailExistResult = await Admin.findOneAdminFromDBByEmail(req.body.email);
+                if(findIfEmailExistResult.success){
+                    if(findIfEmailExistResult.admin === null || req.body.email == findAdminResult.admin.email){
+                        let admin = new Admin(req.body.surname, req.body.name, req.body.email, findAdminResult.admin.password, findAdminResult.admin.date, findAdminResult.admin._id, findAdminResult.admin.isSuperAdmin);
+                        let updateResult = await admin.updateToDB();
+                        if(updateResult.success){
+                            res.status(CONFIG.HTTP_CODE.OK);
+                            res.json(updateResult.data);
+                        }else{
+                            res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+                            res.json({
+                                message: updateResult.message,
+                                details: updateResult.details
+                            });
+                        }
+                    }else{
+                        res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
+                        res.json({
+                            message: "Couldn't update admin !",
+                            details: "An admin with this email already existe in the database !"
+                        });
+                    }
+                }else{
+                    res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+                    res.json({
+                        message: findIfEmailExistResult.message,
+                        details: "This error occured while trying to search if an admin with the same email existe in the database !"
+                    });
+                }
+            }
+        }else{
+            res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+            res.json({
+                message: findAdminResult.message,
+                details: findAdminResult.details
+            });
+        }
+    }else{
+        res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
+        res.json(reqValidation.error.details);
+    }
+}
+
+
+let loginAdmin = async (req, res) => {
+    let reqValidation = requestValidator.validateLoginAdminRequest(req.body);
+    if(!reqValidation.error){
+        let findAdminResult = await Admin.findOneAdminFromDBByEmail(req.body.email);
+        if(findAdminResult.success){
+            if(findAdminResult.admin === null){
+                res.status(CONFIG.HTTP_CODE.PAGE_NOT_FOUND_ERROR);
+                res.json({
+                    message: "Invalid email !"
+                });
+            }else{
+                const validePass = await bcryptejs.compare(req.body.password, findAdminResult.admin.password);
+                if(validePass){
+                    const token = jwt.sign({_id: findAdminResult.admin._id, isSuperAdmin: findAdminResult.admin.isSuperAdmin}, process.env.TOKEN_SECRET, {expiresIn: "1h"});
+                    res.header("auth-token", token);
+                    res.status(CONFIG.HTTP_CODE.OK);
+                    res.json({
+                        _id: findAdminResult.admin._id,
+                        isSuperAdmin: findAdminResult.admin.isSuperAdmin
+                    });
+                }else{
+                    res.status(CONFIG.HTTP_CODE.PAGE_NOT_FOUND_ERROR);
+                    res.json({
+                        message: "Invalid password !"
+                    });
+                }
+                
+            }
+        }else{
+            res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+            res.json({
+                message: findAdminResult.message,
+                details: findAdminResult.details
+            });
+        }
+    }else{
+        res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
+        res.json(reqValidation.error.details);
+    }
+}
 
 exports.postAdmin = postAdmin;
-// exports.getAudio = getAudio;
-// exports.getManyAudios = getManyAudios;
-// exports.getAudioFile = getAudioFile;
-// exports.getAudioFile = getAudioFile;
-// exports.deleteAudio = deleteAudio;
-// exports.updateAudio = updateAudio;
+exports.getAdmin = getAdmin;
+exports.getManyAdmins = getManyAdmins;
+exports.deleteAdmin = deleteAdmin;
+exports.updateAdmin = updateAdmin;
+exports.loginAdmin = loginAdmin;

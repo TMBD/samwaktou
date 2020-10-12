@@ -64,7 +64,6 @@ let getAudio = async (req, res) => {
                 res.status(CONFIG.HTTP_CODE.OK);
                 res.json(findAudioResult.audio);
             }
-            
         }
         else{
             res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
@@ -81,11 +80,9 @@ let getAudio = async (req, res) => {
             details: "No audio id found"
         });
     }
-
 }
 
 let getManyAudios = async(req, res) => {
-
     let reqValidation = requestValidator.validateGetAudioRequest(req);
     if(reqValidation.success){
         let matchAll = req.body.matchAll ? req.body.matchAll : false;
@@ -102,8 +99,6 @@ let getManyAudios = async(req, res) => {
                 res.status(CONFIG.HTTP_CODE.OK);
                 res.json(findAudiosResults.audios);
             }
-            
-
         }else{
             res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
             res.json({
@@ -118,7 +113,6 @@ let getManyAudios = async(req, res) => {
             details: reqValidation.details
         });
     }
-    
 }
 
 let getAudioFile = async (req, res) => {
@@ -215,7 +209,6 @@ let updateAudio = async (req, res) => {
 exports.postAudio = postAudio;
 exports.getAudio = getAudio;
 exports.getManyAudios = getManyAudios;
-exports.getAudioFile = getAudioFile;
 exports.getAudioFile = getAudioFile;
 exports.deleteAudio = deleteAudio;
 exports.updateAudio = updateAudio;

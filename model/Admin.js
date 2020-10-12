@@ -5,13 +5,14 @@ const CONFIG = require("../config/server_config");
 
 
 class Admin{
-    constructor(surname, name, email, password, date, id){
+    constructor(surname, name, email, password, date, id, isSuperAdmin){
         this.surname = surname;
         this.name = name;
         this.email = email;
         this.date = date;
         this.id = id;
         this.password = password;
+        this.isSuperAdmin = isSuperAdmin;
     }
 
     getSurname(){return this.surname;}
@@ -20,6 +21,7 @@ class Admin{
     getId(){return this.password;}
     getDate(){return this.date;}
     getId(){return this.id;}
+    getIsSuperAdmin(){return this.isSuperAdmin;}
     
 
     setSurname(surname){this.surname = surname;}
@@ -28,6 +30,7 @@ class Admin{
     setEmail(password){this.password = password;}
     setDate(date){this.date = date;}
     setId(id){this.id = id;}
+    setIsSuperAdmin(isSuperAdmin){this.isSuperAdmin = isSuperAdmin;}
 
 
     getAdminModelStruct(){
@@ -36,7 +39,8 @@ class Admin{
             name: this.name,
             email: this.email,
             password: this.password,
-            date: this.date
+            date: this.date,
+            isSuperAdmin: this.isSuperAdmin
         });
     }
 
@@ -46,7 +50,9 @@ class Admin{
             name: this.name,
             email: this.email,
             password: this.password,
-            date: this.date
+            date: this.date,
+            isSuperAdmin: this.isSuperAdmin
+
         };
     }
 
@@ -139,14 +145,14 @@ class Admin{
             return Promise.resolve({
                 success: false, 
                 message: deleteError,
-                details: "Couldn't find admin from the database"
+                details: "Couldn't find any admin from the database !"
             });
         }
     }
 
     static async getAdmins(skipNumber, limitNumber){
         try {
-            let data = await DB.findMany(adminModel, null, null, skipNumber, limitNumber);
+            let data = await DB.findMany(adminModel, null, "_id surname name email date isSuperAdmin", skipNumber, limitNumber);
             if(_.isEmpty(data)){
                 return Promise.resolve({
                     success: true, 

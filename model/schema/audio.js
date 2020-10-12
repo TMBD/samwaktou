@@ -1,4 +1,5 @@
 let mongoose = require("mongoose");
+let {AUDIO_VALIDATION_CONFIG} = require("../../config/server_config");
 
 let AudioSchema = mongoose.Schema({
     uri:{
@@ -8,7 +9,8 @@ let AudioSchema = mongoose.Schema({
     description: {
         type: String,
         required: true,
-        max: 500
+        max: AUDIO_VALIDATION_CONFIG.MAX_DESCRIPTION_CHAR,
+        min: AUDIO_VALIDATION_CONFIG.MIN_DESCRIPTION_CHAR
     },
     date: {
         type: Date,
@@ -17,7 +19,8 @@ let AudioSchema = mongoose.Schema({
     keywords: {
         type: [String],
         required: true,
-        max: 25
+        max: AUDIO_VALIDATION_CONFIG.MAX_KEYWORDS_CHAR,
+        min: AUDIO_VALIDATION_CONFIG.MIN_KEYWORDS_CHAR
     }
 });
 
