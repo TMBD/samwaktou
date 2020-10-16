@@ -49,6 +49,10 @@ router.put("/", verifyAdminToken, (req, res) => {
     }
 });
 
+router.put("/password", verifyAdminToken, (req, res) => {
+    adminController.updateAdminPassword(req, res);
+});
+
 
 router.post("/login", (req, res) => {
     adminController.loginAdmin(req, res);

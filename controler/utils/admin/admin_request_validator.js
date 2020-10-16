@@ -52,6 +52,18 @@ const validateUpdateAdminRequest = (body) => {
     return schema.validate(body);
 }
 
+const validateUpdateAdminPasswordRequest = (body) => {
+    const schema = Joi.object({
+        password: Joi.string()
+            .required(),
+        newPassword: Joi.string()
+            .min(ADMIN_VALIDATION_CONFIG.MIN_PASSWORD_CHAR)
+            .max(ADMIN_VALIDATION_CONFIG.MAX_PASSWORD_CHAR)
+            .required()
+    });
+    return schema.validate(body);
+}
+
 const validateLoginAdminRequest = (body) => {
     const schema = Joi.object({
         email: Joi.string()
@@ -69,3 +81,4 @@ exports.validatePostAdminRequest = validatePostAdminRequest;
 exports.validateLoginAdminRequest = validateLoginAdminRequest;
 exports.validateGetAdminRequest = validateGetAdminRequest;
 exports.validateUpdateAdminRequest = validateUpdateAdminRequest;
+exports.validateUpdateAdminPasswordRequest = validateUpdateAdminPasswordRequest;

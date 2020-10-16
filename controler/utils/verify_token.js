@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 const CONFIG = require("../../config/server_config");
+require("dotenv/config");
 
 const verifyAdminToken = (req, res, next) => {
     const token = req.header("auth-token");
@@ -12,7 +13,11 @@ const verifyAdminToken = (req, res, next) => {
     }else{
         try {
             const verifiedToken = jwt.verify(token, process.env.TOKEN_SECRET);
-            req.token = verifiedToken;
+
+            const newToken = jwt.sign({_id: verifiedToken._id, isSuperAdmin: verifiedToken.isSuperAdmin}, process.env.TOKEN_SECRET, {expiresIn: "30m"});
+            res.header("auth-token", newToken);
+            const verifiedNewToken = jwt.verify(newToken, process.env.TOKEN_SECRET);
+            req.token = verifiedNewToken;
             next();
         } catch (veriryTokenError) {
             res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);

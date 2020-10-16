@@ -69,7 +69,6 @@ class Admin{
 
     async updateToDB(){
         try {
-            //let result = await DB.updateOne(this.getAudioModelStruct(), this.getId(), this.getAudioModelStruct());
             let result = await DB.updateOne(adminModel, this.getId(), this.getStruct());
             return Promise.resolve({
                 success: true, 
@@ -83,6 +82,22 @@ class Admin{
             });
         }
     }
+
+    // static async updatePasswordToDB(id, newPasword){
+    //     try {
+    //         let result = await DB.updateOne(adminModel, id, {password: this.password});
+    //         return Promise.resolve({
+    //             success: true, 
+    //             data: result
+    //         });
+    //     } catch (updateError) {
+    //         return Promise.resolve({
+    //             success: false, 
+    //             message: updateError,
+    //             details: "Couldn't aupdate admin's password from the database"
+    //         });
+    //     }
+    // }
 
     async deleteFromDB(){
         try {

@@ -1,3 +1,4 @@
+let _ = require("lodash");
 let Audio = require("../model/Audio");
 const CONFIG = require("../config/server_config");
 let requestValidator = require("./utils/audio/audio_request_validator");
@@ -11,7 +12,9 @@ let postAudio = async (req, res) => {
         var audio = new Audio(req.body.uri, req.body.description, req.body.keywords, req.body.date, null);
         let result = await audio.saveToDB();
         if(result.success){
-            let uploadResult = await audioFileUploader(req.files.audio, result.data._id+".mp3");
+            const splitedFileName = _.split(req.files.audio.name, ".");
+            const fileExtension = splitedFileName[splitedFileName.length-1];
+            let uploadResult = await audioFileUploader(req.files.audio, result.data._id+"."+fileExtension);
             if(uploadResult.success){
                 audio.setUri(uploadResult.uri);
                 let updateResult = await audio.updateToDB();
@@ -86,10 +89,11 @@ let getManyAudios = async(req, res) => {
     let reqValidation = requestValidator.validateGetAudioRequest(req);
     if(reqValidation.success){
         let matchAll = req.body.matchAll ? req.body.matchAll : false;
-        console.log(matchAll)
+        let skip = req.body.skip ? req.body.skip : CONFIG.AUDIO_GET_PARAMS.DEFAULT_SKIP_NUMBER;
+        let limit = req.body.limit ? req.body.limit : CONFIG.AUDIO_GET_PARAMS.DEFAULT_LIMIT_NUMBER;
         let findAudiosResults;
-        if(matchAll) findAudiosResults = await Audio.findAudiosFromDBByKeywordsMatchAll(req.body.keywords, req.body.skip, req.body.limit);
-        else findAudiosResults = await Audio.findAudiosFromDBByKeywordsMatchAny(req.body.keywords, req.body.skip, req.body.limit);
+        if(matchAll) findAudiosResults = await Audio.findAudiosFromDBByKeywordsMatchAll(req.body.keywords, skip, limit);
+        else findAudiosResults = await Audio.findAudiosFromDBByKeywordsMatchAny(req.body.keywords, skip, limit);
         if(findAudiosResults.success){
             if(findAudiosResults.audios === null){
                 res.status(CONFIG.HTTP_CODE.PAGE_NOT_FOUND_ERROR);

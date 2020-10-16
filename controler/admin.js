@@ -205,6 +205,57 @@ let updateAdmin = async (req, res) => {
 }
 
 
+let updateAdminPassword = async (req, res) => {
+    let reqValidation = requestValidator.validateUpdateAdminPasswordRequest(req.body);
+    if(!reqValidation.error){
+        let findAdminResult = await Admin.findOneAdminFromDBById(req.token._id);
+        if(findAdminResult.success){
+            if(findAdminResult.admin === null){
+                res.status(CONFIG.HTTP_CODE.PAGE_NOT_FOUND_ERROR);
+                res.json({
+                    message: "Couldn't update admin !",
+                    details: "No admin with the provided _id has been found in the database !"
+                });
+            }else{
+                const validePass = await bcryptejs.compare(req.body.password, findAdminResult.admin.password);
+                if(validePass){
+
+                    const salt = await bcryptejs.genSalt(10);
+                    const hashedPassword = await bcryptejs.hash(req.body.newPassword, salt);
+                    let admin = new Admin(findAdminResult.admin.surname, findAdminResult.admin.name, findAdminResult.admin.email, hashedPassword, findAdminResult.admin.date, findAdminResult.admin._id, findAdminResult.admin.isSuperAdmin);
+                    let updateResult = await admin.updateToDB();
+                    if(updateResult.success){
+                        res.status(CONFIG.HTTP_CODE.OK);
+                        res.json(updateResult.data);
+                    }else{
+                        res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+                        res.json({
+                            message: updateResult.message,
+                            details: updateResult.details
+                        });
+                    }
+                }else{
+                    res.status(CONFIG.HTTP_CODE.ACCESS_DENIED_ERROR);
+                    res.json({
+                        message: "Wrong password !",
+                        details: "The password you provided doesn't match !"
+                    });
+                }
+            }
+        }else{
+            res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+            res.json({
+                message: findAdminResult.message,
+                details: findAdminResult.details
+            });
+        }
+    }else{
+        res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
+        res.json(reqValidation.error.details);
+    }
+}
+
+
 let loginAdmin = async (req, res) => {
     let reqValidation = requestValidator.validateLoginAdminRequest(req.body);
     if(!reqValidation.error){
@@ -218,7 +269,7 @@ let loginAdmin = async (req, res) => {
             }else{
                 const validePass = await bcryptejs.compare(req.body.password, findAdminResult.admin.password);
                 if(validePass){
-                    const token = jwt.sign({_id: findAdminResult.admin._id, isSuperAdmin: findAdminResult.admin.isSuperAdmin}, process.env.TOKEN_SECRET, {expiresIn: "1h"});
+                    const token = jwt.sign({_id: findAdminResult.admin._id, isSuperAdmin: findAdminResult.admin.isSuperAdmin}, process.env.TOKEN_SECRET, {expiresIn: "30m"});
                     res.header("auth-token", token);
                     res.status(CONFIG.HTTP_CODE.OK);
                     res.json({
@@ -231,7 +282,6 @@ let loginAdmin = async (req, res) => {
                         message: "Invalid password !"
                     });
                 }
-                
             }
         }else{
             res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
@@ -251,4 +301,5 @@ exports.getAdmin = getAdmin;
 exports.getManyAdmins = getManyAdmins;
 exports.deleteAdmin = deleteAdmin;
 exports.updateAdmin = updateAdmin;
+exports.updateAdminPassword = updateAdminPassword;
 exports.loginAdmin = loginAdmin;

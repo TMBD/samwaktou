@@ -1,4 +1,6 @@
+let _ = require("lodash");
 const CONFIG = require("../../../config/server_config");
+
 
 const validatePostAudioRequest = (req) => {
     let body = req.body;
@@ -7,7 +9,21 @@ const validatePostAudioRequest = (req) => {
             success: false,
             details: "description field is required !"
         };
-    } 
+    }
+    if(!_.isString(body.description)){
+        return {
+            success: false,
+            details: "description field has to be string type!"
+        };
+    }
+    if(body.description.length <CONFIG.AUDIO_VALIDATION_CONFIG.MIN_DESCRIPTION_CHAR 
+        || body.description.length>CONFIG.AUDIO_VALIDATION_CONFIG.MAX_DESCRIPTION_CHAR){
+        return {
+            success: false,
+            details: "The number of description characters must be between "+CONFIG.AUDIO_VALIDATION_CONFIG.MIN_DESCRIPTION_CHAR
+            +" and "+CONFIG.AUDIO_VALIDATION_CONFIG.MAX_DESCRIPTION_CHAR
+        };
+    }
     if(!body.keywords){
         return {
             success: false,
@@ -55,19 +71,23 @@ const validateGetAudioRequest = (req) => {
             details: "keywods has to be an array of String !"
         };
     }
-    if(!body.limit){
-        return {
-            success: false,
-            details: "limit field is required and different to 0 !"
-        };
+
+    if(body.limit !== undefined){
+        if(!body.limit){
+            return {
+                success: false,
+                details: "limit field is required and different to 0 !"
+            };
+        }
+        if(body.limit>CONFIG.AUDIO_GET_PARAMS.MAX_LIMIT_NUMBER){
+            return {
+                success: false,
+                details: "limit field can't exceed "+CONFIG.AUDIO_GET_PARAMS.MAX_LIMIT_NUMBER+" !"
+            };
+        }
     }
-    if(body.limit>CONFIG.AUDIO_GET_PARAMS.MAX_LIMIT_NUMBER){
-        return {
-            success: false,
-            details: "limit field can't exceed "+CONFIG.AUDIO_GET_PARAMS.MAX_LIMIT_NUMBER+" !"
-        };
-    }
-    if(!(body.skip || body.skip == 0) ){
+    
+    if(body.skip !== undefined && !(body.skip || body.skip == 0)){
         return {
             success: false,
             details: "skip field is required !"
@@ -75,7 +95,6 @@ const validateGetAudioRequest = (req) => {
     }
     return {success: true};
 }
-
 
 const validateUpdateAudioRequest = (req) => {
     let body = req.body;
@@ -85,6 +104,20 @@ const validateUpdateAudioRequest = (req) => {
             details: "description field is required !"
         };
     } 
+    if(!_.isString(body.description)){
+        return {
+            success: false,
+            details: "description field has to be string type!"
+        };
+    }
+    if(body.description.length <CONFIG.AUDIO_VALIDATION_CONFIG.MIN_DESCRIPTION_CHAR 
+        || body.description.length>CONFIG.AUDIO_VALIDATION_CONFIG.MAX_DESCRIPTION_CHAR){
+        return {
+            success: false,
+            details: "The number of description characters must be between "+CONFIG.AUDIO_VALIDATION_CONFIG.MIN_DESCRIPTION_CHAR
+            +" and "+CONFIG.AUDIO_VALIDATION_CONFIG.MAX_DESCRIPTION_CHAR
+        };
+    }
     if(!body.keywords){
         return {
             success: false,
