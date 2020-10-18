@@ -12,7 +12,6 @@ const DB = {
                 details: "Couldn't connect to the db !"
             });
         }
-        console.log("connected to the db");
         try{
             let data = await collection.save();
             return Promise.resolve({
@@ -98,6 +97,24 @@ const DB = {
         }
         try {
             let result = await collection.find(query, fieldsToReturn, { skip: skipNumber, limit: limitNumber });
+            return Promise.resolve(result);
+        } catch (findError) {
+            return Promise.reject(findError);
+        }
+    },
+
+    findLatestRecords: async (collection, query, fieldsToReturn, skipNumber, limitNumber) => {
+        try {
+            await connectToDB();
+        } catch (dbConnectionError) {
+            return Promise.reject({
+                success: false,
+                message: dbConnectionError,
+                details: "Couldn't connect to the db !"
+            });
+        }
+        try {
+            let result = await collection.find(query, fieldsToReturn, {sort: { 'date' : -1 }, skip: skipNumber, limit: limitNumber });
             return Promise.resolve(result);
         } catch (findError) {
             return Promise.reject(findError);

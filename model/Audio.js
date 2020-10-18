@@ -5,8 +5,9 @@ const CONFIG = require("../config/server_config");
 
 
 class Audio{
-    constructor(uri, description, keywords, date, id){
+    constructor(uri, title, description, keywords, date, id){
         this.uri = uri ? uri : CONFIG.FILE_LOCATION.AUDIO_FILE_LOCATION;
+        this.title = title;
         this.description = description;
         this.keywords = keywords;
         this.date = date;
@@ -14,12 +15,14 @@ class Audio{
     }
 
     getUri(){return this.uri;}
+    getTitle(){return this.title;}
     getDescription(){return this.description;}
     getKeywords(){return this.keywords;}
     getDate(){return this.date;}
     getId(){return this.id;}
 
     setUri(uri){this.uri = uri;}
+    setTitle(title){this.title = title;}
     setDescription(description){this.description = description;}
     setKeywords(keywords){this.keywords = keywords;}
     setDate(date){this.date = date;}
@@ -29,6 +32,7 @@ class Audio{
     getAudioModelStruct(){
         return new audioModel({
             uri: this.uri,
+            title: this.title,
             description: this.description,
             keywords: this.keywords,
             date: this.date
@@ -38,6 +42,7 @@ class Audio{
     getStruct(){
         return {
             uri: this.uri,
+            title: this.title,
             description: this.description,
             keywords: this.keywords,
             date: this.date
@@ -57,7 +62,6 @@ class Audio{
 
     async updateToDB(){
         try {
-            //let result = await DB.updateOne(this.getAudioModelStruct(), this.getId(), this.getAudioModelStruct());
             let result = await DB.updateOne(audioModel, this.getId(), this.getStruct());
             return Promise.resolve({
                 success: true, 
@@ -107,7 +111,6 @@ class Audio{
     static async findOneAudioFromDBById(id){
         try {
             let data = await DB.findOne(audioModel, {_id: id});
-            //let audio = _.isEmpty(data) ? null : new Audio(data.uri, data.description, data.keywords, data.date, data._id);
             let audio = _.isEmpty(data) ? null : data;
             return Promise.resolve({
                 success: true, 
@@ -125,7 +128,6 @@ class Audio{
     static async findOneAudioFromDBByUri(uri){
         try {
             let data = await DB.findOne(audioModel, {uri: uri});
-            //let audio = _.isEmpty(data) ? null : new Audio(data.uri, data.description, data.keywords, data.date, data._id);
             let audio = _.isEmpty(data) ? null : data;
             return Promise.resolve({
                 success: true, 
@@ -149,10 +151,28 @@ class Audio{
                     audios: null
                 });
             }
-            // var audioList = [];
-            // data.forEach(element => {
-            //     audioList.push(new Audio(element.uri, element.description, element.keywords, element.date. element._id));
-            // });
+            return Promise.resolve({
+                success: true, 
+                audios: data
+            });
+        } catch (deleteError) {
+            return Promise.resolve({
+                success: false, 
+                message: deleteError,
+                details: "Couldn't find any audio from the database"
+            });
+        }
+    }
+
+    static async findAudiosFromDB(skipNumber, limitNumber){
+        try {
+            let data = await DB.findLatestRecords(audioModel, null, null, skipNumber, limitNumber);
+            if(_.isEmpty(data)){
+                return Promise.resolve({
+                    success: true, 
+                    audios: null
+                });
+            }
             return Promise.resolve({
                 success: true, 
                 audios: data
@@ -174,7 +194,6 @@ class Audio{
                     keywords: element
                 })
             });
-            //let data = await DB.findMany(audioModel, {keywords: keywords}, null, skipNumber, limitNumber);
             let data = await DB.findMany(audioModel, {$or: queryStruct}, null, skipNumber, limitNumber);
             if(_.isEmpty(data)){
                 return Promise.resolve({
@@ -182,10 +201,6 @@ class Audio{
                     audios: null
                 });
             }
-            // var audioList = [];
-            // data.forEach(element => {
-            //     audioList.push(new Audio(element.uri, element.description, element.keywords, element.date. element._id));
-            // });
             return Promise.resolve({
                 success: true, 
                 audios: data

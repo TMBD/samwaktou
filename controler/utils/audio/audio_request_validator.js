@@ -4,6 +4,27 @@ const CONFIG = require("../../../config/server_config");
 
 const validatePostAudioRequest = (req) => {
     let body = req.body;
+    if(!body.title){
+        return {
+            success: false,
+            details: "title field is required !"
+        };
+    }
+    if(!_.isString(body.title)){
+        return {
+            success: false,
+            details: "title field has to be string type !"
+        };
+    }
+    if(body.title.length <CONFIG.AUDIO_VALIDATION_CONFIG.MIN_TITLE_CHAR
+        || body.title.length>CONFIG.AUDIO_VALIDATION_CONFIG.MAX_TITLE_CHAR){
+        return {
+            success: false,
+            details: "The number of title characters must be between "+CONFIG.AUDIO_VALIDATION_CONFIG.MIN_TITLE_CHAR
+            +" and "+CONFIG.AUDIO_VALIDATION_CONFIG.MAX_TITLE_CHAR
+        };
+    }
+
     if(!body.description){
         return {
             success: false,
@@ -13,7 +34,7 @@ const validatePostAudioRequest = (req) => {
     if(!_.isString(body.description)){
         return {
             success: false,
-            details: "description field has to be string type!"
+            details: "description field has to be string type !"
         };
     }
     if(body.description.length <CONFIG.AUDIO_VALIDATION_CONFIG.MIN_DESCRIPTION_CHAR 
@@ -24,6 +45,7 @@ const validatePostAudioRequest = (req) => {
             +" and "+CONFIG.AUDIO_VALIDATION_CONFIG.MAX_DESCRIPTION_CHAR
         };
     }
+
     if(!body.keywords){
         return {
             success: false,
@@ -36,6 +58,7 @@ const validatePostAudioRequest = (req) => {
             details: "keywords has to be an array of String !"
         };
     }
+
     if(req.files === undefined || req.files === null){
         return {
             success: false,
@@ -57,21 +80,17 @@ const validatePostAudioRequest = (req) => {
     return {success: true};
 }
 
+
 const validateGetAudioRequest = (req) => {
     let body = req.body;
-    if(!body.keywords){
-        return {
-            success: false,
-            details: "keywods is required if you don't provide the audio id !"
-        };
+    if(body.keywords){
+        if(!Array.isArray(body.keywords)){
+            return {
+                success: false,
+                details: "keywods has to be an array of String !"
+            };
+        }
     }
-    if(!Array.isArray(body.keywords)){
-        return {
-            success: false,
-            details: "keywods has to be an array of String !"
-        };
-    }
-
     if(body.limit !== undefined){
         if(!body.limit){
             return {
@@ -96,8 +115,31 @@ const validateGetAudioRequest = (req) => {
     return {success: true};
 }
 
+
+
 const validateUpdateAudioRequest = (req) => {
     let body = req.body;
+    if(!body.title){
+        return {
+            success: false,
+            details: "title field is required !"
+        };
+    }
+    if(!_.isString(body.title)){
+        return {
+            success: false,
+            details: "title field has to be string type !"
+        };
+    }
+    if(body.title.length <CONFIG.AUDIO_VALIDATION_CONFIG.MIN_TITLE_CHAR
+        || body.title.length>CONFIG.AUDIO_VALIDATION_CONFIG.MAX_TITLE_CHAR){
+        return {
+            success: false,
+            details: "The number of title characters must be between "+CONFIG.AUDIO_VALIDATION_CONFIG.MIN_TITLE_CHAR
+            +" and "+CONFIG.AUDIO_VALIDATION_CONFIG.MAX_TITLE_CHAR
+        };
+    }
+
     if(!body.description){
         return {
             success: false,

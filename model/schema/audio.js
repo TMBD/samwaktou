@@ -6,6 +6,12 @@ let AudioSchema = mongoose.Schema({
         type: String,
         required: true
     },
+    title: {
+        type: String,
+        required: true,
+        max: AUDIO_VALIDATION_CONFIG.MAX_TITLE_CHAR,
+        min: AUDIO_VALIDATION_CONFIG.MIN_TITLE_CHAR
+    },
     description: {
         type: String,
         required: true,

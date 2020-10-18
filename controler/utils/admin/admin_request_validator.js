@@ -70,8 +70,6 @@ const validateLoginAdminRequest = (body) => {
             .required()
             .email(),
         password: Joi.string()
-            .min(ADMIN_VALIDATION_CONFIG.MIN_PASSWORD_CHAR)
-            .max(ADMIN_VALIDATION_CONFIG.MAX_PASSWORD_CHAR)
             .required(),
     });
     return schema.validate(body);

@@ -1,64 +1,57 @@
 let _ = require("lodash");
-let adminModel = require("./schema/admin");
+let userModel = require("./schema/user");
 let DB = require("../model/db_crud");
-const CONFIG = require("../config/server_config");
 
 
-class Admin{
-    constructor(surname, name, email, password, date, id, isSuperAdmin){
-        this.surname = surname;
-        this.name = name;
+class User{
+    constructor(username, tel, email, interestKeywords, date, id){
+        this.username = username;
+        this.tel = tel;
         this.email = email;
+        this.interestKeywords = interestKeywords;
         this.date = date;
         this.id = id;
-        this.password = password;
-        this.isSuperAdmin = isSuperAdmin;
     }
 
-    getSurname(){return this.surname;}
-    getName(){return this.name;}
+    getUsername(){return this.username;}
+    getTel(){return this.tel;}
     getEmail(){return this.email;}
-    getPassword(){return this.password;}
+    getInterestKeywords(){return this.interestKeywords;}
     getDate(){return this.date;}
     getId(){return this.id;}
-    getIsSuperAdmin(){return this.isSuperAdmin;}
     
 
-    setSurname(surname){this.surname = surname;}
-    setName(name){this.name = name;}
+    setUsername(username){this.username = username;}
+    setTel(tel){this.tel = tel;}
     setEmail(email){this.email = email;}
-    setPassword(password){this.password = password;}
+    setInterestKeywords(interestKeywords){this.interestKeywords = interestKeywords;}
     setDate(date){this.date = date;}
     setId(id){this.id = id;}
-    setIsSuperAdmin(isSuperAdmin){this.isSuperAdmin = isSuperAdmin;}
 
 
-    getAdminModelStruct(){
-        return new adminModel({
-            surname: this.surname,
-            name: this.name,
+    getUserModelStruct(){
+        return new userModel({
+            username: this.username,
+            tel: this.tel,
             email: this.email,
-            password: this.password,
-            date: this.date,
-            isSuperAdmin: this.isSuperAdmin
+            interestKeywords: this.interestKeywords,
+            date: this.date
         });
     }
 
     getStruct(){
         return {
-            surname: this.surname,
-            name: this.name,
+            username: this.username,
+            tel: this.tel,
             email: this.email,
-            password: this.password,
-            date: this.date,
-            isSuperAdmin: this.isSuperAdmin
-
+            interestKeywords: this.interestKeywords,
+            date: this.date
         };
     }
 
     async saveToDB(){
         try {
-            let result = await DB.postToDB(this.getAdminModelStruct());
+            let result = await DB.postToDB(this.getUserModelStruct());
             this.setId(result.data._id);
             this.setDate(result.data.date);
             return Promise.resolve(result);
@@ -69,7 +62,7 @@ class Admin{
 
     async updateToDB(){
         try {
-            let result = await DB.updateOne(adminModel, this.getId(), this.getStruct());
+            let result = await DB.updateOne(userModel, this.getId(), this.getStruct());
             return Promise.resolve({
                 success: true, 
                 data: result
@@ -78,7 +71,7 @@ class Admin{
             return Promise.resolve({
                 success: false, 
                 message: updateError,
-                details: "Couldn't aupdate admin from the database"
+                details: "Couldn't aupdate user from the database"
             });
         }
     }
@@ -86,7 +79,7 @@ class Admin{
 
     async deleteFromDB(){
         try {
-            let result = await DB.deleteFromDB(adminModel, this.getId());
+            let result = await DB.deleteFromDB(userModel, this.getId());
             return Promise.resolve({
                 success: true, 
                 data: result
@@ -95,14 +88,14 @@ class Admin{
             return Promise.resolve({
                 success: false, 
                 message: deleteError,
-                details: "Couldn't delete admin from the database"
+                details: "Couldn't delete user from the database"
             });
         }
     }
 
     static async deleteFromDB(id){
         try {
-            let result = await DB.deleteFromDB(adminModel, id);
+            let result = await DB.deleteFromDB(userModel, id);
             return Promise.resolve({
                 success: true, 
                 data: result
@@ -111,66 +104,66 @@ class Admin{
             return Promise.resolve({
                 success: false, 
                 message: deleteError,
-                details: "Couldn't delete admin from the database"
+                details: "Couldn't delete user from the database"
             });
         }
     }
 
-    static async findOneAdminFromDBById(id){
+    static async findOneUserFromDBById(id){
         try {
-            let data = await DB.findOne(adminModel, {_id: id});
-            let admin = _.isEmpty(data) ? null : data;
+            let data = await DB.findOne(userModel, {_id: id});
+            let user = _.isEmpty(data) ? null : data;
             return Promise.resolve({
                 success: true, 
-                admin: admin
+                user: user
             });
         } catch (deleteError) {
             return Promise.resolve({
                 success: false, 
                 message: deleteError,
-                details: "Couldn't find admin from the database"
+                details: "Couldn't find user from the database"
             });
         }
     }
 
-    static async findOneAdminFromDBByEmail(email){
+    static async findOneUserFromDBByUsername(username){
         try {
-            let data = await DB.findOne(adminModel, {email: email});
-            let admin = _.isEmpty(data) ? null : data;
+            let data = await DB.findOne(userModel, {username: username});
+            let user = _.isEmpty(data) ? null : data;
             return Promise.resolve({
                 success: true, 
-                admin: admin
+                user: user
             });
         } catch (deleteError) {
             return Promise.resolve({
                 success: false, 
                 message: deleteError,
-                details: "Couldn't find any admin from the database !"
+                details: "Couldn't find any user from the database !"
             });
         }
     }
 
-    static async getAdmins(skipNumber, limitNumber){
+    static async getUsers(skipNumber, limitNumber){
         try {
-            let data = await DB.findMany(adminModel, null, "_id surname name email date isSuperAdmin", skipNumber, limitNumber);
+            let data = await DB.findMany(userModel, null, "_id username interestKeywords  date", skipNumber, limitNumber);
             if(_.isEmpty(data)){
                 return Promise.resolve({
                     success: true, 
-                    admins: null
+                    users: null
                 });
             }
             return Promise.resolve({
                 success: true, 
-                admins: data
+                users: data
             });
         } catch (deleteError) {
             return Promise.resolve({
                 success: false, 
                 message: deleteError,
-                details: "Couldn't find admins from the database"
+                details: "Couldn't find any user from the database"
             });
         }
     }
 }
 
-module.exports = Admin;
+module.exports = User;

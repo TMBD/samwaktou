@@ -9,7 +9,7 @@ const rootDirPath = "../";
 let postAudio = async (req, res) => {
     let reqValidation = requestValidator.validatePostAudioRequest(req);
     if(reqValidation.success){
-        var audio = new Audio(req.body.uri, req.body.description, req.body.keywords, req.body.date, null);
+        var audio = new Audio(req.body.uri, req.body.title, req.body.description, req.body.keywords, req.body.date, null);
         let result = await audio.saveToDB();
         if(result.success){
             const splitedFileName = _.split(req.files.audio.name, ".");
@@ -92,14 +92,17 @@ let getManyAudios = async(req, res) => {
         let skip = req.body.skip ? req.body.skip : CONFIG.AUDIO_GET_PARAMS.DEFAULT_SKIP_NUMBER;
         let limit = req.body.limit ? req.body.limit : CONFIG.AUDIO_GET_PARAMS.DEFAULT_LIMIT_NUMBER;
         let findAudiosResults;
-        if(matchAll) findAudiosResults = await Audio.findAudiosFromDBByKeywordsMatchAll(req.body.keywords, skip, limit);
-        else findAudiosResults = await Audio.findAudiosFromDBByKeywordsMatchAny(req.body.keywords, skip, limit);
+        if(req.body.keywords){
+            if(matchAll) findAudiosResults = await Audio.findAudiosFromDBByKeywordsMatchAll(req.body.keywords, skip, limit);
+            else findAudiosResults = await Audio.findAudiosFromDBByKeywordsMatchAny(req.body.keywords, skip, limit);
+        }else{
+            findAudiosResults = await Audio.findAudiosFromDB(skip, limit);
+        }
         if(findAudiosResults.success){
             if(findAudiosResults.audios === null){
                 res.status(CONFIG.HTTP_CODE.PAGE_NOT_FOUND_ERROR);
                 res.json({});
             }else{
-                //faire ici le boucle de download du fichier
                 res.status(CONFIG.HTTP_CODE.OK);
                 res.json(findAudiosResults.audios);
             }
@@ -177,7 +180,7 @@ let updateAudio = async (req, res) => {
                     details: "No audio with this _id has been found in the database !"
                 });
             }else{
-                let audio = new Audio(findAudioResult.audio.uri, req.body.description, req.body.keywords, req.body.date, findAudioResult.audio._id);
+                let audio = new Audio(findAudioResult.audio.uri, req.body.title, req.body.description, req.body.keywords, req.body.date, findAudioResult.audio._id);
                 let updateResult = await audio.updateToDB();
                 if(updateResult.success){
                     res.status(CONFIG.HTTP_CODE.OK);

@@ -1,7 +1,6 @@
 const SERVEUR_CONFIG = require("../../../config/server_config");
 
 const audioFileUploader = async(file, audioFileName) => {
-    //var audioUri = rootDirPath+SERVEUR_CONFIG.FILE_LOCATION.AUDIO_FILE_LOCATION+audioFileName;
     var audioUri = SERVEUR_CONFIG.FILE_LOCATION.AUDIO_FILE_LOCATION+audioFileName;
     try {
         await file.mv(audioUri);
