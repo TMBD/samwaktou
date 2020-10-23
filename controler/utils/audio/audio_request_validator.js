@@ -58,6 +58,12 @@ const validatePostAudioRequest = (req) => {
             details: "keywords has to be an array of String !"
         };
     }
+    if(body.keywords.length <1){
+        return {
+            success: false,
+            details: "keywords has to have at least one element !"
+        };
+    }
 
     if(req.files === undefined || req.files === null){
         return {
@@ -160,25 +166,15 @@ const validateUpdateAudioRequest = (req) => {
             +" and "+CONFIG.AUDIO_VALIDATION_CONFIG.MAX_DESCRIPTION_CHAR
         };
     }
-    if(!body.keywords){
-        return {
-            success: false,
-            details: "keywords field is required !"
-        };
+    if(body.keywords){
+        if(! Array.isArray(body.keywords)){
+            return {
+                success: false,
+                details: "keywords has to be an array of String !"
+            };
+        }
     }
-    if(! Array.isArray(body.keywords)){
-        return {
-            success: false,
-            details: "keywords has to be an array of String !"
-        };
-    }
-    if(!body._id){
-        return {
-            success: false,
-            details: "_id field is required !"
-        };
-    }
-
+    
     return {
         success: true
     };

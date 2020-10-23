@@ -37,19 +37,19 @@ router.delete("/:adminId", verifyAdminToken, (req, res) => {
     }
 });
 
-router.put("/", verifyAdminToken, (req, res) => {
-    if(req.token && req.token.isSuperAdmin){
+router.put("/:adminId", verifyAdminToken, (req, res) => {
+    if((req.token && req.token.isSuperAdmin) || (req.token && req.token._id == req.params.adminId)){
         adminController.updateAdmin(req, res);
     }else{
         res.status(CONFIG.HTTP_CODE.ACCESS_DENIED_ERROR);
         res.json({
             message: "Access denied !",
-            details: "Only super admins have the right to modify an admin's information !"
+            details: "Can't modify informations of another admin unless you are a superAdmin !"
         })
     }
 });
 
-router.put("/password", verifyAdminToken, (req, res) => {
+router.put("/password/:adminId", verifyAdminToken, (req, res) => {
     adminController.updateAdminPassword(req, res);
 });
 

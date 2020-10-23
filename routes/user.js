@@ -19,7 +19,7 @@ router.delete("/:userId", verifyTokenForDeleteUser, (req, res) => {
     userController.deleteUser(req, res);
 });
 
-router.put("/", verifyUserToken, (req, res) => {
+router.put("/:userId", verifyUserToken, (req, res) => {
         userController.updateUser(req, res);
 });
 

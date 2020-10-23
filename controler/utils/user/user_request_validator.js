@@ -32,8 +32,6 @@ const validateGetUserRequest = (body) => {
 
 const validateUpdateUserRequest = (body) => {
     const schema = Joi.object({
-        _id: Joi.string()
-            .required(),
         username: Joi.string()
             .min(USER_VALIDATION_CONFIG.MIN_USERNAME_CHAR)
             .max(USER_VALIDATION_CONFIG.MAX_USERNAME_CHAR)

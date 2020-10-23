@@ -171,7 +171,7 @@ let deleteAudio = async (req, res) => {
 let updateAudio = async (req, res) => {
     let reqValidation = requestValidator.validateUpdateAudioRequest(req);
     if(reqValidation.success){
-        let findAudioResult = await Audio.findOneAudioFromDBById(req.body._id);
+        let findAudioResult = await Audio.findOneAudioFromDBById(req.params.audioId);
         if(findAudioResult.success){
             if(findAudioResult.audio === null){
                 res.status(CONFIG.HTTP_CODE.PAGE_NOT_FOUND_ERROR);
@@ -180,7 +180,8 @@ let updateAudio = async (req, res) => {
                     details: "No audio with this _id has been found in the database !"
                 });
             }else{
-                let audio = new Audio(findAudioResult.audio.uri, req.body.title, req.body.description, req.body.keywords, req.body.date, findAudioResult.audio._id);
+                let keywords = req.body.keywords ? req.body.keywords : findAudioResult.user.keywords;
+                let audio = new Audio(findAudioResult.audio.uri, req.body.title, req.body.description, keywords, findAudioResult.audio.date, findAudioResult.audio._id);
                 let updateResult = await audio.updateToDB();
                 if(updateResult.success){
                     res.status(CONFIG.HTTP_CODE.OK);

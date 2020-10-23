@@ -152,8 +152,9 @@ let deleteAdmin = async (req, res) => {
 let updateAdmin = async (req, res) => {
     let reqValidation = requestValidator.validateUpdateAdminRequest(req.body);
     if(!reqValidation.error){
-        if(req.token && (req.token._id == req.body._id)){
-            let findAdminResult = await Admin.findOneAdminFromDBById(req.body._id);
+        console.log(req.token)
+        if(req.token && ((req.token._id == req.params.adminId) || (req.token.isSuperAdmin))){
+            let findAdminResult = await Admin.findOneAdminFromDBById(req.params.adminId);
             if(findAdminResult.success){
                 if(findAdminResult.admin === null){
                     res.status(CONFIG.HTTP_CODE.PAGE_NOT_FOUND_ERROR);
@@ -165,7 +166,8 @@ let updateAdmin = async (req, res) => {
                     let findIfEmailExistResult = await Admin.findOneAdminFromDBByEmail(req.body.email);
                     if(findIfEmailExistResult.success){
                         if(findIfEmailExistResult.admin === null || req.body.email == findAdminResult.admin.email){
-                            let admin = new Admin(req.body.surname, req.body.name, req.body.email, findAdminResult.admin.password, findAdminResult.admin.date, findAdminResult.admin._id, findAdminResult.admin.isSuperAdmin);
+                            let isSuperAdmin = (req.token.isSuperAdmin && req.body.isSuperAdmin != undefined) ? req.body.isSuperAdmin : findAdminResult.admin.isSuperAdmin;
+                            let admin = new Admin(req.body.surname, req.body.name, req.body.email, findAdminResult.admin.password, findAdminResult.admin.date, findAdminResult.admin._id, isSuperAdmin);
                             let updateResult = await admin.updateToDB();
                             if(updateResult.success){
                                 res.status(CONFIG.HTTP_CODE.OK);
@@ -204,7 +206,7 @@ let updateAdmin = async (req, res) => {
             res.status(CONFIG.HTTP_CODE.ACCESS_DENIED_ERROR);
             res.json({
                 message: "Acces denied !",
-                details: "Can't modify informations of another admin !"
+                details: "Can't modify informations of another admin unless you are a superAdmin !"
             });
         }
     }else{
@@ -217,45 +219,53 @@ let updateAdmin = async (req, res) => {
 let updateAdminPassword = async (req, res) => {
     let reqValidation = requestValidator.validateUpdateAdminPasswordRequest(req.body);
     if(!reqValidation.error){
-        let findAdminResult = await Admin.findOneAdminFromDBById(req.token._id);
-        if(findAdminResult.success){
-            if(findAdminResult.admin === null){
-                res.status(CONFIG.HTTP_CODE.PAGE_NOT_FOUND_ERROR);
-                res.json({
-                    message: "Couldn't update admin !",
-                    details: "No admin with the provided _id has been found in the database !"
-                });
-            }else{
-                const validePass = await bcryptejs.compare(req.body.password, findAdminResult.admin.password);
-                if(validePass){
+        if(req.token && (req.token._id == req.params.adminId)){
+            let findAdminResult = await Admin.findOneAdminFromDBById(req.token._id);
+            if(findAdminResult.success){
+                if(findAdminResult.admin === null){
+                    res.status(CONFIG.HTTP_CODE.PAGE_NOT_FOUND_ERROR);
+                    res.json({
+                        message: "Couldn't update admin !",
+                        details: "No admin with the provided _id has been found in the database !"
+                    });
+                }else{
+                    const validePass = await bcryptejs.compare(req.body.password, findAdminResult.admin.password);
+                    if(validePass){
 
-                    const salt = await bcryptejs.genSalt(10);
-                    const hashedPassword = await bcryptejs.hash(req.body.newPassword, salt);
-                    let admin = new Admin(findAdminResult.admin.surname, findAdminResult.admin.name, findAdminResult.admin.email, hashedPassword, findAdminResult.admin.date, findAdminResult.admin._id, findAdminResult.admin.isSuperAdmin);
-                    let updateResult = await admin.updateToDB();
-                    if(updateResult.success){
-                        res.status(CONFIG.HTTP_CODE.OK);
-                        res.json(updateResult.data);
+                        const salt = await bcryptejs.genSalt(10);
+                        const hashedPassword = await bcryptejs.hash(req.body.newPassword, salt);
+                        let admin = new Admin(findAdminResult.admin.surname, findAdminResult.admin.name, findAdminResult.admin.email, hashedPassword, findAdminResult.admin.date, findAdminResult.admin._id, findAdminResult.admin.isSuperAdmin);
+                        let updateResult = await admin.updateToDB();
+                        if(updateResult.success){
+                            res.status(CONFIG.HTTP_CODE.OK);
+                            res.json(updateResult.data);
+                        }else{
+                            res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+                            res.json({
+                                message: updateResult.message,
+                                details: updateResult.details
+                            });
+                        }
                     }else{
-                        res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+                        res.status(CONFIG.HTTP_CODE.ACCESS_DENIED_ERROR);
                         res.json({
-                            message: updateResult.message,
-                            details: updateResult.details
+                            message: "Wrong password !",
+                            details: "The password you provided doesn't match !"
                         });
                     }
-                }else{
-                    res.status(CONFIG.HTTP_CODE.ACCESS_DENIED_ERROR);
-                    res.json({
-                        message: "Wrong password !",
-                        details: "The password you provided doesn't match !"
-                    });
                 }
+            }else{
+                res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+                res.json({
+                    message: findAdminResult.message,
+                    details: findAdminResult.details
+                });
             }
         }else{
-            res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+            res.status(CONFIG.HTTP_CODE.ACCESS_DENIED_ERROR);
             res.json({
-                message: findAdminResult.message,
-                details: findAdminResult.details
+                message: "Acces denied !",
+                details: "Can't modify password of another admin !"
             });
         }
     }else{

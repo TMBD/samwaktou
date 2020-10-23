@@ -23,7 +23,7 @@ router.delete("/:audioId", verifyAdminToken, (req, res) => {
     audioController.deleteAudio(req, res);
 });
 
-router.put("/", verifyAdminToken, (req, res) => {
+router.put("/:audioId", verifyAdminToken, (req, res) => {
     audioController.updateAudio(req, res);
 });
 

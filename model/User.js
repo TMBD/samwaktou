@@ -145,7 +145,7 @@ class User{
 
     static async getUsers(skipNumber, limitNumber){
         try {
-            let data = await DB.findMany(userModel, null, "_id username interestKeywords  date", skipNumber, limitNumber);
+            let data = await DB.findMany(userModel, null, "_id username interestKeywords email tel date", skipNumber, limitNumber);
             if(_.isEmpty(data)){
                 return Promise.resolve({
                     success: true, 

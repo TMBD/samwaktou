@@ -35,8 +35,6 @@ const validateGetAdminRequest = (body) => {
 
 const validateUpdateAdminRequest = (body) => {
     const schema = Joi.object({
-        _id: Joi.string()
-            .required(),
         surname: Joi.string()
             .min(ADMIN_VALIDATION_CONFIG.MIN_SURNAME_CHAR)
             .max(ADMIN_VALIDATION_CONFIG.MAX_SURNAME_CHAR)
@@ -47,7 +45,8 @@ const validateUpdateAdminRequest = (body) => {
             .required(),
         email: Joi.string()
             .required()
-            .email()
+            .email(),
+        isSuperAdmin: Joi.boolean(),
     });
     return schema.validate(body);
 }

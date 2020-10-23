@@ -145,8 +145,8 @@ let deleteUser = async (req, res) => {
 let updateUser = async (req, res) => {
     let reqValidation = requestValidator.validateUpdateUserRequest(req.body);
     if(!reqValidation.error){
-        if(req.token && (req.token._id == req.body._id)){
-            let findUserResult = await User.findOneUserFromDBById(req.body._id);
+        if(req.token && (req.token._id == req.params.userId)){
+            let findUserResult = await User.findOneUserFromDBById(req.params.userId);
             if(findUserResult.success){
                 if(findUserResult.user === null){
                     res.status(CONFIG.HTTP_CODE.PAGE_NOT_FOUND_ERROR);
@@ -229,7 +229,8 @@ let loginUser = async (req, res) => {
                     res.status(CONFIG.HTTP_CODE.OK);
                     res.json({
                         _id: findUserResult.user._id,
-                        username: findUserResult.user.username
+                        username: findUserResult.user.username,
+                        tel: findUserResult.user.tel
                     });
                 }else{
                     res.status(CONFIG.HTTP_CODE.PAGE_NOT_FOUND_ERROR);
