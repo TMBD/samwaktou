@@ -1,10 +1,11 @@
+let _ = require("lodash");
 let bcryptejs = require("bcryptjs");
 let jwt = require("jsonwebtoken");
 require("dotenv/config");
 const CONFIG = require("../config/server_config");
 let requestValidator = require("./utils/admin/admin_request_validator");
 const Admin = require("../model/Admin");
-// let audioUtils = require("./utils/admin_utils");
+let {lowerCaseArray} = require("./utils/common");
 
 let postAdmin = async (req, res) => {
     let reqValidation = requestValidator.validatePostAdminRequest(req.body);
@@ -14,7 +15,7 @@ let postAdmin = async (req, res) => {
             if(foundAdmin.admin === null){
                 const salt = await bcryptejs.genSalt(10);
                 const hashedPassword = await bcryptejs.hash(req.body.password, salt);
-                let admin = new Admin(req.body.surname, req.body.name, req.body.email, hashedPassword, undefined, undefined, undefined);
+                let admin = new Admin(_.capitalize(req.body.surname), _.toUpper(req.body.name), _.toLower(req.body.email), hashedPassword, req.body.date, undefined, undefined);
                 let result = await admin.saveToDB();
                 if(result.success){
                     res.status(CONFIG.HTTP_CODE.OK);
@@ -167,7 +168,11 @@ let updateAdmin = async (req, res) => {
                     if(findIfEmailExistResult.success){
                         if(findIfEmailExistResult.admin === null || req.body.email == findAdminResult.admin.email){
                             let isSuperAdmin = (req.token.isSuperAdmin && req.body.isSuperAdmin != undefined) ? req.body.isSuperAdmin : findAdminResult.admin.isSuperAdmin;
-                            let admin = new Admin(req.body.surname, req.body.name, req.body.email, findAdminResult.admin.password, findAdminResult.admin.date, findAdminResult.admin._id, isSuperAdmin);
+                            let surname = req.body.surname ? _.capitalize(req.body.surname) : findAdminResult.admin.surname;
+                            let name = req.body.name ? _.toUpper(req.body.name) : findAdminResult.admin.name;
+                            let email = req.body.email ? _.toLower(req.body.email) : findAdminResult.admin.email;
+                            let date = req.body.date ? req.body.date : findAdminResult.admin.date;
+                            let admin = new Admin(surname, name, email, findAdminResult.admin.password, date, findAdminResult.admin._id, isSuperAdmin);
                             let updateResult = await admin.updateToDB();
                             if(updateResult.success){
                                 res.status(CONFIG.HTTP_CODE.OK);

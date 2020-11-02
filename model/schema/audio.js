@@ -12,6 +12,19 @@ let AudioSchema = mongoose.Schema({
         max: AUDIO_VALIDATION_CONFIG.MAX_TITLE_CHAR,
         min: AUDIO_VALIDATION_CONFIG.MIN_TITLE_CHAR
     },
+    theme: {
+        type: String,
+        required: true,
+        max: AUDIO_VALIDATION_CONFIG.MAX_THEME_CHAR,
+        min: AUDIO_VALIDATION_CONFIG.MIN_THEME_CHAR
+    },
+    author: {
+        type: String,
+        required: false,
+        max: AUDIO_VALIDATION_CONFIG.MAX_AUTHOR_CHAR,
+        min: AUDIO_VALIDATION_CONFIG.MIN_AUTHOR_CHAR,
+        default: "Inconnu"
+    },
     description: {
         type: String,
         required: true,

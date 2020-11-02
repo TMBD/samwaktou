@@ -25,6 +25,47 @@ const validatePostAudioRequest = (req) => {
         };
     }
 
+
+    if(!body.theme){
+        return {
+            success: false,
+            details: "theme field is required !"
+        };
+    }
+    if(!_.isString(body.theme)){
+        return {
+            success: false,
+            details: "theme field has to be string type !"
+        };
+    }
+    if(body.theme.length <CONFIG.AUDIO_VALIDATION_CONFIG.MIN_THEME_CHAR
+        || body.theme.length>CONFIG.AUDIO_VALIDATION_CONFIG.MAX_THEME_CHAR){
+        return {
+            success: false,
+            details: "The number of theme characters must be between "+CONFIG.AUDIO_VALIDATION_CONFIG.MIN_THEME_CHAR
+            +" and "+CONFIG.AUDIO_VALIDATION_CONFIG.MAX_THEME_CHAR
+        };
+    }
+
+
+    if(body.author){
+        if(!_.isString(body.author)){
+            return {
+                success: false,
+                details: "author field has to be string type !"
+            };
+        }
+        if(body.author.length <CONFIG.AUDIO_VALIDATION_CONFIG.MIN_AUTHOR_CHAR
+            || body.author.length>CONFIG.AUDIO_VALIDATION_CONFIG.MAX_AUTHOR_CHAR){
+            return {
+                success: false,
+                details: "The number of author characters must be between "+CONFIG.AUDIO_VALIDATION_CONFIG.MIN_AUTHOR_CHAR
+                +" and "+CONFIG.AUDIO_VALIDATION_CONFIG.MAX_AUTHOR_CHAR
+            };
+        }
+    }
+    
+
     if(!body.description){
         return {
             success: false,
@@ -89,6 +130,22 @@ const validatePostAudioRequest = (req) => {
 
 const validateGetAudioRequest = (req) => {
     let body = req.body;
+    if(body.theme){
+        if(!_.isString(body.theme)){
+            return {
+                success: false,
+                details: "theme has to be type of String !"
+            };
+        }
+    }
+    if(body.author){
+        if(!_.isString(body.author)){
+            return {
+                success: false,
+                details: "author has to be type of String !"
+            };
+        }
+    }
     if(body.keywords){
         if(!Array.isArray(body.keywords)){
             return {
@@ -125,47 +182,76 @@ const validateGetAudioRequest = (req) => {
 
 const validateUpdateAudioRequest = (req) => {
     let body = req.body;
-    if(!body.title){
-        return {
-            success: false,
-            details: "title field is required !"
-        };
+    if(body.title){
+        if(!_.isString(body.title)){
+            return {
+                success: false,
+                details: "title field has to be string type !"
+            };
+        }
+        if(body.title.length <CONFIG.AUDIO_VALIDATION_CONFIG.MIN_TITLE_CHAR
+            || body.title.length>CONFIG.AUDIO_VALIDATION_CONFIG.MAX_TITLE_CHAR){
+            return {
+                success: false,
+                details: "The number of title characters must be between "+CONFIG.AUDIO_VALIDATION_CONFIG.MIN_TITLE_CHAR
+                +" and "+CONFIG.AUDIO_VALIDATION_CONFIG.MAX_TITLE_CHAR
+            };
+        }
     }
-    if(!_.isString(body.title)){
-        return {
-            success: false,
-            details: "title field has to be string type !"
-        };
-    }
-    if(body.title.length <CONFIG.AUDIO_VALIDATION_CONFIG.MIN_TITLE_CHAR
-        || body.title.length>CONFIG.AUDIO_VALIDATION_CONFIG.MAX_TITLE_CHAR){
-        return {
-            success: false,
-            details: "The number of title characters must be between "+CONFIG.AUDIO_VALIDATION_CONFIG.MIN_TITLE_CHAR
-            +" and "+CONFIG.AUDIO_VALIDATION_CONFIG.MAX_TITLE_CHAR
-        };
+    
+
+    if(body.theme){
+        if(!_.isString(body.theme)){
+            return {
+                success: false,
+                details: "theme field has to be string type !"
+            };
+        }
+        if(body.theme.length <CONFIG.AUDIO_VALIDATION_CONFIG.MIN_THEME_CHAR
+            || body.theme.length>CONFIG.AUDIO_VALIDATION_CONFIG.MAX_THEME_CHAR){
+            return {
+                success: false,
+                details: "The number of theme characters must be between "+CONFIG.AUDIO_VALIDATION_CONFIG.MIN_THEME_CHAR
+                +" and "+CONFIG.AUDIO_VALIDATION_CONFIG.MAX_THEME_CHAR
+            };
+        }
     }
 
-    if(!body.description){
-        return {
-            success: false,
-            details: "description field is required !"
-        };
+    if(body.author){
+        if(!_.isString(body.author)){
+            return {
+                success: false,
+                details: "author field has to be string type !"
+            };
+        }
+        if(body.author.length <CONFIG.AUDIO_VALIDATION_CONFIG.MIN_AUTHOR_CHAR
+            || body.author.length>CONFIG.AUDIO_VALIDATION_CONFIG.MAX_AUTHOR_CHAR){
+            return {
+                success: false,
+                details: "The number of author characters must be between "+CONFIG.AUDIO_VALIDATION_CONFIG.MIN_AUTHOR_CHAR
+                +" and "+CONFIG.AUDIO_VALIDATION_CONFIG.MAX_AUTHOR_CHAR
+            };
+        }
+    }
+    
+
+    if(body.description){
+        if(!_.isString(body.description)){
+            return {
+                success: false,
+                details: "description field has to be string type!"
+            };
+        }
+        if(body.description.length <CONFIG.AUDIO_VALIDATION_CONFIG.MIN_DESCRIPTION_CHAR 
+            || body.description.length>CONFIG.AUDIO_VALIDATION_CONFIG.MAX_DESCRIPTION_CHAR){
+            return {
+                success: false,
+                details: "The number of description characters must be between "+CONFIG.AUDIO_VALIDATION_CONFIG.MIN_DESCRIPTION_CHAR
+                +" and "+CONFIG.AUDIO_VALIDATION_CONFIG.MAX_DESCRIPTION_CHAR
+            };
+        }
     } 
-    if(!_.isString(body.description)){
-        return {
-            success: false,
-            details: "description field has to be string type!"
-        };
-    }
-    if(body.description.length <CONFIG.AUDIO_VALIDATION_CONFIG.MIN_DESCRIPTION_CHAR 
-        || body.description.length>CONFIG.AUDIO_VALIDATION_CONFIG.MAX_DESCRIPTION_CHAR){
-        return {
-            success: false,
-            details: "The number of description characters must be between "+CONFIG.AUDIO_VALIDATION_CONFIG.MIN_DESCRIPTION_CHAR
-            +" and "+CONFIG.AUDIO_VALIDATION_CONFIG.MAX_DESCRIPTION_CHAR
-        };
-    }
+    
     if(body.keywords){
         if(! Array.isArray(body.keywords)){
             return {
@@ -175,9 +261,16 @@ const validateUpdateAudioRequest = (req) => {
         }
     }
     
+    if(body.title || body.theme || body.author || body.description || body.keywords || body.date) {
+        return {
+            success: true
+        };
+    }
     return {
-        success: true
-    };
+        success: false,
+        details: "No field has been set !"
+    }
+    
 }
 exports.validatePostAudioRequest = validatePostAudioRequest;
 exports.validateGetAudioRequest = validateGetAudioRequest;

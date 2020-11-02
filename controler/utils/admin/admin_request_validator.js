@@ -18,6 +18,7 @@ const validatePostAdminRequest = (body) => {
             .min(ADMIN_VALIDATION_CONFIG.MIN_PASSWORD_CHAR)
             .max(ADMIN_VALIDATION_CONFIG.MAX_PASSWORD_CHAR)
             .required(),
+        date: Joi.date(),
         isSuperAdmin: Joi.boolean(),
     });
     return schema.validate(body);
@@ -37,15 +38,13 @@ const validateUpdateAdminRequest = (body) => {
     const schema = Joi.object({
         surname: Joi.string()
             .min(ADMIN_VALIDATION_CONFIG.MIN_SURNAME_CHAR)
-            .max(ADMIN_VALIDATION_CONFIG.MAX_SURNAME_CHAR)
-            .required(),
+            .max(ADMIN_VALIDATION_CONFIG.MAX_SURNAME_CHAR),
         name: Joi.string()
             .min(ADMIN_VALIDATION_CONFIG.MIN_NAME_CHAR)
-            .max(ADMIN_VALIDATION_CONFIG.MAX_NAME_CHAR)
-            .required(),
+            .max(ADMIN_VALIDATION_CONFIG.MAX_NAME_CHAR),
         email: Joi.string()
-            .required()
             .email(),
+        email: Joi.date(),
         isSuperAdmin: Joi.boolean(),
     });
     return schema.validate(body);

@@ -4,12 +4,13 @@ const CONFIG = require("../config/server_config");
 let requestValidator = require("./utils/audio/audio_request_validator");
 let audioFileUploader = require("./utils/audio/audio_file_uploader");
 let audioUtils = require("./utils/audio/audio_utils");
+let {lowerCaseArray} = require("./utils/common")
 const rootDirPath = "../";
 
 let postAudio = async (req, res) => {
     let reqValidation = requestValidator.validatePostAudioRequest(req);
     if(reqValidation.success){
-        var audio = new Audio(req.body.uri, req.body.title, req.body.description, req.body.keywords, req.body.date, null);
+        var audio = new Audio(req.body.uri, _.capitalize(req.body.title), _.toUpper(req.body.theme), _.toUpper(req.body.author), _.capitalize(req.body.description), lowerCaseArray(req.body.keywords), req.body.date, null);
         let result = await audio.saveToDB();
         if(result.success){
             const splitedFileName = _.split(req.files.audio.name, ".");
@@ -88,16 +89,17 @@ let getAudio = async (req, res) => {
 let getManyAudios = async(req, res) => {
     let reqValidation = requestValidator.validateGetAudioRequest(req);
     if(reqValidation.success){
-        let matchAll = req.body.matchAll ? req.body.matchAll : false;
+        //let matchAll = req.body.matchAll ? req.body.matchAll : false;
         let skip = req.body.skip ? req.body.skip : CONFIG.AUDIO_GET_PARAMS.DEFAULT_SKIP_NUMBER;
         let limit = req.body.limit ? req.body.limit : CONFIG.AUDIO_GET_PARAMS.DEFAULT_LIMIT_NUMBER;
         let findAudiosResults;
-        if(req.body.keywords){
-            if(matchAll) findAudiosResults = await Audio.findAudiosFromDBByKeywordsMatchAll(req.body.keywords, skip, limit);
-            else findAudiosResults = await Audio.findAudiosFromDBByKeywordsMatchAny(req.body.keywords, skip, limit);
-        }else{
-            findAudiosResults = await Audio.findAudiosFromDB(skip, limit);
-        }
+        // if(req.body.keywords){
+        //     if(matchAll) findAudiosResults = await Audio.findAudiosFromDBByKeywordsMatchAll(req.body.keywords, skip, limit);
+        //     else findAudiosResults = await Audio.findAudiosFromDBByKeywordsMatchAny(req.body.keywords, skip, limit);
+        // }else{
+        //     findAudiosResults = await Audio.findAudiosFromDB(skip, limit);
+        // }
+        findAudiosResults = await Audio.findAudiosFromDB(_.toUpper(req.body.theme), _.toUpper(req.body.author), lowerCaseArray(req.body.keywords), req.body.matchAll, req.body.date, req.body.gte , skip, limit);
         if(findAudiosResults.success){
             if(findAudiosResults.audios === null){
                 res.status(CONFIG.HTTP_CODE.PAGE_NOT_FOUND_ERROR);
@@ -180,8 +182,13 @@ let updateAudio = async (req, res) => {
                     details: "No audio with this _id has been found in the database !"
                 });
             }else{
-                let keywords = req.body.keywords ? req.body.keywords : findAudioResult.user.keywords;
-                let audio = new Audio(findAudioResult.audio.uri, req.body.title, req.body.description, keywords, findAudioResult.audio.date, findAudioResult.audio._id);
+                let title = req.body.title ? req.body.title : findAudioResult.audio.title;
+                let theme = req.body.theme ? req.body.theme : findAudioResult.audio.theme;
+                let author = req.body.author ? req.body.author : findAudioResult.audio.author;
+                let description = req.body.description ? req.body.description : findAudioResult.audio.description;
+                let keywords = req.body.keywords ? req.body.keywords : findAudioResult.audio.keywords;
+                let date = req.body.date ? req.body.date : findAudioResult.audio.date;
+                let audio = new Audio(findAudioResult.audio.uri, _.capitalize(title), _.toUpper(theme), _.toUpper(author), _.capitalize(description), lowerCaseArray(keywords), date, findAudioResult.audio._id);
                 let updateResult = await audio.updateToDB();
                 if(updateResult.success){
                     res.status(CONFIG.HTTP_CODE.OK);
@@ -209,7 +216,6 @@ let updateAudio = async (req, res) => {
         });
     }
 }
-
 
 
 
