@@ -1,14 +1,15 @@
 let _ = require("lodash");
 let userModel = require("./schema/user");
 let DB = require("../model/db_crud");
+let {lowerCaseArray} = require("./../controler/utils/common");
 
 
 class User{
     constructor(username, tel, email, interestKeywords, date, id){
-        this.username = username;
+        this.username = _.toLower(username);
         this.tel = tel;
-        this.email = email;
-        this.interestKeywords = interestKeywords;
+        this.email = _.toLower(email);
+        this.interestKeywords = lowerCaseArray(interestKeywords);
         this.date = date;
         this.id = id;
     }
@@ -21,10 +22,10 @@ class User{
     getId(){return this.id;}
     
 
-    setUsername(username){this.username = username;}
+    setUsername(username){this.username = _.toLower(username);}
     setTel(tel){this.tel = tel;}
-    setEmail(email){this.email = email;}
-    setInterestKeywords(interestKeywords){this.interestKeywords = interestKeywords;}
+    setEmail(email){this.email = _.toLower(email);}
+    setInterestKeywords(interestKeywords){this.interestKeywords = lowerCaseArray(interestKeywords);}
     setDate(date){this.date = date;}
     setId(id){this.id = id;}
 
@@ -128,7 +129,7 @@ class User{
 
     static async findOneUserFromDBByUsername(username){
         try {
-            let data = await DB.findOne(userModel, {username: username});
+            let data = await DB.findOne(userModel, {username: _.toLower(username)});
             let user = _.isEmpty(data) ? null : data;
             return Promise.resolve({
                 success: true, 
@@ -143,9 +144,51 @@ class User{
         }
     }
 
-    static async getUsers(skipNumber, limitNumber){
+    static async getUsers(username, tel, email, interestParams, dateParams, skipNumber, limitNumber){
         try {
-            let data = await DB.findMany(userModel, null, "_id username interestKeywords email tel date", skipNumber, limitNumber);
+
+            var queryStruct = {};
+
+            if(username){
+                _.assign(queryStruct, {username: _.toLower(username)});
+            }
+
+            if(tel){
+                _.assign(queryStruct, {tel: tel});
+            }
+
+            if(email){
+                _.assign(queryStruct, {email: _.toLower(email)});
+            }
+            
+            if(interestParams){
+                if(interestParams.matchAll){
+                    var keywordsQueryStruct;
+                    keywordsQueryStruct = {interestKeywords: { $all: lowerCaseArray(interestParams.keywords) }};
+                    _.assign(queryStruct, keywordsQueryStruct);
+                }else{
+                    var keywordsQueryStruct = [];
+                    interestParams.keywords.forEach(element => {
+                        
+                        keywordsQueryStruct.push({
+                            interestKeywords: element
+                        })
+                    });
+                    _.assign(queryStruct, {$or: keywordsQueryStruct});
+                }
+                
+            }
+            if(dateParams){
+                if(dateParams.gte === true){
+                    _.assign(queryStruct, {date: { $gte: dateParams.date }});
+                }else if(dateParams.gte === false){
+                    _.assign(queryStruct, {date: { $lte: dateParams.date }});
+                }else{
+                    _.assign(queryStruct, {date: dateParams.date});
+                }
+            }
+
+            let data = await DB.findMany(userModel, queryStruct, "_id username interestKeywords email tel date", skipNumber, limitNumber);
             if(_.isEmpty(data)){
                 return Promise.resolve({
                     success: true, 
@@ -156,10 +199,10 @@ class User{
                 success: true, 
                 users: data
             });
-        } catch (deleteError) {
+        } catch (getUserError) {
             return Promise.resolve({
                 success: false, 
-                message: deleteError,
+                message: getUserError,
                 details: "Couldn't find any user from the database"
             });
         }

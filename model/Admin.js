@@ -6,9 +6,9 @@ const CONFIG = require("../config/server_config");
 
 class Admin{
     constructor(surname, name, email, password, date, id, isSuperAdmin){
-        this.surname = surname;
-        this.name = name;
-        this.email = email;
+        this.surname = _.capitalize(surname);
+        this.name = _.toUpper(name);
+        this.email = _.toLower(email);
         this.date = date;
         this.id = id;
         this.password = password;
@@ -24,9 +24,9 @@ class Admin{
     getIsSuperAdmin(){return this.isSuperAdmin;}
     
 
-    setSurname(surname){this.surname = surname;}
-    setName(name){this.name = name;}
-    setEmail(email){this.email = email;}
+    setSurname(surname){this.surname = _.capitalize(surname);}
+    setName(name){this.name = _.toUpper(name);}
+    setEmail(email){this.email = _.toLower(email);}
     setPassword(password){this.password = password;}
     setDate(date){this.date = date;}
     setId(id){this.id = id;}
@@ -150,9 +150,39 @@ class Admin{
         }
     }
 
-    static async getAdmins(skipNumber, limitNumber){
+    static async getAdmins(surname, name, email, dateParams, isSuperAdmin, skipNumber, limitNumber){
         try {
-            let data = await DB.findMany(adminModel, null, "_id surname name email date isSuperAdmin", skipNumber, limitNumber);
+
+
+            var queryStruct = {};
+
+            if(surname){
+                _.assign(queryStruct, {surname: _.capitalize(surname)});
+            }
+
+            if(name){
+                _.assign(queryStruct, {name: _.toUpper(name)});
+            }
+
+            if(email){
+                _.assign(queryStruct, {email: _.toLower(email)});
+            }
+
+            if(!(isSuperAdmin === undefined)){
+                _.assign(queryStruct, {isSuperAdmin: isSuperAdmin});
+            }
+
+            if(dateParams){
+                if(dateParams.gte === true){
+                    _.assign(queryStruct, {date: { $gte: dateParams.date }});
+                }else if(dateParams.gte === false){
+                    _.assign(queryStruct, {date: { $lte: dateParams.date }});
+                }else{
+                    _.assign(queryStruct, {date: dateParams.date});
+                }
+            }
+
+            let data = await DB.findMany(adminModel, queryStruct, "_id surname name email date isSuperAdmin", skipNumber, limitNumber);
             if(_.isEmpty(data)){
                 return Promise.resolve({
                     success: true, 

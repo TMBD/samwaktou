@@ -146,11 +146,43 @@ const validateGetAudioRequest = (req) => {
             };
         }
     }
-    if(body.keywords){
-        if(!Array.isArray(body.keywords)){
+    if(body.keywordsParams){
+        if(!body.keywordsParams.keywords){
             return {
                 success: false,
-                details: "keywods has to be an array of String !"
+                details: "keywordsParams.keywods is required !"
+            };
+        }
+        if(!Array.isArray(body.keywordsParams.keywords)){
+            return {
+                success: false,
+                details: "keywordsParams.keywods has to be an array of String !"
+            };
+        }
+        if(!(body.keywordsParams.matchAll === undefined) && !_.isBoolean(body.keywordsParams.matchAll)){
+            return {
+                success: false,
+                details: "keywordsParams.matchAll has to be type of boolean !"
+            };
+        }
+    }
+    if(body.dateParams){
+        if(!body.dateParams.date){
+            return {
+                success: false,
+                details: "dateParams.date is required !"
+            };
+        }
+        if(!_.isDate(body.dateParams.date)){
+            return {
+                success: false,
+                details: "dateParams.date has to be type of Date !"
+            };
+        }
+        if(!(body.dateParams.gte === undefined) && !_.isBoolean(body.dateParams.gte)){
+            return {
+                success: false,
+                details: "dateParams.gte has to be type of boolean !"
             };
         }
     }

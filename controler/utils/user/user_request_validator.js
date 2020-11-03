@@ -16,12 +16,29 @@ const validatePostUserRequest = (body) => {
         interestKeywords: Joi.array()
             .min(USER_VALIDATION_CONFIG.MIN_INTERESTKEYWORDS_CHAR)
             .max(USER_VALIDATION_CONFIG.MAX_INTERESTKEYWORDS_CHAR),
+        date: Joi.date(),
     });
     return schema.validate(body);
 }
 
 const validateGetUserRequest = (body) => {
     const schema = Joi.object({
+        username: Joi.string(),
+        tel: Joi.string(),    
+        email: Joi.string()
+            .email(),
+        interestParams: Joi.object()
+            .keys({
+                keywords: Joi.array()
+                    .required(),
+                matchAll: Joi.boolean(),
+            }),
+        dateParams: Joi.object()
+            .keys({
+                date: Joi.date()
+                    .required(),
+                gte: Joi.boolean(),
+            }),
         limit: Joi.number()
             .max(USER_GET_PARAMS.MAX_LIMIT_NUMBER),
         skip: Joi.number()
@@ -38,8 +55,7 @@ const validateUpdateUserRequest = (body) => {
             .required(),
         tel: Joi.string()
             .min(USER_VALIDATION_CONFIG.MIN_TEL_CHAR)
-            .max(USER_VALIDATION_CONFIG.MAX_TEL_CHAR)
-            .required(),    
+            .max(USER_VALIDATION_CONFIG.MAX_TEL_CHAR),    
         email: Joi.string()
             .email(),
         interestKeywords: Joi.array()

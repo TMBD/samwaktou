@@ -2,16 +2,17 @@ let _ = require("lodash");
 let audioModel = require("./schema/audio");
 let DB = require("../model/db_crud");
 const CONFIG = require("../config/server_config");
+let {lowerCaseArray} = require("./../controler/utils/common")
 
 
 class Audio{
     constructor(uri, title, theme, author, description, keywords, date, id){
         this.uri = uri ? uri : CONFIG.FILE_LOCATION.AUDIO_FILE_LOCATION;
-        this.title = title;
-        this.theme = theme,
-        this.author = author,
-        this.description = description;
-        this.keywords = keywords;
+        this.title = _.capitalize(title);
+        this.theme = _.toUpper(theme),
+        this.author = _.toUpper(author),
+        this.description = _.capitalize(description);
+        this.keywords = lowerCaseArray(keywords);
         this.date = date;
         this.id = id;
     }
@@ -26,11 +27,11 @@ class Audio{
     getId(){return this.id;}
 
     setUri(uri){this.uri = uri;}
-    setTitle(title){this.title = title;}
-    setTheme(theme){this.theme = theme;}
-    setAuthor(author){this.author = author;}
-    setDescription(description){this.description = description;}
-    setKeywords(keywords){this.keywords = keywords;}
+    setTitle(title){this.title = _.capitalize(title);}
+    setTheme(theme){this.theme = _.toUpper(theme);}
+    setAuthor(author){this.author = _.toUpper(author);}
+    setDescription(description){this.description = _.capitalize(description);}
+    setKeywords(keywords){this.keywords = lowerCaseArray(keywords);}
     setDate(date){this.date = date;}
     setId(id){this.id = id;}
 
@@ -227,43 +228,44 @@ class Audio{
 
 ///////////////////////
 
-    static async findAudiosFromDB(theme, author, keywords, matchAll, date, gte , skipNumber, limitNumber){
+    static async findAudiosFromDB(theme, author, keywordsParams, dateParams , skipNumber, limitNumber){
         try {
             var queryStruct = {};
 
             if(theme){
-                _.assign(queryStruct, {theme: theme});
+                _.assign(queryStruct, {theme: _.toUpper(theme)});
             }
 
             if(author){
-                _.assign(queryStruct, {author: author});
+                _.assign(queryStruct, {author: _.toUpper(author)});
             }
 
-            if(keywords){
+            if(keywordsParams){
                 var keywordsQueryStruct;
-                if(matchAll){
-                    keywordsQueryStruct = {keywords: { $all: keywords }};
+                if(keywordsParams.matchAll){
+                    keywordsQueryStruct = {keywords: { $all: lowerCaseArray(keywordsParams.keywords) }};
+                    _.assign(queryStruct, keywordsQueryStruct);
                 }else{
                     var keywordsQueryStruct = [];
-                    keywords.forEach(element => {
+                    keywordsParams.keywords.forEach(element => {
                         keywordsQueryStruct.push({
-                            keywords: element
+                            keywords: _.toLower(element)
                         })
                     });
+                    _.assign(queryStruct, {$or: keywordsQueryStruct});
                 }
-                _.assign(queryStruct, {$or: keywordsQueryStruct});
+                
             }
 
-            if(date){
-                if(gte === true){
-                    _.assign(queryStruct, {date: { $gte: date }});
-                }else if(gte === false){
-                    _.assign(queryStruct, {date: { $lte: date }});
+            if(dateParams){
+                if(dateParams.gte === true){
+                    _.assign(queryStruct, {date: { $gte: dateParams.date }});
+                }else if(dateParams.gte === false){
+                    _.assign(queryStruct, {date: { $lte: dateParams.date }});
                 }else{
-                    _.assign(queryStruct, {date: date});
+                    _.assign(queryStruct, {date: dateParams.date});
                 }
             }
-            console.log(queryStruct);
 
             let data = await DB.findMany(audioModel, queryStruct, null, skipNumber, limitNumber);
             if(_.isEmpty(data)){

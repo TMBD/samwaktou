@@ -1,4 +1,5 @@
 let jwt = require("jsonwebtoken");
+let _ = require("lodash");
 require("dotenv/config");
 const CONFIG = require("../config/server_config");
 let requestValidator = require("./utils/user/user_request_validator");
@@ -12,7 +13,7 @@ let postUser = async (req, res) => {
             if(foundUser.user === null){
                 let email = req.body.email ? req.body.email : null;
                 let interestKeywords = req.body.interestKeywords ? req.body.interestKeywords : [];
-                let user = new User(req.body.username, req.body.tel, email, interestKeywords, undefined, undefined);
+                let user = new User(req.body.username, req.body.tel, email, interestKeywords, req.body.date, undefined);
                 let result = await user.saveToDB();
                 if(result.success){
                     res.status(CONFIG.HTTP_CODE.OK);
@@ -77,7 +78,7 @@ let getManyUsers = async(req, res) => {
     if(!reqValidation.error){
         let limitUserToFind = (req.body.limit) ? req.body.limit : CONFIG.USER_GET_PARAMS.DEFAULT_LIMIT_NUMBER;
         let skipUserToFind = (req.body.skip) ? req.body.skip : CONFIG.USER_GET_PARAMS.DEFAULT_SKIP_NUMBER;
-        let findUsersResults = await User.getUsers(skipUserToFind, limitUserToFind);
+        let findUsersResults = await User.getUsers(req.body.username, req.body.tel, req.body.email, req.body.interestParams, req.body.dateParams, skipUserToFind, limitUserToFind);
         if(findUsersResults.success){
             if(findUsersResults.users === null){
                 res.status(CONFIG.HTTP_CODE.PAGE_NOT_FOUND_ERROR);
@@ -158,9 +159,10 @@ let updateUser = async (req, res) => {
                     let findIfUsernameExistResult = await User.findOneUserFromDBByUsername(req.body.username);
                     if(findIfUsernameExistResult.success){
                         if(findIfUsernameExistResult.user === null || req.body.username == findUserResult.user.username){
+                            let tel = req.body.tel ? req.body.tel : findUserResult.user.tel;
                             let email = req.body.email ? req.body.email : findUserResult.user.email;
                             let interestKeywords = req.body.interestKeywords ? req.body.interestKeywords : findUserResult.user.interestKeywords;
-                            let user = new User(req.body.username, req.body.tel, email, interestKeywords, findUserResult.user.date, findUserResult.user._id);
+                            let user = new User(req.body.username, tel, email, interestKeywords, findUserResult.user.date, findUserResult.user._id);
                             let updateResult = await user.updateToDB();
                             if(updateResult.success){
                                 const token = jwt.sign({_id: findUserResult.user._id, username: req.body.username}, process.env.USER_TOKEN_SECRET, {expiresIn: "1h"});

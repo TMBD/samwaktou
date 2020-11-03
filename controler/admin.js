@@ -5,7 +5,6 @@ require("dotenv/config");
 const CONFIG = require("../config/server_config");
 let requestValidator = require("./utils/admin/admin_request_validator");
 const Admin = require("../model/Admin");
-let {lowerCaseArray} = require("./utils/common");
 
 let postAdmin = async (req, res) => {
     let reqValidation = requestValidator.validatePostAdminRequest(req.body);
@@ -15,7 +14,7 @@ let postAdmin = async (req, res) => {
             if(foundAdmin.admin === null){
                 const salt = await bcryptejs.genSalt(10);
                 const hashedPassword = await bcryptejs.hash(req.body.password, salt);
-                let admin = new Admin(_.capitalize(req.body.surname), _.toUpper(req.body.name), _.toLower(req.body.email), hashedPassword, req.body.date, undefined, undefined);
+                let admin = new Admin(req.body.surname, req.body.name, req.body.email, hashedPassword, req.body.date, undefined, undefined);
                 let result = await admin.saveToDB();
                 if(result.success){
                     res.status(CONFIG.HTTP_CODE.OK);
@@ -93,7 +92,7 @@ let getManyAdmins = async(req, res) => {
     if(!reqValidation.error){
         let limitAdminToFind = (req.body.limit) ? req.body.limit : CONFIG.ADMIN_GET_PARAMS.DEFAULT_LIMIT_NUMBER;
         let skipAdminToFind = (req.body.skip) ? req.body.skip : CONFIG.ADMIN_GET_PARAMS.DEFAULT_SKIP_NUMBER;
-        let findAdminsResults = await Admin.getAdmins(skipAdminToFind, limitAdminToFind);
+        let findAdminsResults = await Admin.getAdmins(req.body.surname, req.body.name, req.body.email, req.body.dateParams, req.body.isSuperAdmin, skipAdminToFind, limitAdminToFind);
         if(findAdminsResults.success){
             if(findAdminsResults.admins === null){
                 res.status(CONFIG.HTTP_CODE.PAGE_NOT_FOUND_ERROR);
@@ -168,11 +167,10 @@ let updateAdmin = async (req, res) => {
                     if(findIfEmailExistResult.success){
                         if(findIfEmailExistResult.admin === null || req.body.email == findAdminResult.admin.email){
                             let isSuperAdmin = (req.token.isSuperAdmin && req.body.isSuperAdmin != undefined) ? req.body.isSuperAdmin : findAdminResult.admin.isSuperAdmin;
-                            let surname = req.body.surname ? _.capitalize(req.body.surname) : findAdminResult.admin.surname;
-                            let name = req.body.name ? _.toUpper(req.body.name) : findAdminResult.admin.name;
-                            let email = req.body.email ? _.toLower(req.body.email) : findAdminResult.admin.email;
-                            let date = req.body.date ? req.body.date : findAdminResult.admin.date;
-                            let admin = new Admin(surname, name, email, findAdminResult.admin.password, date, findAdminResult.admin._id, isSuperAdmin);
+                            let surname = req.body.surname ? req.body.surname : findAdminResult.admin.surname;
+                            let name = req.body.name ? req.body.name : findAdminResult.admin.name;
+                            let email = req.body.email ? req.body.email : findAdminResult.admin.email;
+                            let admin = new Admin(surname, name, email, findAdminResult.admin.password, findAdminResult.admin.date, findAdminResult.admin._id, isSuperAdmin);
                             let updateResult = await admin.updateToDB();
                             if(updateResult.success){
                                 res.status(CONFIG.HTTP_CODE.OK);

@@ -10,7 +10,7 @@ const rootDirPath = "../";
 let postAudio = async (req, res) => {
     let reqValidation = requestValidator.validatePostAudioRequest(req);
     if(reqValidation.success){
-        var audio = new Audio(req.body.uri, _.capitalize(req.body.title), _.toUpper(req.body.theme), _.toUpper(req.body.author), _.capitalize(req.body.description), lowerCaseArray(req.body.keywords), req.body.date, null);
+        var audio = new Audio(req.body.uri, req.body.title, req.body.theme, req.body.author, req.body.description, req.body.keywords, req.body.date, null);
         let result = await audio.saveToDB();
         if(result.success){
             const splitedFileName = _.split(req.files.audio.name, ".");
@@ -99,7 +99,7 @@ let getManyAudios = async(req, res) => {
         // }else{
         //     findAudiosResults = await Audio.findAudiosFromDB(skip, limit);
         // }
-        findAudiosResults = await Audio.findAudiosFromDB(_.toUpper(req.body.theme), _.toUpper(req.body.author), lowerCaseArray(req.body.keywords), req.body.matchAll, req.body.date, req.body.gte , skip, limit);
+        findAudiosResults = await Audio.findAudiosFromDB(req.body.theme, req.body.author, req.body.keywordsParams, req.body.dateParams, skip, limit);
         if(findAudiosResults.success){
             if(findAudiosResults.audios === null){
                 res.status(CONFIG.HTTP_CODE.PAGE_NOT_FOUND_ERROR);

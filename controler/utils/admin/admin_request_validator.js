@@ -26,6 +26,17 @@ const validatePostAdminRequest = (body) => {
 
 const validateGetAdminRequest = (body) => {
     const schema = Joi.object({
+        surname: Joi.string(),
+        name: Joi.string(),
+        email: Joi.string()
+            .email(),
+        dateParams: Joi.object()
+            .keys({
+                date: Joi.date()
+                    .required(),
+                gte: Joi.boolean(),
+            }),
+        isSuperAdmin: Joi.boolean(),
         limit: Joi.number()
             .max(ADMIN_GET_PARAMS.MAX_LIMIT_NUMBER),
         skip: Joi.number()
@@ -44,7 +55,6 @@ const validateUpdateAdminRequest = (body) => {
             .max(ADMIN_VALIDATION_CONFIG.MAX_NAME_CHAR),
         email: Joi.string()
             .email(),
-        email: Joi.date(),
         isSuperAdmin: Joi.boolean(),
     });
     return schema.validate(body);
