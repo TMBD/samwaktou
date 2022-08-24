@@ -25,14 +25,6 @@ class AudioCard extends React.Component{
         });
     }
 
-    // getDurationDisplay = (duration) => {
-    //     let minutes = Math.floor(duration/60);
-    //     let seconds = Math.floor(duration - minutes*60);
-    //     let minutesToDisplay = minutes > 10 ? minutes : "0"+minutes;
-    //     let secondsToDisplay = seconds > 10 ? seconds : "0"+seconds;
-    //     return minutesToDisplay+":"+secondsToDisplay;
-    // }
-
     handleClickedCardBody = () => {
         this.state.audioHandler(
             this.state.audioUri, 

@@ -2,8 +2,6 @@ import React from 'react';
 import AudioCard from "./AudioCard";
 import AudioPlayerCard from "./AudioPlayerCard";
 import '../style/audioCards.css';
-// import AudioPlayer from "./AudioPlayer";
-// import ReactPlayer from 'react-player/lazy'
 
 class AppBody extends React.Component{
     constructor(props){
@@ -72,8 +70,6 @@ class AppBody extends React.Component{
     render(){
         return(
             <div className="audioCardContainer"> 
-            {/* <ReactPlayer ref={this.player} onDuration={this.handleDuration} width={0} height={0} url={this.getfileName(this.state.currentAudioUri)} playing={this.state.isAudioPlaying}/> */}
-            {/* <ReactPlayer url={"http://localhost:8080/audios/file/62fbde7886125c3e2cd544e5.mp3"} playing={true}/> */}
             {this.state.audios.map(
                 element => 
                     <AudioCard 
@@ -86,11 +82,6 @@ class AppBody extends React.Component{
                         audioHandler = {this.audioHandler}
                         getDurationDisplay = {this.getDurationDisplay}
                     />)}
-
-                {/* <AudioCard time="02:18 " title={this.state.title}/>
-                <AudioCard time="05:18 " title={this.state.title}/>
-                <AudioCard time="04:18 " title={this.state.title}/>
-                <AudioCard time="07:18 " title={this.state.title}/> */}
 
                 <AudioPlayerCard
                     audioMetadata = {this.state.audioMetadata}
