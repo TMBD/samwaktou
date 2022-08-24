@@ -1,3 +1,28 @@
-node_modules/
-files/
-.env
+# FOR THE BACKEND APP
+backend/api/node_modules/
+backend/api/files/
+backend/api/.env
+
+# ================================
+# FOR THE FRONTEND APP
+# dependencies
+frontend/samwaktou-react-app/node_modules/
+frontend/samwaktou-react-app/.pnp
+frontend/samwaktou-react-app/.pnp.js
+
+# testing
+frontend/samwaktou-react-app/coverage
+
+# production
+frontend/samwaktou-react-app/build
+
+# misc
+frontend/samwaktou-react-app/.DS_Store
+frontend/samwaktou-react-app/.env.local
+frontend/samwaktou-react-app/.env.development.local
+frontend/samwaktou-react-app/.env.test.local
+frontend/samwaktou-react-app/.env.production.local
+
+frontend/samwaktou-react-app/npm-debug.log*
+frontend/samwaktou-react-app/yarn-debug.log*
+frontend/samwaktou-react-app/yarn-error.log*

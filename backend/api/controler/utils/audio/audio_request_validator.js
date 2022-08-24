@@ -173,12 +173,12 @@ const validateGetAudioRequest = (req) => {
                 details: "dateParams.date is required !"
             };
         }
-        if(!_.isDate(body.dateParams.date)){
-            return {
-                success: false,
-                details: "dateParams.date has to be type of Date !"
-            };
-        }
+        // if(!_.isDate(body.dateParams.date)){
+        //     return {
+        //         success: false,
+        //         details: "dateParams.date has to be type of Date !"
+        //     };
+        // }
         if(!(body.dateParams.gte === undefined) && !_.isBoolean(body.dateParams.gte)){
             return {
                 success: false,
