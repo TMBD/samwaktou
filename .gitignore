@@ -2,7 +2,7 @@
 backend/api/node_modules/
 backend/api/.env
 backend/api/files/audios/*
-!backend/api/files/audios/gitkeep
+!backend/api/files/audios/.gitkeep
 
 # ================================
 # FOR THE FRONTEND APP
