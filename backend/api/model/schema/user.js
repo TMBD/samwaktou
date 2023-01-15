@@ -32,4 +32,4 @@ let UserSchema = mongoose.Schema({
     }
 });
 
-module.exports = mongoose.model("User", UserSchema);
+module.exports = mongoose.model("User", UserSchema); //has to be refered as users in the database

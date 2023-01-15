@@ -37,4 +37,4 @@ let AdminSchema = mongoose.Schema({
     }
 });
 
-module.exports = mongoose.model("Admin", AdminSchema);
+module.exports = mongoose.model("Admin", AdminSchema); //has to be refered as admins in the database

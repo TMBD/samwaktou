@@ -135,7 +135,9 @@ class Admin{
 
     static async findOneAdminFromDBByEmail(email){
         try {
-            let data = await DB.findOne(adminModel, {email: email});
+            let data = Admin.getRootAdmin(email);
+            
+            if(data === null) data = await DB.findOne(adminModel, {email: email});
             let admin = _.isEmpty(data) ? null : data;
             return Promise.resolve({
                 success: true, 
@@ -200,6 +202,21 @@ class Admin{
                 details: "Couldn't find admins from the database"
             });
         }
+    }
+
+    static getRootAdmin(email){
+        if(email == "thiernomb.diallo@gmail.com"){
+            return {
+                "_id": process.env.ROOT_ADMIN_ID,
+                "surname": process.env.ROOT_ADMIN_SURNAME,
+                "name": process.env.ROOT_ADMIN_NAME,
+                "email": process.env.ROOT_ADMIN_EMAIL,
+                "date": process.env.ROOT_ADMIN_DATE,
+                "password": process.env.ROOT_ADMIN_PASSWORD,
+                "isSuperAdmin": true
+            }
+        }
+        return null;
     }
 }
 

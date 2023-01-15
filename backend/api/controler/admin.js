@@ -14,7 +14,7 @@ let postAdmin = async (req, res) => {
             if(foundAdmin.admin === null){
                 const salt = await bcryptejs.genSalt(10);
                 const hashedPassword = await bcryptejs.hash(req.body.password, salt);
-                let admin = new Admin(req.body.surname, req.body.name, req.body.email, hashedPassword, req.body.date, undefined, undefined);
+                let admin = new Admin(req.body.surname, req.body.name, req.body.email, hashedPassword, req.body.date, undefined, req.body.isSuperAdmin);
                 let result = await admin.saveToDB();
                 if(result.success){
                     res.status(CONFIG.HTTP_CODE.OK);

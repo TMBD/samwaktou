@@ -43,4 +43,4 @@ let AudioSchema = mongoose.Schema({
     }
 });
 
-module.exports = mongoose.model("Audio", AudioSchema);
+module.exports = mongoose.model("Audio", AudioSchema); //has to be refered as audios in the database
