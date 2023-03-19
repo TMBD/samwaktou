@@ -26,6 +26,5 @@ server.use("/audios", audioRoutes);
 server.use("/admins", adminRoutes);
 server.use("/users", userRoutes);
 
-
 //Listening at the port defined in the server_config
 server.listen(CONFIG.SERVEUR_CONFIG.PORT);
