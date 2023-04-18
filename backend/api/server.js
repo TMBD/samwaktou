@@ -10,7 +10,7 @@ let adminRoutes = require("./routes/admin");
 let userRoutes = require("./routes/user");
 
 //Herokou 
-//Azur
+//Azur 
 
 //MIDDLEWARES
 server.use(bodyParser.json());
