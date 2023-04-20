@@ -9,7 +9,8 @@ class AudioPlayerCard extends React.Component{
             audioMetadata: this.props.audioMetadata,
             getDurationDisplay: this.props.getDurationDisplay,
             playing: false,
-            audioPlayPauseClassName: "playAudioDraw"
+            audioPlayPauseClassName: "playAudioDraw",
+            sliderProgressValue: 0
         }
     }
 
@@ -63,21 +64,23 @@ class AudioPlayerCard extends React.Component{
     
     handleTimelineUpdate = () => {
         this.setState({
-            currentTimeDisplay: this.state.getDurationDisplay(this.audioRef.current.currentTime)
+            currentTimeDisplay: this.state.getDurationDisplay(this.audioRef.current.currentTime),
+            sliderProgressValue: (100*this.audioRef.current.currentTime) / this.audioRef.current.duration
         });
         this.timeSliderRef.current.value = (100*this.audioRef.current.currentTime) / this.audioRef.current.duration;
     }
 
     handleAudioEnded = () => {
         this.audioHandler(false);
-        this.timeSliderRef.current.value = 100;
+        this.setState({
+            sliderProgressValue: 100
+        });
     }
 
     sliderChangeSeek = () => {
         if(this.state.audioMetadata.audioUri !== null 
             && this.state.audioMetadata.audioUri !== undefined){
-            const time = (this.timeSliderRef.current.value * this.audioRef.current.duration) / 100;
-            this.audioRef.current.currentTime = time;
+            this.audioRef.current.currentTime = (this.timeSliderRef.current.value * this.audioRef.current.duration) / 100;
         }
       }
 
@@ -113,7 +116,7 @@ class AudioPlayerCard extends React.Component{
                             type = "range" 
                             min = "0" 
                             max = "100" 
-                            value = "0" 
+                            value = {this.state.sliderProgressValue}
                             className = "slider"
                             onChange={this.sliderChangeSeek}/>
                         <div 

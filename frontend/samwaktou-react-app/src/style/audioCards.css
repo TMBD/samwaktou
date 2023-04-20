@@ -235,7 +235,6 @@
     border-bottom: 7px solid transparent;
     margin: 2px;
     cursor: pointer;
-    margin-right: 5px;
 }
 .playAudioDraw:hover {
     border-left: 14px solid rgb(82, 79, 247);
@@ -257,14 +256,15 @@
 .pauseAudioDraw {
     width: 4px;
     height: 14px;
-    border-right: 4px solid rgb(182, 182, 182);
-    border-left: 4px solid rgb(182, 182, 182);
+    border-right: 5px solid rgb(182, 182, 182);
+    border-left: 5px solid rgb(182, 182, 182);
     margin-left: 5px;
     margin-right: 5px;
+    margin: 2px;
     cursor: pointer;
 }
 
 .pauseAudioDraw:hover {
-    border-right: 4px solid rgb(82, 79, 247);
-    border-left: 4px solid rgb(82, 79, 247);
+    border-right: 5px solid rgb(82, 79, 247);
+    border-left: 5px solid rgb(82, 79, 247);
   }
