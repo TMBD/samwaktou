@@ -1,7 +1,10 @@
 import React from 'react';
 import AudioCard from "./AudioCard";
 import AudioPlayerCard from "./AudioPlayerCard";
+import PopupView from "./PopupView";
 import '../style/audioCards.css';
+import '../style/common.css';
+import SearchBar from './SerachBar';
 
 class AppBody extends React.Component{
     constructor(props){
@@ -10,10 +13,16 @@ class AppBody extends React.Component{
             audioMetadata: {},
 
             audios: [],
-            error: null
+            error: null,
+            audioInfos: {},
+            shouldDisplayAudioInfos: false,
+            currentPlayingElementId: null
         }
         this.player = React.createRef();
-        this.audioHandler = this.audioHandler.bind(this)
+        this.audioHandler = this.audioHandler.bind(this);
+        this.handleAudioInfoDisplay = this.handleAudioInfoDisplay.bind(this);
+        this.changePopupStatus = this.changePopupStatus.bind(this);
+        this.handleInputSearchChange = this.handleInputSearchChange.bind(this);
     }
 
     audioHandler(
@@ -22,7 +31,9 @@ class AppBody extends React.Component{
         audioDescription, 
         authorName, 
         theme,
-        recordDate) {
+        recordDate,
+        audioInfos,
+        elementId) {
         this.setState({
           audioMetadata: {
             audioUri: audioUri,
@@ -30,9 +41,11 @@ class AppBody extends React.Component{
             audioDescription: audioDescription,
             authorName: authorName,
             theme: theme,
-            recordDate: recordDate
+            recordDate: recordDate,
           },
-          showAudioPlayerCard: true
+          showAudioPlayerCard: true,
+          audioInfos: audioInfos,
+          currentPlayingElementId: elementId
         })
       }
 
@@ -45,7 +58,9 @@ class AppBody extends React.Component{
     }
 
     componentDidMount(){
-        fetch("http://localhost:8080/audios/")
+        fetch("http://localhost:8080/audios/filter", {
+            method: "POST"
+        })
         .then(res => res.json())
         .then(
             (result) => {
@@ -61,33 +76,98 @@ class AppBody extends React.Component{
         )
     }
 
+    handleInputSearchChange = (searchText) => {
+        let keywords = [];
+        if(searchText){
+            keywords = searchText.split(/,|;| /).filter(word => word);
+        }
+        
+        const data = (keywords.length <= 0) ? {} : {
+            "keywordsParams": {
+                "keywords": searchText.split(/,|;| /).filter(word => word)
+            }
+        }
+        fetch("http://localhost:8080/audios/filter", {
+            method: 'POST',
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(data)
+        })
+        .then(res => res.json())
+        .then(
+            (result) => {
+                this.setState({
+                    audios: result
+                });
+            },
+            (error) => {
+                this.setState({
+                    error: "Une erreur s'est produite"
+                });
+            }
+        );
+    }
+
     getfileName(uri){
         const splitedFileUri = (uri !== null) ? uri.split("/"):"";
         const fileName = splitedFileUri[splitedFileUri.length-1];
         return "http://localhost:8080/audios/file/"+fileName;
     }
 
+    handleAudioInfoDisplay(element){
+        this.setState({
+            audioInfos: element,
+            shouldDisplayAudioInfos: true
+        });
+    }
+
+    changePopupStatus(visible){
+        this.setState({
+            shouldDisplayAudioInfos: visible
+        });
+    }
+
     render(){
         return(
-            <div className="audioCardContainer"> 
-            {this.state.audios.map(
-                element => 
-                    <AudioCard 
-                        key = {element._id}
-                        theme = {element.theme}
-                        authorName = {element.author}
-                        audioDescription = {element.description}
-                        recordDate = {new Date(element.date).toDateString()}
-                        audioUri = {this.getfileName(element.uri)}
-                        audioHandler = {this.audioHandler}
-                        getDurationDisplay = {this.getDurationDisplay}
-                    />)}
-
-                <AudioPlayerCard
-                    audioMetadata = {this.state.audioMetadata}
-                    getDurationDisplay = {this.getDurationDisplay}
-                    showAudioPlayerCard = {this.state.showAudioPlayerCard}
+            <div className='generalContainer'>
+                <SearchBar
+                    handleInputSearchChange = {this.handleInputSearchChange}
                 />
+                <div className="audioCardContainer"> 
+                    {this.state.audios.map(
+                        element => 
+                            <AudioCard 
+                                key = {element._id}
+                                elementId = {element._id}
+                                currentPlayingElementId = {this.state.currentPlayingElementId}
+                                theme = {element.theme}
+                                authorName = {element.author}
+                                audioDescription = {element.description}
+                                recordDate = {new Date(element.date).toDateString()}
+                                audioUri = {this.getfileName(element.uri)}
+                                audioHandler = {this.audioHandler}
+                                getDurationDisplay = {this.getDurationDisplay}
+                                audioInfos = {element}
+                                handleAudioInfoDisplay = {this.handleAudioInfoDisplay}/>
+                    )}
+
+                    <AudioPlayerCard
+                        audioMetadata = {this.state.audioMetadata}
+                        getDurationDisplay = {this.getDurationDisplay}
+                        showAudioPlayerCard = {this.state.showAudioPlayerCard}
+                        audioInfos = {this.state.audioInfos}
+                        handleAudioInfoDisplay = {this.handleAudioInfoDisplay}/>
+
+                    {
+                        this.state.shouldDisplayAudioInfos && 
+                        <PopupView 
+                            audioInfos = {this.state.audioInfos}
+                            shouldDisplayAudioInfos = {this.state.shouldDisplayAudioInfos}
+                            changePopupStatus = {this.changePopupStatus}/>
+                    }
+
+                </div>
             </div>
         );
     }

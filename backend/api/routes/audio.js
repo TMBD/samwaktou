@@ -11,7 +11,7 @@ router.get("/:audioId", (req, res) => {
     audioController.getAudio(req, res);
 });
 
-router.get("/", (req, res) => {
+router.post("/filter", (req, res) => {
     audioController.getManyAudios(req, res);
 });
 

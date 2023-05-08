@@ -102,8 +102,8 @@ let getManyAudios = async(req, res) => {
         findAudiosResults = await Audio.findAudiosFromDB(req.body.theme, req.body.author, req.body.keywordsParams, req.body.dateParams, skip, limit);
         if(findAudiosResults.success){
             if(findAudiosResults.audios === null){
-                res.status(CONFIG.HTTP_CODE.PAGE_NOT_FOUND_ERROR);
-                res.json({});
+                res.status(CONFIG.HTTP_CODE.OK);
+                res.json([]);
             }else{
                 res.status(CONFIG.HTTP_CODE.OK);
                 res.json(findAudiosResults.audios);

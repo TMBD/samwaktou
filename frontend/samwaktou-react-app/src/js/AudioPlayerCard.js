@@ -7,7 +7,6 @@ class AudioPlayerCard extends React.Component{
         this.timeSliderRef = React.createRef();
         this.state = {
             audioMetadata: this.props.audioMetadata,
-            getDurationDisplay: this.props.getDurationDisplay,
             playing: false,
             audioPlayPauseClassName: "playAudioDraw",
             sliderProgressValue: 0
@@ -64,7 +63,7 @@ class AudioPlayerCard extends React.Component{
     
     handleTimelineUpdate = () => {
         this.setState({
-            currentTimeDisplay: this.state.getDurationDisplay(this.audioRef.current.currentTime),
+            currentTimeDisplay: this.props.getDurationDisplay(this.audioRef.current.currentTime),
             sliderProgressValue: (100*this.audioRef.current.currentTime) / this.audioRef.current.duration
         });
         this.timeSliderRef.current.value = (100*this.audioRef.current.currentTime) / this.audioRef.current.duration;
@@ -99,7 +98,7 @@ class AudioPlayerCard extends React.Component{
                     <div className="audioPlayerCard-cardTheme">
                         {this.props.audioMetadata.theme}
                     </div>
-                    <div className="cardHelp">
+                    <div className="cardHelp" onClick={() => this.props.handleAudioInfoDisplay(this.props.audioInfos)}>
                         i
                     </div>
                 </div>

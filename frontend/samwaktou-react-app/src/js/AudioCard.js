@@ -14,7 +14,9 @@ class AudioCard extends React.Component{
             audioHandler: this.props.audioHandler,
             getDurationDisplay: this.props.getDurationDisplay,
             authorName: this.props.authorName,
-            recordDate: this.props.recordDate
+            recordDate: this.props.recordDate,
+            audioInfos: this.props.audioInfos,
+            handleAudioInfoDisplay: this.props.handleAudioInfoDisplay
         }
     }
 
@@ -25,27 +27,39 @@ class AudioCard extends React.Component{
         });
     }
 
-    handleClickedCardBody = () => {
+    handleClickedCardBody = (elementId) => {
         this.state.audioHandler(
             this.state.audioUri, 
             this.state.durationDisplay, 
             this.state.audioDescription, 
             this.state.authorName, 
             this.state.theme,
-            this.state.recordDate)
+            this.state.recordDate,
+            this.state.audioInfos,
+            elementId);
     }
 
     render(){
+        let audioCardOnPlayClassName = "";
+        let cursorClassName = "cursorPointer";
+        if(this.props.elementId === this.props.currentPlayingElementId){
+            audioCardOnPlayClassName = "audioCardOnPlay";
+            cursorClassName = "";
+        }
         return(
-            <div className="audioCard"> 
+            <div className={"audioCard "+audioCardOnPlayClassName}> 
                 
                 <Header 
                     theme={this.state.theme} 
-                    durationDisplay={this.state.durationDisplay}/>
+                    durationDisplay={this.state.durationDisplay}
+                    audioInfos={this.state.audioInfos}
+                    handleAudioInfoDisplay = {this.state.handleAudioInfoDisplay}/>
 
                 <Body 
                     audioDescription={this.state.audioDescription}
+                    elementId = {this.props.elementId}
                     handleClickedCardBody = {this.handleClickedCardBody}
+                    cursorClassName= {cursorClassName}
                     />
 
                 <Bottom 
