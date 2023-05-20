@@ -85,7 +85,7 @@ const DB = {
         }
     },
 
-    findMany: async (collection, query, fieldsToReturn, skipNumber, limitNumber) => {
+    findMany: async (collection, query, fieldsToReturn, sort, skipNumber, limitNumber) => {
         try {
             await connectToDB();
         } catch (dbConnectionError) {
@@ -96,7 +96,7 @@ const DB = {
             });
         }
         try {
-            let result = await collection.find(query, fieldsToReturn, { skip: skipNumber, limit: limitNumber });
+            let result = await collection.find(query, fieldsToReturn, {sort: sort, skip: skipNumber, limit: limitNumber });
             return Promise.resolve(result);
         } catch (findError) {
             return Promise.reject(findError);

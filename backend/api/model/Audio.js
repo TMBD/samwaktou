@@ -1,4 +1,5 @@
 let _ = require("lodash");
+let moment = require("moment");
 let audioModel = require("./schema/audio");
 let DB = require("../model/db_crud");
 const CONFIG = require("../config/server_config");
@@ -12,8 +13,8 @@ class Audio{
         this.theme = _.toUpper(theme),
         this.author = _.toUpper(author),
         this.description = _.capitalize(description);
-        this.keywords = lowerCaseArray(keywords);
-        this.date = date;
+        this.keywords = _.toLower(keywords);
+        this.date = date ? moment.utc(date, "YYYY-MM-DD") : moment.utc().startOf("day");
         this.id = id;
     }
 
@@ -31,8 +32,8 @@ class Audio{
     setTheme(theme){this.theme = _.toUpper(theme);}
     setAuthor(author){this.author = _.toUpper(author);}
     setDescription(description){this.description = _.capitalize(description);}
-    setKeywords(keywords){this.keywords = lowerCaseArray(keywords);}
-    setDate(date){this.date = date;}
+    setKeywords(keywords){this.keywords = _.toLower(keywords);}
+    setDate(date){this.date = moment.utc(date, "YYYY-MM-DD");}
     setId(id){this.id = id;}
 
 
@@ -153,84 +154,10 @@ class Audio{
         }
     }
 
-    // static async findAudiosFromDBByKeywordsMatchAll(keywords, skipNumber, limitNumber){
-    //     try {
-    //         let data = await DB.findMany(audioModel, {keywords: { $all: keywords }}, null, skipNumber, limitNumber);
-    //         if(_.isEmpty(data)){
-    //             return Promise.resolve({
-    //                 success: true, 
-    //                 audios: null
-    //             });
-    //         }
-    //         return Promise.resolve({
-    //             success: true, 
-    //             audios: data
-    //         });
-    //     } catch (deleteError) {
-    //         return Promise.resolve({
-    //             success: false, 
-    //             message: deleteError,
-    //             details: "Couldn't find any audio from the database"
-    //         });
-    //     }
-    // }
-
-    // static async findAudiosFromDB(skipNumber, limitNumber){
-    //     try {
-    //         let data = await DB.findLatestRecords(audioModel, null, null, skipNumber, limitNumber);
-    //         if(_.isEmpty(data)){
-    //             return Promise.resolve({
-    //                 success: true, 
-    //                 audios: null
-    //             });
-    //         }
-    //         return Promise.resolve({
-    //             success: true, 
-    //             audios: data
-    //         });
-    //     } catch (deleteError) {
-    //         return Promise.resolve({
-    //             success: false, 
-    //             message: deleteError,
-    //             details: "Couldn't find any audio from the database"
-    //         });
-    //     }
-    // }
-
-    // static async findAudiosFromDBByKeywordsMatchAny(keywords, skipNumber, limitNumber){
-    //     try {
-    //         var queryStruct = [];
-    //         keywords.forEach(element => {
-    //             queryStruct.push({
-    //                 keywords: element
-    //             })
-    //         });
-    //         let data = await DB.findMany(audioModel, {$or: queryStruct}, null, skipNumber, limitNumber);
-    //         if(_.isEmpty(data)){
-    //             return Promise.resolve({
-    //                 success: true, 
-    //                 audios: null
-    //             });
-    //         }
-    //         return Promise.resolve({
-    //             success: true, 
-    //             audios: data
-    //         });
-    //     } catch (deleteError) {
-    //         return Promise.resolve({
-    //             success: false, 
-    //             message: deleteError,
-    //             details: "Couldn't find any audio from the database"
-    //         });
-    //     }
-    // }
-
-
-///////////////////////
-
-    static async findAudiosFromDB(theme, author, keywordsParams, dateParams , skipNumber, limitNumber){
+    static async findAudiosFromDB(theme, author, keywords, minDate , maxDate, skipNumber, limitNumber){
         try {
-            var queryStruct = {};
+            let queryStruct = {};
+            let sort = {date: -1};
 
             if(theme){
                 _.assign(queryStruct, {theme: _.toUpper(theme)});
@@ -240,34 +167,32 @@ class Audio{
                 _.assign(queryStruct, {author: _.toUpper(author)});
             }
 
-            if(keywordsParams){
-                var keywordsQueryStruct;
-                if(keywordsParams.matchAll){
-                    keywordsQueryStruct = {keywords: { $all: lowerCaseArray(keywordsParams.keywords) }};
-                    _.assign(queryStruct, keywordsQueryStruct);
-                }else{
-                    var keywordsQueryStruct = [];
-                    keywordsParams.keywords.forEach(element => {
-                        keywordsQueryStruct.push({
-                            keywords: _.toLower(element)
-                        })
+            if(keywords){
+                _.assign(
+                    queryStruct, 
+                    { 
+                        $text: { 
+                            $search: keywords,
+                            $caseSensitive: false,
+                            $language: "fr"
+                        }
                     });
-                    _.assign(queryStruct, {$or: keywordsQueryStruct});
-                }
-                
+                _.assign(sort, { score: { $meta: "textScore" }});
             }
 
-            if(dateParams){
-                if(dateParams.gte === true){
-                    _.assign(queryStruct, {date: { $gte: dateParams.date }});
-                }else if(dateParams.gte === false){
-                    _.assign(queryStruct, {date: { $lte: dateParams.date }});
-                }else{
-                    _.assign(queryStruct, {date: dateParams.date});
-                }
+            let dateFilter = {};
+            if(minDate){
+                _.assign(dateFilter, { $gte: moment.utc(minDate, "YYYY-MM-DD") });
+            }
+            if(maxDate){
+                _.assign(dateFilter, { $lte: moment.utc(maxDate, "YYYY-MM-DD") });
             }
 
-            let data = await DB.findMany(audioModel, queryStruct, null, skipNumber, limitNumber);
+            if(!_.isEmpty(dateFilter)){
+                _.assign(queryStruct, { date: dateFilter });
+            }
+
+            let data = await DB.findMany(audioModel, queryStruct, null, sort, skipNumber, limitNumber);
             if(_.isEmpty(data)){
                 return Promise.resolve({
                     success: true, 
@@ -278,10 +203,10 @@ class Audio{
                 success: true, 
                 audios: data
             });
-        } catch (deleteError) {
+        } catch (error) {
             return Promise.resolve({
                 success: false, 
-                message: deleteError,
+                message: error,
                 details: "Couldn't find any audio from the database"
             });
         }

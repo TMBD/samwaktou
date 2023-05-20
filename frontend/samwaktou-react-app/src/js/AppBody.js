@@ -58,8 +58,8 @@ class AppBody extends React.Component{
     }
 
     componentDidMount(){
-        fetch("http://localhost:8080/audios/filter", {
-            method: "POST"
+        fetch("http://localhost:8080/audios", {
+            method: "GET"
         })
         .then(res => res.json())
         .then(
@@ -77,22 +77,16 @@ class AppBody extends React.Component{
     }
 
     handleInputSearchChange = (searchText) => {
-        let keywords = [];
-        if(searchText){
-            keywords = searchText.split(/,|;| /).filter(word => word);
+        let query = "";
+        if(searchText && searchText.trim()){
+            query = "keywords="+searchText.trim();
         }
-        
-        const data = (keywords.length <= 0) ? {} : {
-            "keywordsParams": {
-                "keywords": searchText.split(/,|;| /).filter(word => word)
-            }
-        }
-        fetch("http://localhost:8080/audios/filter", {
-            method: 'POST',
+
+        fetch("http://localhost:8080/audios?"+query, {
+            method: 'GET',
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify(data)
         })
         .then(res => res.json())
         .then(

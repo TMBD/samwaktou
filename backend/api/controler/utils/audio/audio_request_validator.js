@@ -1,4 +1,5 @@
 let _ = require("lodash");
+let moment = require("moment");
 const CONFIG = require("../../../config/server_config");
 
 
@@ -93,16 +94,16 @@ const validatePostAudioRequest = (req) => {
             details: "keywords field is required !"
         };
     }
-    if(! Array.isArray(body.keywords)){
+    if(!_.trim(body.keywords)){
         return {
             success: false,
-            details: "keywords has to be an array of String !"
+            details: "keywords field contains only whitespace characters !"
         };
     }
-    if(body.keywords.length <1){
+    if(body.date && !moment(body.date, "YYYY-MM-DD").isValid()){
         return {
             success: false,
-            details: "keywords has to have at least one element !"
+            details: "date field has to a valid date of format YYYY-MM-DD !"
         };
     }
 
@@ -129,7 +130,7 @@ const validatePostAudioRequest = (req) => {
 
 
 const validateGetAudioRequest = (req) => {
-    let body = req.body;
+    let body = req.query;
     if(body.theme){
         if(!_.isString(body.theme)){
             return {
@@ -146,67 +147,65 @@ const validateGetAudioRequest = (req) => {
             };
         }
     }
-    if(body.keywordsParams){
-        if(!body.keywordsParams.keywords){
-            return {
-                success: false,
-                details: "keywordsParams.keywods is required !"
-            };
-        }
-        if(!Array.isArray(body.keywordsParams.keywords)){
-            return {
-                success: false,
-                details: "keywordsParams.keywods has to be an array of String !"
-            };
-        }
-        if(!(body.keywordsParams.matchAll === undefined) && !_.isBoolean(body.keywordsParams.matchAll)){
-            return {
-                success: false,
-                details: "keywordsParams.matchAll has to be type of boolean !"
-            };
-        }
+    
+    if(body.minDate && !moment(body.minDate, "YYYY-MM-DD").isValid()){
+        return {
+            success: false,
+            details: "minDate has to be of type Date !"
+        };
     }
-    if(body.dateParams){
-        if(!body.dateParams.date){
-            return {
-                success: false,
-                details: "dateParams.date is required !"
-            };
-        }
-        // if(!_.isDate(body.dateParams.date)){
-        //     return {
-        //         success: false,
-        //         details: "dateParams.date has to be type of Date !"
-        //     };
-        // }
-        if(!(body.dateParams.gte === undefined) && !_.isBoolean(body.dateParams.gte)){
-            return {
-                success: false,
-                details: "dateParams.gte has to be type of boolean !"
-            };
-        }
+    if(body.maxDate && !moment(body.maxDate, "YYYY-MM-DD").isValid()){
+        return {
+            success: false,
+            details: "maxDate has to be of type Date !"
+        };
     }
+    if(body.minDate && body.maxDate && moment(body.minDate).isAfter(body.maxDate, "day")){
+        return {
+            success: false,
+            details: "maxDate has to be after minDate !"
+        };
+    }
+
     if(body.limit !== undefined){
-        if(!body.limit){
+        if(!isNaN(body.limit) && !isNaN(parseInt(body.limit, 10))){
+            if(parseInt(body.limit, 10) <= 0){
+                return {
+                    success: false,
+                    details: "limit field  should be an integer and greater than 0 !"
+                };
+            }
+            if(parseInt(body.limit, 10)>CONFIG.AUDIO_GET_PARAMS.MAX_LIMIT_NUMBER){
+                return {
+                    success: false,
+                    details: "limit field can't exceed "+CONFIG.AUDIO_GET_PARAMS.MAX_LIMIT_NUMBER+" !"
+                };
+            }
+        }else{
             return {
                 success: false,
-                details: "limit field is required and different to 0 !"
+                details: "limit field should be a valid number !"
             };
         }
-        if(body.limit>CONFIG.AUDIO_GET_PARAMS.MAX_LIMIT_NUMBER){
+        
+    }
+
+    if(body.skip !== undefined){
+        if(!isNaN(body.skip) && !isNaN(parseInt(body.skip, 10))){
+            if(parseInt(body.skip, 10) < 0){
+                return {
+                    success: false,
+                    details: "skip field should a positive integer !"
+                };
+            }
+        }else{
             return {
                 success: false,
-                details: "limit field can't exceed "+CONFIG.AUDIO_GET_PARAMS.MAX_LIMIT_NUMBER+" !"
+                details: "skip field should be a valid number !"
             };
         }
     }
     
-    if(body.skip !== undefined && !(body.skip || body.skip == 0)){
-        return {
-            success: false,
-            details: "skip field is required !"
-        };
-    }
     return {success: true};
 }
 

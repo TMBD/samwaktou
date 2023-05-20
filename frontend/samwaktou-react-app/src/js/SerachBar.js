@@ -23,7 +23,7 @@ class SearchBar extends React.Component{
                         ref = {this.searchInputRef} 
                         type = "text" 
                         className = "searchTerm" 
-                        placeholder = "Mots clés : heritage fils épouse..."
+                        placeholder = "Rechercher par mots clés"
                         onChange={() => this.props.handleInputSearchChange(this.searchInputRef.current.value)}/>
                     <button 
                         type = "submit" 

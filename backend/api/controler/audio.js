@@ -89,17 +89,10 @@ let getAudio = async (req, res) => {
 let getManyAudios = async(req, res) => {
     let reqValidation = requestValidator.validateGetAudioRequest(req);
     if(reqValidation.success){
-        //let matchAll = req.body.matchAll ? req.body.matchAll : false;
-        let skip = req.body.skip ? req.body.skip : CONFIG.AUDIO_GET_PARAMS.DEFAULT_SKIP_NUMBER;
-        let limit = req.body.limit ? req.body.limit : CONFIG.AUDIO_GET_PARAMS.DEFAULT_LIMIT_NUMBER;
+        let skip = req.query.skip ? parseInt(req.query.skip, 10) : CONFIG.AUDIO_GET_PARAMS.DEFAULT_SKIP_NUMBER;
+        let limit = req.query.limit ? parseInt(req.query.limit, 10) : CONFIG.AUDIO_GET_PARAMS.DEFAULT_LIMIT_NUMBER;
         let findAudiosResults;
-        // if(req.body.keywords){
-        //     if(matchAll) findAudiosResults = await Audio.findAudiosFromDBByKeywordsMatchAll(req.body.keywords, skip, limit);
-        //     else findAudiosResults = await Audio.findAudiosFromDBByKeywordsMatchAny(req.body.keywords, skip, limit);
-        // }else{
-        //     findAudiosResults = await Audio.findAudiosFromDB(skip, limit);
-        // }
-        findAudiosResults = await Audio.findAudiosFromDB(req.body.theme, req.body.author, req.body.keywordsParams, req.body.dateParams, skip, limit);
+        findAudiosResults = await Audio.findAudiosFromDB(req.query.theme, req.query.author, req.query.keywords, req.query.minDate, req.query.maxDate, skip, limit);
         if(findAudiosResults.success){
             if(findAudiosResults.audios === null){
                 res.status(CONFIG.HTTP_CODE.OK);
