@@ -14,7 +14,7 @@ class Audio{
         this.author = _.toUpper(author),
         this.description = _.capitalize(description);
         this.keywords = _.toLower(keywords);
-        this.date = date ? moment.utc(date, "YYYY-MM-DD") : moment.utc().startOf("day");
+        this.date = date ? moment.utc(date, "DD-MM-YYYY") : moment.utc().startOf("day").format("DD-MM-YYYY");
         this.id = id;
     }
 
@@ -33,7 +33,7 @@ class Audio{
     setAuthor(author){this.author = _.toUpper(author);}
     setDescription(description){this.description = _.capitalize(description);}
     setKeywords(keywords){this.keywords = _.toLower(keywords);}
-    setDate(date){this.date = moment.utc(date, "YYYY-MM-DD");}
+    setDate(date){this.date = moment.utc(date, "DD-MM-YYYY");}
     setId(id){this.id = id;}
 
 
@@ -160,11 +160,11 @@ class Audio{
             let sort = {date: -1};
 
             if(theme){
-                _.assign(queryStruct, {theme: _.toUpper(theme)});
+                _.assign(queryStruct, {theme: theme});
             }
 
             if(author){
-                _.assign(queryStruct, {author: _.toUpper(author)});
+                _.assign(queryStruct, {author: author});
             }
 
             if(keywords){
@@ -182,10 +182,10 @@ class Audio{
 
             let dateFilter = {};
             if(minDate){
-                _.assign(dateFilter, { $gte: moment.utc(minDate, "YYYY-MM-DD") });
+                _.assign(dateFilter, { $gte: moment.utc(minDate, "DD-MM-YYYY") });
             }
             if(maxDate){
-                _.assign(dateFilter, { $lte: moment.utc(maxDate, "YYYY-MM-DD") });
+                _.assign(dateFilter, { $lte: moment.utc(maxDate, "DD-MM-YYYY") });
             }
 
             if(!_.isEmpty(dateFilter)){
@@ -210,6 +210,47 @@ class Audio{
                 details: "Couldn't find any audio from the database"
             });
         }
+    }
+
+    static async getDistinctThemes(){
+        try {
+            let themes = await DB.getDistinctValuesForField(audioModel, "theme");
+            themes = Audio.transformAndMakeDistinct(themes)
+            return Promise.resolve({
+                success: true, 
+                data: themes
+            });
+        } catch (deleteError) {
+            return Promise.resolve({
+                success: false, 
+                message: _.toString(deleteError),
+                details: "Couldn't find the themes from the database"
+            });
+        }
+    }
+
+    static async getDistinctAuthors(){
+        try {
+            let authors = await DB.getDistinctValuesForField(audioModel, "author");
+            authors = Audio.transformAndMakeDistinct(authors)
+            return Promise.resolve({
+                success: true, 
+                data: authors
+            });
+        } catch (deleteError) {
+            return Promise.resolve({
+                success: false, 
+                message: _.toString(deleteError),
+                details: "Couldn't find the authors from the database"
+            });
+        }
+    }
+
+    static transformAndMakeDistinct(values){
+        return _.sortBy(
+                    _.uniq(
+                        values?.map(value => _.trim(value))
+                            .filter(value => !_.isEmpty(value))));
     }
 }
 

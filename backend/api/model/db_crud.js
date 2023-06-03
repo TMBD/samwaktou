@@ -103,6 +103,24 @@ const DB = {
         }
     },
 
+    getDistinctValuesForField: async (collection, fieldName) => {
+        try {
+            await connectToDB();
+        } catch (dbConnectionError) {
+            return Promise.reject({
+                success: false,
+                message: dbConnectionError,
+                details: "Couldn't connect to the db !"
+            });
+        }
+        try {
+            let result = await collection.distinct(fieldName);
+            return Promise.resolve(result);
+        } catch (findError) {
+            return Promise.reject(findError);
+        }
+    },
+
     findLatestRecords: async (collection, query, fieldsToReturn, skipNumber, limitNumber) => {
         try {
             await connectToDB();

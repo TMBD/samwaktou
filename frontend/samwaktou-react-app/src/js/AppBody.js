@@ -16,7 +16,9 @@ class AppBody extends React.Component{
             error: null,
             audioInfos: {},
             shouldDisplayAudioInfos: false,
-            currentPlayingElementId: null
+            currentPlayingElementId: null,
+            authors: [],
+            themes: []
         }
         this.player = React.createRef();
         this.audioHandler = this.audioHandler.bind(this);
@@ -58,6 +60,12 @@ class AppBody extends React.Component{
     }
 
     componentDidMount(){
+        this.loadAudios();
+        this.loadAuthors();
+        this.loadThemes();
+    }
+
+    loadAudios(){
         fetch("http://localhost:8080/audios", {
             method: "GET"
         })
@@ -70,16 +78,70 @@ class AppBody extends React.Component{
             },
             (error) => {
                 this.setState({
-                    error: "Une erreur s'est produite"
+                    error: "Une erreur s'est produite lors de la recherche des audios"
                 });
             }
         )
     }
 
-    handleInputSearchChange = (searchText) => {
+    loadAuthors(){
+        fetch("http://localhost:8080/audios/extra/author", {
+            method: "GET"
+        })
+        .then(res => res.json())
+        .then(
+            (result) => {
+                this.setState({
+                    authors: result
+                });
+            },
+            (error) => {
+                this.setState({
+                    error: "Une erreur s'est produite lors de la recherche de la list des autheurs"
+                });
+            }
+        )
+    }
+
+    loadThemes(){
+        fetch("http://localhost:8080/audios/extra/theme", {
+            method: "GET"
+        })
+        .then(res => res.json())
+        .then(
+            (result) => {
+                this.setState({
+                    themes: result
+                });
+            },
+            (error) => {
+                this.setState({
+                    error: "Une erreur s'est produite lors de la recherche de la list des themes"
+                });
+            }
+        )
+    }
+
+    handleInputSearchChange = (advanceSearchValues) => {
         let query = "";
-        if(searchText && searchText.trim()){
-            query = "keywords="+searchText.trim();
+        if(advanceSearchValues?.keywords?.trim()){
+            query += "keywords="+advanceSearchValues.keywords.trim();
+        }
+        if(advanceSearchValues?.author?.trim()){
+            const authorQuery = "author="+advanceSearchValues.author.trim();
+            query += query ? "&"+authorQuery : authorQuery;
+        }
+        if(advanceSearchValues?.theme?.trim()){
+            const themeQuery = "theme="+advanceSearchValues.theme.trim();
+            query += query ? "&"+themeQuery : themeQuery;
+        }
+        if(advanceSearchValues?.minDate){
+            const minDateQuery = "minDate="+advanceSearchValues.minDate.format('DD-MM-YYYY');
+            query += query ? "&"+minDateQuery : minDateQuery;
+        }
+        if(advanceSearchValues?.maxDate){
+            const maxDateQuery = "maxDate="+advanceSearchValues.maxDate.format('DD-MM-YYYY');
+            query += query ? "&"+maxDateQuery : maxDateQuery;
         }
 
         fetch("http://localhost:8080/audios?"+query, {
@@ -127,6 +189,8 @@ class AppBody extends React.Component{
             <div className='generalContainer'>
                 <SearchBar
                     handleInputSearchChange = {this.handleInputSearchChange}
+                    authors = {this.state.authors}
+                    themes = {this.state.themes}
                 />
                 <div className="audioCardContainer"> 
                     {this.state.audios.map(

@@ -210,8 +210,28 @@ let updateAudio = async (req, res) => {
     }
 }
 
+let getDistinctThemes = async (req, res) => {
+    let themesResponse = await Audio.getDistinctThemes();
+    sendResponse(res, themesResponse);
+}
 
+let getDistinctAuthors = async (req, res) => {
+    let authorsResponse = await Audio.getDistinctAuthors();
+    sendResponse(res, authorsResponse);
+}
 
+let sendResponse = (res, response) => {
+    if(response.success){
+        res.status(CONFIG.HTTP_CODE.OK);
+        res.json(response.data);
+    }else{
+        res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+        res.json({
+            message: response.message,
+            details: response.details
+        });
+    }
+}
 
 exports.postAudio = postAudio;
 exports.getAudio = getAudio;
@@ -219,3 +239,5 @@ exports.getManyAudios = getManyAudios;
 exports.getAudioFile = getAudioFile;
 exports.deleteAudio = deleteAudio;
 exports.updateAudio = updateAudio;
+exports.getDistinctThemes = getDistinctThemes;
+exports.getDistinctAuthors = getDistinctAuthors;

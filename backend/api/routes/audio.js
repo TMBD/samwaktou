@@ -27,5 +27,13 @@ router.put("/:audioId", verifyAdminToken, (req, res) => {
     audioController.updateAudio(req, res);
 });
 
+router.get("/extra/theme", (req, res) => {
+    audioController.getDistinctThemes(req, res);
+});
+
+router.get("/extra/author", (req, res) => {
+    audioController.getDistinctAuthors(req, res);
+});
+
 
 module.exports = router;

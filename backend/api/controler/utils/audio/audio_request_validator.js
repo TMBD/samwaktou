@@ -100,10 +100,10 @@ const validatePostAudioRequest = (req) => {
             details: "keywords field contains only whitespace characters !"
         };
     }
-    if(body.date && !moment(body.date, "YYYY-MM-DD").isValid()){
+    if(body.date && !moment(body.date, "DD-MM-YYYY").isValid()){
         return {
             success: false,
-            details: "date field has to a valid date of format YYYY-MM-DD !"
+            details: "date field has to a valid date of format DD-MM-YYYY !"
         };
     }
 
@@ -148,19 +148,19 @@ const validateGetAudioRequest = (req) => {
         }
     }
     
-    if(body.minDate && !moment(body.minDate, "YYYY-MM-DD").isValid()){
+    if(body.minDate && !moment(body.minDate, "DD-MM-YYYY").isValid()){
         return {
             success: false,
             details: "minDate has to be of type Date !"
         };
     }
-    if(body.maxDate && !moment(body.maxDate, "YYYY-MM-DD").isValid()){
+    if(body.maxDate && !moment(body.maxDate, "DD-MM-YYYY").isValid()){
         return {
             success: false,
             details: "maxDate has to be of type Date !"
         };
     }
-    if(body.minDate && body.maxDate && moment(body.minDate).isAfter(body.maxDate, "day")){
+    if(body.minDate && body.maxDate && !moment(body.minDate, "DD-MM-YYYY").isSameOrBefore(moment(body.maxDate, "DD-MM-YYYY"), "day")){
         return {
             success: false,
             details: "maxDate has to be after minDate !"
