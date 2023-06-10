@@ -93,40 +93,42 @@ class AudioPlayerCard extends React.Component{
 
     render(){
         return(
-            <div className={"audioPlayerCard "+ (this.state.displayAudioPlayer ? "showElementClassName":"hideElementClassName")}>
-                <div className="audioPlayerCard-header">
-                    <div className="audioPlayerCard-cardTheme">
-                        {this.props.audioMetadata.theme}
+            <div className={"audioPlayerCardContainer " + (this.state.displayAudioPlayer ? "showElementClassName":"hideElementClassName")}>
+                <div className="audioPlayerCard">
+                    <div className="audioPlayerCard-header">
+                        <div className="audioPlayerCard-cardTheme">
+                            {this.props.audioMetadata.theme}
+                        </div>
+                        <div className="cardHelp" onClick={() => this.props.handleAudioInfoDisplay(this.props.audioInfos)}>
+                            i
+                        </div>
                     </div>
-                    <div className="cardHelp" onClick={() => this.props.handleAudioInfoDisplay(this.props.audioInfos)}>
-                        i
-                    </div>
-                </div>
 
-                <div className="audioPlayerCard-body">
-                    <div className="audioPlayerCard-titleContainer">
-                        {this.props.audioMetadata.audioDescription}
-                    </div>
-                    
-                    <div className="audioPlayerCard-playerContainer">
-                        {this.state.currentTimeDisplay||"00:00"}/{this.state.audioMetadata.durationDisplay||"00:00"}
-                        <input 
-                            ref = {this.timeSliderRef} 
-                            type = "range" 
-                            min = "0" 
-                            max = "100" 
-                            value = {this.state.sliderProgressValue.toString()}
-                            className = "slider"
-                            onChange={this.sliderChangeSeek}/>
-                        <div 
-                            className={this.state.audioPlayPauseClassName} 
-                            onClick={() => this.audioHandler(!this.state.playing)}/>
-                    
-                        <audio 
-                            ref={this.audioRef}
-                            hidden="hidden"
-                            onLoadedMetadata={event => this.handleAudioChange()}
-                            src={this.props.audioMetadata.audioUri}/>
+                    <div className="audioPlayerCard-body">
+                        <div className="audioPlayerCard-titleContainer">
+                            {this.props.audioMetadata.audioDescription}
+                        </div>
+                        
+                        <div className="audioPlayerCard-playerContainer">
+                            {this.state.currentTimeDisplay||"00:00"}/{this.state.audioMetadata.durationDisplay||"00:00"}
+                            <input 
+                                ref = {this.timeSliderRef} 
+                                type = "range" 
+                                min = "0" 
+                                max = "100" 
+                                value = {this.state.sliderProgressValue.toString()}
+                                className = "slider"
+                                onChange={this.sliderChangeSeek}/>
+                            <div 
+                                className={this.state.audioPlayPauseClassName} 
+                                onClick={() => this.audioHandler(!this.state.playing)}/>
+                        
+                            <audio 
+                                ref={this.audioRef}
+                                hidden="hidden"
+                                onLoadedMetadata={event => this.handleAudioChange()}
+                                src={this.props.audioMetadata.audioUri}/>
+                        </div>
                     </div>
                 </div>
             </div>

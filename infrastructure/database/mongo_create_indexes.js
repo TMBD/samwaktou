@@ -1,4 +1,4 @@
-db.audios.dropIndex('searchIndex');
+db.audios.dropIndex('text_search_index');
 db.audios.createIndex(
 {
 	keywords: "text",
@@ -7,7 +7,7 @@ db.audios.createIndex(
 	description: "text"
 },
 {
-	name: "searchIndex",
+	name: "text_search_index",
 	default_language: "fr",
 	weights:
 	{

@@ -34,6 +34,7 @@
     justify-content: center;
     flex-direction: row;
     flex-wrap: wrap;
+    padding-bottom: 100px;
 }
 
 .cardHeaderContainer{
@@ -118,6 +119,13 @@
     cursor: pointer;
 }
 
+.audioPlayerCardContainer{
+    width: 100%;
+    background: #f7f7f7;
+    position: fixed;
+    bottom: 0px;
+}
+
 .audioPlayerCard{
     width: 90%;
     max-width: 350px;
@@ -127,12 +135,11 @@
     box-shadow: 4px 4px 4px rgba(0, 0, 0, 0.25);
     border-radius: 3px;
     margin: 5px;
-    margin-top: 10px;
     padding: 2px;
     padding-left: 5px;
     padding-right: 5px;
-    position: absolute;
-    bottom: 10px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .audioPlayerCard-header{
