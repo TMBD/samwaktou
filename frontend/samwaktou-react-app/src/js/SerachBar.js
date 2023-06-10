@@ -11,7 +11,6 @@ class SearchBar extends React.Component{
         this.handleSearch = this.handleSearch.bind(this);
         this.handleAdvanceSearch = this.handleAdvanceSearch.bind(this);
         this.state = {
-            audios: this.props.audios,
             shouldDisplayAdvanceSearchView: false,
             advanceSearchValues: {},
             searchInputContent: ""
@@ -89,7 +88,6 @@ class SearchBar extends React.Component{
                         authors = {this.props.authors}
                         themes = {this.props.themes}/>
                 }
-
             </div>
         );
     }

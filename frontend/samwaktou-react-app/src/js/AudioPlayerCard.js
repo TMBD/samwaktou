@@ -45,7 +45,7 @@ class AudioPlayerCard extends React.Component{
         return updatedState === {} ? null : updatedState;
     }
 
-    handleAudioChange = (audioMetadata) => {
+    handleAudioChange = () => {
         this.audioHandler(true);
     }
     
@@ -115,7 +115,7 @@ class AudioPlayerCard extends React.Component{
                             type = "range" 
                             min = "0" 
                             max = "100" 
-                            value = {this.state.sliderProgressValue}
+                            value = {this.state.sliderProgressValue.toString()}
                             className = "slider"
                             onChange={this.sliderChangeSeek}/>
                         <div 
@@ -125,17 +125,13 @@ class AudioPlayerCard extends React.Component{
                         <audio 
                             ref={this.audioRef}
                             hidden="hidden"
-                            onLoadedMetadata={event => this.handleAudioChange(event.target)}
+                            onLoadedMetadata={event => this.handleAudioChange()}
                             src={this.props.audioMetadata.audioUri}/>
-                    
                     </div>
-
                 </div>
-
             </div>
         );
     }
 }
-
 
 export default AudioPlayerCard;

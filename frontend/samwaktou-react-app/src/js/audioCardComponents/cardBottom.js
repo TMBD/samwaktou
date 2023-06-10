@@ -1,6 +1,5 @@
 import React from 'react';
 
-
 class Bottom extends React.Component{
     constructor(props){
         super(props);
@@ -14,10 +13,10 @@ class Bottom extends React.Component{
         return(
             <div className="cardBottomContainer">
                 <div className="cardAuthorContainer">
-                {this.state.authorName}
+                    {this.state.authorName}
                 </div>
                 <div className="cardDateContainer">
-                {this.state.recordDate}
+                    {this.state.recordDate}
                 </div>
             </div>
         );

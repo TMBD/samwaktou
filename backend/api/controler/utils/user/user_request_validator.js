@@ -13,9 +13,6 @@ const validatePostUserRequest = (body) => {
             .required(),    
         email: Joi.string()
             .email(),
-        interestKeywords: Joi.array()
-            .min(USER_VALIDATION_CONFIG.MIN_INTERESTKEYWORDS_CHAR)
-            .max(USER_VALIDATION_CONFIG.MAX_INTERESTKEYWORDS_CHAR),
         date: Joi.date(),
     });
     return schema.validate(body);
@@ -58,9 +55,6 @@ const validateUpdateUserRequest = (body) => {
             .max(USER_VALIDATION_CONFIG.MAX_TEL_CHAR),    
         email: Joi.string()
             .email(),
-        interestKeywords: Joi.array()
-            .min(USER_VALIDATION_CONFIG.MIN_INTERESTKEYWORDS_CHAR)
-            .max(USER_VALIDATION_CONFIG.MAX_INTERESTKEYWORDS_CHAR),
     });
     return schema.validate(body);
 }

@@ -8,34 +8,25 @@ class AudioCard extends React.Component{
     constructor( props ){
         super(props);
         this.state = {
-            audioUri: this.props.audioUri,
-            audioDescription: this.props.audioDescription,
-            theme: this.props.theme,
-            audioHandler: this.props.audioHandler,
-            getDurationDisplay: this.props.getDurationDisplay,
-            authorName: this.props.authorName,
-            recordDate: this.props.recordDate,
-            audioInfos: this.props.audioInfos,
-            handleAudioInfoDisplay: this.props.handleAudioInfoDisplay
+            durationDisplay: ""
         }
     }
 
     handleAudioMetadata = (audioMetadata) => {
         this.setState({
-            duration: audioMetadata.duration,
-            durationDisplay: this.state.getDurationDisplay(audioMetadata.duration)
+            durationDisplay: this.props.getDurationDisplay(audioMetadata.duration)
         });
     }
 
     handleClickedCardBody = (elementId) => {
-        this.state.audioHandler(
-            this.state.audioUri, 
+        this.props.audioHandler(
+            this.props.audioUri, 
             this.state.durationDisplay, 
-            this.state.audioDescription, 
-            this.state.authorName, 
-            this.state.theme,
-            this.state.recordDate,
-            this.state.audioInfos,
+            this.props.audioDescription, 
+            this.props.authorName, 
+            this.props.theme,
+            this.props.recordDate,
+            this.props.audioInfos,
             elementId);
     }
 
@@ -48,30 +39,28 @@ class AudioCard extends React.Component{
         }
         return(
             <div className={"audioCard "+audioCardOnPlayClassName}> 
-                
                 <Header 
-                    theme={this.state.theme} 
+                    theme={this.props.theme} 
                     durationDisplay={this.state.durationDisplay}
-                    audioInfos={this.state.audioInfos}
-                    handleAudioInfoDisplay = {this.state.handleAudioInfoDisplay}/>
+                    audioInfos={this.props.audioInfos}
+                    handleAudioInfoDisplay = {this.props.handleAudioInfoDisplay}/>
 
                 <Body 
-                    audioDescription={this.state.audioDescription}
+                    audioDescription={this.props.audioDescription}
                     elementId = {this.props.elementId}
                     handleClickedCardBody = {this.handleClickedCardBody}
                     cursorClassName= {cursorClassName}
                     />
 
                 <Bottom 
-                    authorName={this.state.authorName} 
-                    recordDate={this.state.recordDate}/>
+                    authorName={this.props.authorName} 
+                    recordDate={this.props.recordDate}/>
                     
                 <audio 
                     hidden="hidden"
                     onLoadedMetadata={event => this.handleAudioMetadata(event.target)}>
-                    <source preload="metadata" type="audio/mpeg" src={this.state.audioUri}/>
+                    <source preload="metadata" type="audio/mpeg" src={this.props.audioUri}/>
                 </audio>
-                
             </div>
         );
     }

@@ -1,15 +1,12 @@
 let _ = require("lodash");
 let userModel = require("./schema/user");
 let DB = require("../model/db_crud");
-let {lowerCaseArray} = require("./../controler/utils/common");
-
 
 class User{
-    constructor(username, tel, email, interestKeywords, date, id){
+    constructor(username, tel, email, date, id){
         this.username = _.toLower(username);
         this.tel = tel;
         this.email = _.toLower(email);
-        this.interestKeywords = lowerCaseArray(interestKeywords);
         this.date = date;
         this.id = id;
     }
@@ -17,7 +14,6 @@ class User{
     getUsername(){return this.username;}
     getTel(){return this.tel;}
     getEmail(){return this.email;}
-    getInterestKeywords(){return this.interestKeywords;}
     getDate(){return this.date;}
     getId(){return this.id;}
     
@@ -25,7 +21,6 @@ class User{
     setUsername(username){this.username = _.toLower(username);}
     setTel(tel){this.tel = tel;}
     setEmail(email){this.email = _.toLower(email);}
-    setInterestKeywords(interestKeywords){this.interestKeywords = lowerCaseArray(interestKeywords);}
     setDate(date){this.date = date;}
     setId(id){this.id = id;}
 
@@ -35,7 +30,6 @@ class User{
             username: this.username,
             tel: this.tel,
             email: this.email,
-            interestKeywords: this.interestKeywords,
             date: this.date
         });
     }
@@ -45,7 +39,6 @@ class User{
             username: this.username,
             tel: this.tel,
             email: this.email,
-            interestKeywords: this.interestKeywords,
             date: this.date
         };
     }
@@ -144,7 +137,7 @@ class User{
         }
     }
 
-    static async getUsers(username, tel, email, interestParams, dateParams, skipNumber, limitNumber){
+    static async getUsers(username, tel, email, dateParams, skipNumber, limitNumber){
         try {
 
             var queryStruct = {};
@@ -161,23 +154,6 @@ class User{
                 _.assign(queryStruct, {email: _.toLower(email)});
             }
             
-            if(interestParams){
-                if(interestParams.matchAll){
-                    var keywordsQueryStruct;
-                    keywordsQueryStruct = {interestKeywords: { $all: lowerCaseArray(interestParams.keywords) }};
-                    _.assign(queryStruct, keywordsQueryStruct);
-                }else{
-                    var keywordsQueryStruct = [];
-                    interestParams.keywords.forEach(element => {
-                        
-                        keywordsQueryStruct.push({
-                            interestKeywords: element
-                        })
-                    });
-                    _.assign(queryStruct, {$or: keywordsQueryStruct});
-                }
-                
-            }
             if(dateParams){
                 if(dateParams.gte === true){
                     _.assign(queryStruct, {date: { $gte: dateParams.date }});
@@ -188,7 +164,7 @@ class User{
                 }
             }
 
-            let data = await DB.findMany(userModel, queryStruct, "_id username interestKeywords email tel date", skipNumber, limitNumber);
+            let data = await DB.findMany(userModel, queryStruct, null, skipNumber, limitNumber);
             if(_.isEmpty(data)){
                 return Promise.resolve({
                     success: true, 

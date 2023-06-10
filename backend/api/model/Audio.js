@@ -3,8 +3,6 @@ let moment = require("moment");
 let audioModel = require("./schema/audio");
 let DB = require("../model/db_crud");
 const CONFIG = require("../config/server_config");
-let {lowerCaseArray} = require("./../controler/utils/common")
-
 
 class Audio{
     constructor(uri, title, theme, author, description, keywords, date, id){

@@ -283,13 +283,17 @@ const validateUpdateAudioRequest = (req) => {
         }
     } 
     
-    if(body.keywords){
-        if(! Array.isArray(body.keywords)){
-            return {
-                success: false,
-                details: "keywords has to be an array of String !"
-            };
-        }
+    if(!body.keywords){
+        return {
+            success: false,
+            details: "keywords field is required !"
+        };
+    }
+    if(!_.trim(body.keywords)){
+        return {
+            success: false,
+            details: "keywords field contains only whitespace characters !"
+        };
     }
     
     if(body.title || body.theme || body.author || body.description || body.keywords || body.date) {

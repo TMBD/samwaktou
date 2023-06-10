@@ -4,7 +4,6 @@ const CONFIG = require("../config/server_config");
 let requestValidator = require("./utils/audio/audio_request_validator");
 let audioFileUploader = require("./utils/audio/audio_file_uploader");
 let audioUtils = require("./utils/audio/audio_utils");
-let {lowerCaseArray} = require("./utils/common")
 const rootDirPath = "../";
 
 let postAudio = async (req, res) => {
@@ -181,7 +180,7 @@ let updateAudio = async (req, res) => {
                 let description = req.body.description ? req.body.description : findAudioResult.audio.description;
                 let keywords = req.body.keywords ? req.body.keywords : findAudioResult.audio.keywords;
                 let date = req.body.date ? req.body.date : findAudioResult.audio.date;
-                let audio = new Audio(findAudioResult.audio.uri, _.capitalize(title), _.toUpper(theme), _.toUpper(author), _.capitalize(description), lowerCaseArray(keywords), date, findAudioResult.audio._id);
+                let audio = new Audio(findAudioResult.audio.uri, title, theme, author, description, keywords, date, findAudioResult.audio._id);
                 let updateResult = await audio.updateToDB();
                 if(updateResult.success){
                     res.status(CONFIG.HTTP_CODE.OK);

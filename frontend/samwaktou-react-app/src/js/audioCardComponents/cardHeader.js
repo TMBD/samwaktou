@@ -1,11 +1,9 @@
 import React from 'react';
 
-
 class Header extends React.Component{
     render(){
         return(
             <div className="cardHeaderContainer">
-                
                 <div className="cardTheme">
                     {this.props.theme}
                 </div>

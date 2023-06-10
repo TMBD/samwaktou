@@ -25,7 +25,6 @@ class PopupView extends React.Component {
                             <div className="popupAudioDescription">{this.props.audioInfos.description}</div>
                             {keywordsElement}
                             <div className="popupAudioAuthorDate"> {audioAuthorAndDate}</div>
-                            
                         </div>
                     </div>
                 </div>

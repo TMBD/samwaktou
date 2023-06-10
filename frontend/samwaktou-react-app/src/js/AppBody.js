@@ -11,16 +11,14 @@ class AppBody extends React.Component{
         super(props);
         this.state = {
             audioMetadata: {},
-
             audios: [],
-            error: null,
+            error: "",
             audioInfos: {},
             shouldDisplayAudioInfos: false,
-            currentPlayingElementId: null,
+            currentPlayingElementId: "",
             authors: [],
             themes: []
         }
-        this.player = React.createRef();
         this.audioHandler = this.audioHandler.bind(this);
         this.handleAudioInfoDisplay = this.handleAudioInfoDisplay.bind(this);
         this.changePopupStatus = this.changePopupStatus.bind(this);

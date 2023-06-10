@@ -20,7 +20,7 @@ class AdvanceSearch extends React.Component {
                 minDate: this.props.advanceSearchValues?.minDate ? this.props.advanceSearchValues.minDate:null,
                 maxDate: this.props.advanceSearchValues?.maxDate ? this.props.advanceSearchValues.maxDate:null
             },
-            errorMessage: null
+            errorMessage: ""
         }
     }
 
@@ -51,7 +51,7 @@ class AdvanceSearch extends React.Component {
         else if(!isMaxDateFormatValid) this.setState({errorMessage: "Intervale de date final incorrect"});
         else if(!isMinDateBeforeMaxDate) this.setState({errorMessage: "Intervale de date incorrect"});
         else {
-            this.setState({errorMessage: null});
+            this.setState({errorMessage: ""});
             this.props.handleAdvanceSearch(this.state.advanceSearchValues);
         }
     }
