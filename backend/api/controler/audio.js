@@ -18,7 +18,6 @@ let postAudio = async (req, res) => {
             if(uploadResult.success){
                 audio.setUri(uploadResult.uri);
                 let updateResult = await audio.updateToDB();
-                console.log(updateResult);
                 if(updateResult.success){
                     result.data.uri = audio.getUri();
                     res.status(CONFIG.HTTP_CODE.OK);

@@ -148,11 +148,9 @@ let deleteAdmin = async (req, res) => {
 }
 
 
-
 let updateAdmin = async (req, res) => {
     let reqValidation = requestValidator.validateUpdateAdminRequest(req.body);
     if(!reqValidation.error){
-        console.log(req.token)
         if(req.token && ((req.token._id == req.params.adminId) || (req.token.isSuperAdmin))){
             let findAdminResult = await Admin.findOneAdminFromDBById(req.params.adminId);
             if(findAdminResult.success){
