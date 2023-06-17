@@ -132,7 +132,7 @@ const DB = {
             });
         }
         try {
-            let result = await collection.find(query, fieldsToReturn, {sort: { 'date' : -1 }, skip: skipNumber, limit: limitNumber });
+            let result = await collection.find(query, fieldsToReturn, { sort: { date: -1, _id: 1 }, skip: skipNumber, limit: limitNumber });
             return Promise.resolve(result);
         } catch (findError) {
             return Promise.reject(findError);

@@ -5,6 +5,7 @@ import PopupView from "./PopupView";
 import '../style/audioCards.css';
 import '../style/common.css';
 import SearchBar from './SerachBar';
+import {ErrorMessage, InfoMessage} from './Message';
 
 class AppBody extends React.Component{
     constructor(props){
@@ -12,12 +13,16 @@ class AppBody extends React.Component{
         this.state = {
             audioMetadata: {},
             audios: [],
-            error: "",
+            errorMessage: "",
             audioInfos: {},
             shouldDisplayAudioInfos: false,
             currentPlayingElementId: "",
             authors: [],
-            themes: []
+            themes: [],
+            searchQuery: "",
+            shouldGetAudioResult: false,
+            errorObject: null,
+            isCurrentlyFetchingAudios: false
         }
         this.audioHandler = this.audioHandler.bind(this);
         this.handleAudioInfoDisplay = this.handleAudioInfoDisplay.bind(this);
@@ -58,35 +63,56 @@ class AppBody extends React.Component{
     }
 
     componentDidMount(){
+        this.setState({
+            errorMessage: ""
+        });
         this.loadAudios();
         this.loadAuthors();
         this.loadThemes();
+        window.addEventListener('scroll', this.handleScroll);
+        window.addEventListener('wheel', this.handleWheelMove);
     }
 
     loadAudios(){
+        this.setState({isCurrentlyFetchingAudios: true});
         fetch("http://localhost:8080/audios", {
             method: "GET"
         })
-        .then(res => res.json())
+        .then(res => {
+            if (!res.ok) {
+                throw new Error(res.status);
+            }
+            return res.json();
+        })
         .then(
             (result) => {
                 this.setState({
-                    audios: result
+                    audios: result,
+                    shouldGetAudioResult: true
                 });
             },
             (error) => {
                 this.setState({
-                    error: "Une erreur s'est produite lors de la recherche des audios"
+                    audios: []
                 });
+                this.setErrorMessage(error);
             }
         )
+        .finally(() =>
+            this.setState({isCurrentlyFetchingAudios: false})
+        );
     }
 
     loadAuthors(){
         fetch("http://localhost:8080/audios/extra/author", {
             method: "GET"
         })
-        .then(res => res.json())
+        .then(res => {
+            if (!res.ok) {
+                throw new Error(res.status);
+            }
+            return res.json();
+        })
         .then(
             (result) => {
                 this.setState({
@@ -95,17 +121,23 @@ class AppBody extends React.Component{
             },
             (error) => {
                 this.setState({
-                    error: "Une erreur s'est produite lors de la recherche de la list des autheurs"
+                    authors: []
                 });
+                this.setErrorMessage(error);
             }
-        )
+        );
     }
 
     loadThemes(){
         fetch("http://localhost:8080/audios/extra/theme", {
             method: "GET"
         })
-        .then(res => res.json())
+        .then(res => {
+            if (!res.ok) {
+                throw new Error(res.status);
+            }
+            return res.json();
+        })
         .then(
             (result) => {
                 this.setState({
@@ -114,10 +146,11 @@ class AppBody extends React.Component{
             },
             (error) => {
                 this.setState({
-                    error: "Une erreur s'est produite lors de la recherche de la list des themes"
+                    themes: []
                 });
+                this.setErrorMessage(error);
             }
-        )
+        );
     }
 
     handleInputSearchChange = (advanceSearchValues) => {
@@ -142,23 +175,36 @@ class AppBody extends React.Component{
             query += query ? "&"+maxDateQuery : maxDateQuery;
         }
 
+        this.setState({
+            shouldGetAudioResult: false,
+            errorMessage: ""
+        });
+
         fetch("http://localhost:8080/audios?"+query, {
             method: 'GET',
             headers: {
                 "Content-Type": "application/json"
             },
         })
-        .then(res => res.json())
+        .then(res => {
+            if (!res.ok) {
+                throw new Error(res.status);
+            }
+            return res.json();
+        })
         .then(
             (result) => {
                 this.setState({
-                    audios: result
+                    audios: result,
+                    searchQuery: query,
+                    shouldGetAudioResult: true
                 });
             },
             (error) => {
                 this.setState({
-                    error: "Une erreur s'est produite"
+                    audios: []
                 });
+                this.setErrorMessage(error);
             }
         );
     }
@@ -182,6 +228,87 @@ class AppBody extends React.Component{
         });
     }
 
+    handleScroll = () => {
+        const { scrollTop, clientHeight, scrollHeight } = document.documentElement;
+        if (scrollTop + clientHeight >= scrollHeight) {
+            this.loadNewAudios();
+        }
+    }
+
+    handleWheelMove = (event) => {
+        if (event.deltaY > 0) {
+            const { clientHeight, scrollHeight } = document.documentElement;
+            if (scrollHeight <= clientHeight) {
+                this.loadNewAudios();
+            }
+        }
+    }
+
+    loadNewAudios = () => {
+        if(!this.state.isCurrentlyFetchingAudios){
+            this.setState({isCurrentlyFetchingAudios: true})
+            let query = this.state.searchQuery;
+            let skipQuery = "skip="+this.state.audios.length;
+
+            query = (query?.trim()) ? query+"&"+skipQuery:skipQuery;
+
+            this.setState({
+                errorMessage: ""
+            });
+            fetch("http://localhost:8080/audios?"+query, {
+                method: 'GET',
+                headers: {
+                    "Content-Type": "application/json"
+                },
+            })
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error(res.status);
+                }
+                return res.json();
+            })
+            .then(
+                (result) => {
+                    if(result.length > 0){
+                        this.setState({
+                            audios: this.state.audios.concat(...result)
+                        });
+                    }
+                },
+                (error) => {
+                    this.setErrorMessage(error);
+                }
+            )
+            .finally(() => {
+                this.setState({isCurrentlyFetchingAudios: false});
+            });
+        }
+    }
+
+    setErrorMessage = (error) => {
+        let errorMessage = "Une erreur s'est produite. Veuillez réessayer plus tard.";
+
+        if (error instanceof TypeError) {
+            errorMessage = "Erreur réseau. S'il vous plait, vérifiez votre connexion internet.";
+        } else if (error instanceof SyntaxError) {
+            errorMessage = "Erreur serveur, données non valides.";
+        } else if (error instanceof Error) {
+            if (error?.message?.charAt(0) === "4") {
+                errorMessage = "La ressource demandée n'a pas été trouvée.";
+            } else if (error?.message === "503") {
+                errorMessage = "Service temporairement indisponible.";
+            } else if (error?.message?.charAt(0) === "5") {
+                errorMessage = "Erreur interne du serveur.";
+            } else {
+                errorMessage = "Une erreur inattendue s'est produite.";
+            }
+        }
+        this.setState({
+            errorMessage: errorMessage,
+            errorObject: error
+        });
+    }    
+
     render(){
         return(
             <div className='generalContainer'>
@@ -191,21 +318,35 @@ class AppBody extends React.Component{
                     themes = {this.state.themes}
                 />
                 <div className="audioCardContainer"> 
-                    {this.state.audios.map(
-                        element => 
-                            <AudioCard 
-                                key = {element._id}
-                                elementId = {element._id}
-                                currentPlayingElementId = {this.state.currentPlayingElementId}
-                                theme = {element.theme}
-                                authorName = {element.author}
-                                audioDescription = {element.description}
-                                recordDate = {new Date(element.date).toDateString()}
-                                audioUri = {this.getfileName(element.uri)}
-                                audioHandler = {this.audioHandler}
-                                getDurationDisplay = {this.getDurationDisplay}
-                                audioInfos = {element}
-                                handleAudioInfoDisplay = {this.handleAudioInfoDisplay}/>
+                    {
+                        this.state.errorMessage && 
+                        <ErrorMessage
+                            messageText = {this.state.errorMessage.toString()}
+                        />
+                    }
+                    {
+                        !this.state.errorMessage && this.state.audios.length <= 0 && this.state.shouldGetAudioResult && 
+                        <InfoMessage
+                            messageText = "Aucun resultat à afficher..."
+                        />
+                    }
+                    {
+                        !this.state.errorMessage && 
+                        this.state.audios.map(
+                            element => 
+                                <AudioCard 
+                                    key = {element._id}
+                                    elementId = {element._id}
+                                    currentPlayingElementId = {this.state.currentPlayingElementId}
+                                    theme = {element.theme}
+                                    authorName = {element.author}
+                                    audioDescription = {element.description}
+                                    recordDate = {new Date(element.date).toDateString()}
+                                    audioUri = {this.getfileName(element.uri)}
+                                    audioHandler = {this.audioHandler}
+                                    getDurationDisplay = {this.getDurationDisplay}
+                                    audioInfos = {element}
+                                    handleAudioInfoDisplay = {this.handleAudioInfoDisplay}/>
                     )}
 
                     <AudioPlayerCard

@@ -116,13 +116,12 @@ class AudioPlayerCard extends React.Component{
                                 type = "range" 
                                 min = "0" 
                                 max = "100" 
-                                value = {this.state.sliderProgressValue.toString()}
+                                value = {this.state.sliderProgressValue ? this.state.sliderProgressValue.toString() : "0"}
                                 className = "slider"
                                 onChange={this.sliderChangeSeek}/>
                             <div 
                                 className={this.state.audioPlayPauseClassName} 
                                 onClick={() => this.audioHandler(!this.state.playing)}/>
-                        
                             <audio 
                                 ref={this.audioRef}
                                 hidden="hidden"

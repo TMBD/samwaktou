@@ -155,7 +155,7 @@ class Audio{
     static async findAudiosFromDB(theme, author, keywords, minDate , maxDate, skipNumber, limitNumber){
         try {
             let queryStruct = {};
-            let sort = {date: -1};
+            let sort = {};
 
             if(theme){
                 _.assign(queryStruct, {theme: theme});
@@ -190,6 +190,7 @@ class Audio{
                 _.assign(queryStruct, { date: dateFilter });
             }
 
+            _.assign(sort, {date: -1, _id: 1});
             let data = await DB.findMany(audioModel, queryStruct, null, sort, skipNumber, limitNumber);
             if(_.isEmpty(data)){
                 return Promise.resolve({

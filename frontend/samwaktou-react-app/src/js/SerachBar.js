@@ -66,6 +66,7 @@ class SearchBar extends React.Component{
                         ref = {this.searchInputRef} 
                         type = "text" 
                         className = "searchTerm" 
+                        name="searchInput"
                         placeholder = "Rechercher par mots clés"
                         value={this.state.searchInputContent}
                         onChange={() => this.handleSearch({keywords: this.searchInputRef.current.value})}/>

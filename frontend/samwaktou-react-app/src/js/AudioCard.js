@@ -38,6 +38,7 @@ class AudioCard extends React.Component{
             cursorClassName = "";
         }
         return(
+            // next step try to make this not clickable until it gets loaded with onLoadedMetadata. And apply ui changes according to its state
             <div className={"audioCard "+audioCardOnPlayClassName}> 
                 <Header 
                     theme={this.props.theme} 
