@@ -1,4 +1,8 @@
 db.audios.dropIndex('text_search_index');
+db.audios.dropIndex('date_index');
+db.audios.dropIndex('author_index');
+db.audios.dropIndex('theme_index');
+
 db.audios.createIndex(
 {
 	keywords: "text",
@@ -16,4 +20,28 @@ db.audios.createIndex(
 		theme: 3,
 		description: 2
 	}
+});
+
+db.audios.createIndex(
+{
+	date: -1
+},
+{
+	name: "date_index"
+});
+
+db.audios.createIndex(
+{
+	author: 1
+},
+{
+	name: "author_index"
+});
+
+db.audios.createIndex(
+{
+	theme: 1
+},
+{
+	name: "theme_index"
 });
