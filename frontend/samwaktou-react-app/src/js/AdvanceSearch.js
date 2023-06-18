@@ -88,7 +88,8 @@ class AdvanceSearch extends React.Component {
                                             InputLabelProps={fontStyle}
                                             fullWidth
                                             value={this.state.advanceSearchValues?.keywords}
-                                            onChange={(even) => this.setState({advanceSearchValues:{...this.state.advanceSearchValues, keywords: even.target.value}})}/>
+                                            onChange={(even) => this.setState({advanceSearchValues:{...this.state.advanceSearchValues, keywords: even.target.value}})}
+                                            onFocus={(e) => e.target.setSelectionRange(0, e.target.value.length)}/>
                                     </div>
                                     <div className="formItemBox">
                                         <Autocomplete

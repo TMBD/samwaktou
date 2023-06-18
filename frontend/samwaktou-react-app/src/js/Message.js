@@ -1,9 +1,9 @@
 function ErrorMessage(props){
-    return <h4 style={{color: "red"}} >{props.messageText}</h4>
+    return <span style={{color: "red", marginTop: "20px", fontStyle: "italic"}} >{props.messageText}</span>
 }
 
 function InfoMessage(props){
-    return <h4>{props.messageText}</h4>
+    return <span style={{marginTop: "20px", fontStyle: "italic"}}>{props.messageText}</span>
 }
 
 export {

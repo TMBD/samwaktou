@@ -8,7 +8,8 @@ class AudioCard extends React.Component{
     constructor( props ){
         super(props);
         this.state = {
-            durationDisplay: ""
+            durationDisplay: "",
+            isAudioLoaded: false
         }
     }
 
@@ -18,8 +19,14 @@ class AudioCard extends React.Component{
         });
     }
 
+    handleLoadedAudio = (audioMetadata) => {
+        this.handleAudioMetadata(audioMetadata);
+        this.setState({isAudioLoaded: true});
+    }
+
     handleClickedCardBody = (elementId) => {
-        this.props.audioHandler(
+        if(this.state.isAudioLoaded){
+            this.props.audioHandler(
             this.props.audioUri, 
             this.state.durationDisplay, 
             this.props.audioDescription, 
@@ -28,18 +35,24 @@ class AudioCard extends React.Component{
             this.props.recordDate,
             this.props.audioInfos,
             elementId);
+        }
+        
     }
 
     render(){
         let audioCardOnPlayClassName = "";
-        let cursorClassName = "cursorPointer";
-        if(this.props.elementId === this.props.currentPlayingElementId){
-            audioCardOnPlayClassName = "audioCardOnPlay";
-            cursorClassName = "";
+        let cursorClassName = "cursorWait";
+        let audioLoadStateClassName = "audioCardLoading";
+        if(this.state.isAudioLoaded){
+            audioLoadStateClassName = "audioCardLoaded";
+            cursorClassName = "cursorPointer";
+            if(this.props.elementId === this.props.currentPlayingElementId){
+                audioCardOnPlayClassName = "audioCardOnPlay";
+                cursorClassName = "";
+            }
         }
         return(
-            // next step try to make this not clickable until it gets loaded with onLoadedMetadata. And apply ui changes according to its state
-            <div className={"audioCard "+audioCardOnPlayClassName}> 
+            <div className={"audioCard "+audioCardOnPlayClassName+" "+audioLoadStateClassName}> 
                 <Header 
                     theme={this.props.theme} 
                     durationDisplay={this.state.durationDisplay}
@@ -50,7 +63,7 @@ class AudioCard extends React.Component{
                     audioDescription={this.props.audioDescription}
                     elementId = {this.props.elementId}
                     handleClickedCardBody = {this.handleClickedCardBody}
-                    cursorClassName= {cursorClassName}
+                    cursorClassName = {cursorClassName}
                     />
 
                 <Bottom 
@@ -59,7 +72,7 @@ class AudioCard extends React.Component{
                     
                 <audio 
                     hidden="hidden"
-                    onLoadedMetadata={event => this.handleAudioMetadata(event.target)}>
+                    onLoadedMetadata={event => this.handleLoadedAudio(event.target)}>
                     <source preload="metadata" type="audio/mpeg" src={this.props.audioUri}/>
                 </audio>
             </div>
