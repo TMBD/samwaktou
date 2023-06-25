@@ -1,11 +1,25 @@
 import './App.css';
 import AppBody from './js/AppBody';
-function App() {
+import Login from './js/Login';
+
+function UserApp() {
     return (
         <div className="App">
             <AppBody/>
         </div>
     );
 }
+
+function AdminApp() {
+    return (
+        <div className="App">
+            <Login/>
+        </div>
+    );
+}
+
 //Netlify pour hebergement
-export default App;
+export {
+    UserApp,
+    AdminApp
+};
