@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import {UserApp, AdminApp} from './App';
+import {AdminAppProvider, AudioCreatorProvider} from './js/AppProvider';
 import reportWebVitals from './reportWebVitals';
 import "./style/audioCards.css";
 import {
@@ -16,7 +17,15 @@ const router = createBrowserRouter([
   },
   {
     path: "/admin",
+    element: <AdminAppProvider />,
+  },
+  {
+    path: "/login",
     element: <AdminApp />,
+  },
+  {
+    path: "/create",
+    element: <AudioCreatorProvider />,
   }
 ]);
 

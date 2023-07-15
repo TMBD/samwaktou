@@ -2,7 +2,6 @@
     width: 90%;
     max-width: 350px;
     min-width: 250px;
-    height: 70px;
     border-radius: 3px;
     margin: 5px;
     margin-top: 10px;
@@ -93,6 +92,19 @@
     flex-direction: row;
     justify-content: space-between;
     bottom: 0px;
+}
+
+.cardBottomAdminContainer{
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between
+}
+
+.addAudioIconContainer{
+    position: fixed;
+    right: 5px;
+    bottom: 5px;
 }
 
 .cardAuthorContainer{

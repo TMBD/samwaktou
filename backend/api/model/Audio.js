@@ -5,9 +5,8 @@ let DB = require("../model/db_crud");
 const CONFIG = require("../config/server_config");
 
 class Audio{
-    constructor(uri, title, theme, author, description, keywords, date, id){
+    constructor(uri, theme, author, description, keywords, date, id){
         this.uri = uri ? uri : CONFIG.FILE_LOCATION.AUDIO_FILE_LOCATION;
-        this.title = _.capitalize(title);
         this.theme = _.toUpper(theme),
         this.author = _.toUpper(author),
         this.description = _.capitalize(description);
@@ -17,7 +16,6 @@ class Audio{
     }
 
     getUri(){return this.uri;}
-    getTitle(){return this.title;}
     getTheme(){return this.theme;}
     getAuthor(){return this.author;}
     getDescription(){return this.description;}
@@ -26,7 +24,6 @@ class Audio{
     getId(){return this.id;}
 
     setUri(uri){this.uri = uri;}
-    setTitle(title){this.title = _.capitalize(title);}
     setTheme(theme){this.theme = _.toUpper(theme);}
     setAuthor(author){this.author = _.toUpper(author);}
     setDescription(description){this.description = _.capitalize(description);}
@@ -38,7 +35,6 @@ class Audio{
     getAudioModelStruct(){
         return new audioModel({
             uri: this.uri,
-            title: this.title,
             theme: this.theme,
             author: this.author,
             description: this.description,
@@ -50,7 +46,6 @@ class Audio{
     getStruct(){
         return {
             uri: this.uri,
-            title: this.title,
             theme: this.theme,
             author: this.author,
             description: this.description,

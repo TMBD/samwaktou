@@ -9,7 +9,7 @@ const rootDirPath = "../";
 let postAudio = async (req, res) => {
     let reqValidation = requestValidator.validatePostAudioRequest(req);
     if(reqValidation.success){
-        var audio = new Audio(req.body.uri, req.body.title, req.body.theme, req.body.author, req.body.description, req.body.keywords, req.body.date, null);
+        var audio = new Audio(req.body.uri, req.body.theme, req.body.author, req.body.description, req.body.keywords, req.body.date, null);
         let result = await audio.saveToDB();
         if(result.success){
             const splitedFileName = _.split(req.files.audio.name, ".");
@@ -173,13 +173,12 @@ let updateAudio = async (req, res) => {
                     details: "No audio with this _id has been found in the database !"
                 });
             }else{
-                let title = req.body.title ? req.body.title : findAudioResult.audio.title;
                 let theme = req.body.theme ? req.body.theme : findAudioResult.audio.theme;
                 let author = req.body.author ? req.body.author : findAudioResult.audio.author;
                 let description = req.body.description ? req.body.description : findAudioResult.audio.description;
                 let keywords = req.body.keywords ? req.body.keywords : findAudioResult.audio.keywords;
                 let date = req.body.date ? req.body.date : findAudioResult.audio.date;
-                let audio = new Audio(findAudioResult.audio.uri, title, theme, author, description, keywords, date, findAudioResult.audio._id);
+                let audio = new Audio(findAudioResult.audio.uri, theme, author, description, keywords, date, findAudioResult.audio._id);
                 let updateResult = await audio.updateToDB();
                 if(updateResult.success){
                     res.status(CONFIG.HTTP_CODE.OK);

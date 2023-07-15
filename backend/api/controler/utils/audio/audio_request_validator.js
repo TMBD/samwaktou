@@ -5,28 +5,6 @@ const CONFIG = require("../../../config/server_config");
 
 const validatePostAudioRequest = (req) => {
     let body = req.body;
-    if(!body.title){
-        return {
-            success: false,
-            details: "title field is required !"
-        };
-    }
-    if(!_.isString(body.title)){
-        return {
-            success: false,
-            details: "title field has to be string type !"
-        };
-    }
-    if(body.title.length <CONFIG.AUDIO_VALIDATION_CONFIG.MIN_TITLE_CHAR
-        || body.title.length>CONFIG.AUDIO_VALIDATION_CONFIG.MAX_TITLE_CHAR){
-        return {
-            success: false,
-            details: "The number of title characters must be between "+CONFIG.AUDIO_VALIDATION_CONFIG.MIN_TITLE_CHAR
-            +" and "+CONFIG.AUDIO_VALIDATION_CONFIG.MAX_TITLE_CHAR
-        };
-    }
-
-
     if(!body.theme){
         return {
             success: false,
@@ -92,6 +70,12 @@ const validatePostAudioRequest = (req) => {
         return {
             success: false,
             details: "keywords field is required !"
+        };
+    }
+    if(!_.isString(body.keywords)){
+        return {
+            success: false,
+            details: "keywords field has to be string type !"
         };
     }
     if(!_.trim(body.keywords)){
@@ -213,24 +197,7 @@ const validateGetAudioRequest = (req) => {
 
 const validateUpdateAudioRequest = (req) => {
     let body = req.body;
-    if(body.title){
-        if(!_.isString(body.title)){
-            return {
-                success: false,
-                details: "title field has to be string type !"
-            };
-        }
-        if(body.title.length <CONFIG.AUDIO_VALIDATION_CONFIG.MIN_TITLE_CHAR
-            || body.title.length>CONFIG.AUDIO_VALIDATION_CONFIG.MAX_TITLE_CHAR){
-            return {
-                success: false,
-                details: "The number of title characters must be between "+CONFIG.AUDIO_VALIDATION_CONFIG.MIN_TITLE_CHAR
-                +" and "+CONFIG.AUDIO_VALIDATION_CONFIG.MAX_TITLE_CHAR
-            };
-        }
-    }
     
-
     if(body.theme){
         if(!_.isString(body.theme)){
             return {
@@ -270,7 +237,7 @@ const validateUpdateAudioRequest = (req) => {
         if(!_.isString(body.description)){
             return {
                 success: false,
-                details: "description field has to be string type!"
+                details: "description field has to be string type !"
             };
         }
         if(body.description.length <CONFIG.AUDIO_VALIDATION_CONFIG.MIN_DESCRIPTION_CHAR 
@@ -283,20 +250,29 @@ const validateUpdateAudioRequest = (req) => {
         }
     } 
     
-    if(!body.keywords){
-        return {
-            success: false,
-            details: "keywords field is required !"
-        };
+    if(body.keywords){
+        if(!_.isString(body.keywords)){
+            return {
+                success: false,
+                details: "keywords field has to be string type !"
+            };
+        }
+        if(!_.trim(body.keywords)){
+            return {
+                success: false,
+                details: "keywords field contains only whitespace characters !"
+            };
+        }
     }
-    if(!_.trim(body.keywords)){
+
+    if(body.date && !moment(body.date, "DD-MM-YYYY").isValid()){
         return {
             success: false,
-            details: "keywords field contains only whitespace characters !"
+            details: "date field has to a valid date of format DD-MM-YYYY !"
         };
     }
     
-    if(body.title || body.theme || body.author || body.description || body.keywords || body.date) {
+    if(body.theme || body.author || body.description || body.keywords || body.date) {
         return {
             success: true
         };

@@ -163,7 +163,7 @@ let updateUser = async (req, res) => {
                             let user = new User(req.body.username, tel, email, findUserResult.user.date, findUserResult.user._id);
                             let updateResult = await user.updateToDB();
                             if(updateResult.success){
-                                const token = jwt.sign({_id: findUserResult.user._id, username: req.body.username}, process.env.USER_TOKEN_SECRET, {expiresIn: "1h"});
+                                const token = jwt.sign({_id: findUserResult.user._id, username: req.body.username}, process.env.USER_TOKEN_SECRET, {expiresIn: "10h"});
                                 res.header("auth-token", token);
                                 res.status(CONFIG.HTTP_CODE.OK);
                                 res.json(updateResult.data);
@@ -224,7 +224,7 @@ let loginUser = async (req, res) => {
             }else{
                 const valideUser = req.body.tel == findUserResult.user.tel;
                 if(valideUser){
-                    const token = jwt.sign({_id: findUserResult.user._id, username: findUserResult.user.username}, process.env.USER_TOKEN_SECRET, {expiresIn: "1h"});
+                    const token = jwt.sign({_id: findUserResult.user._id, username: findUserResult.user.username}, process.env.USER_TOKEN_SECRET, {expiresIn: "24h"});
                     res.header("auth-token", token);
                     res.status(CONFIG.HTTP_CODE.OK);
                     res.json({

@@ -57,7 +57,7 @@
   margin-left: auto;
   margin-right: auto;
   display: flex;
-  justify-content: space-around;
+  justify-content: space-between;
 }
 
 .searchFilterComponent input{

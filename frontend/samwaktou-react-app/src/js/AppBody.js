@@ -6,6 +6,9 @@ import '../style/audioCards.css';
 import '../style/common.css';
 import SearchBar from './SerachBar';
 import {ErrorMessage, InfoMessage} from './Message';
+import IconButton from '@mui/material/IconButton';
+import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined';
+import { Navigate } from "react-router-dom";
 
 class AppBody extends React.Component{
     constructor(props){
@@ -22,7 +25,8 @@ class AppBody extends React.Component{
             searchQuery: "",
             shouldGetAudioResult: false,
             errorObject: null,
-            isCurrentlyFetchingAudios: false
+            isCurrentlyFetchingAudios: false,
+            audioInfosToUpdate: null
         }
         this.audioHandler = this.audioHandler.bind(this);
         this.handleAudioInfoDisplay = this.handleAudioInfoDisplay.bind(this);
@@ -50,7 +54,8 @@ class AppBody extends React.Component{
           },
           showAudioPlayerCard: true,
           audioInfos: audioInfos,
-          currentPlayingElementId: elementId
+          currentPlayingElementId: elementId,
+          shouldNavigateToCreateAudioPage: false
         })
       }
 
@@ -307,11 +312,89 @@ class AppBody extends React.Component{
             errorMessage: errorMessage,
             errorObject: error
         });
-    }    
+    }
+
+    handleEditAudio = (audioInfos) => {
+        if(!this.isAdminUser()){
+            window.alert("Vous n'avez pas la permission !");
+            return;
+        }
+        this.setState({shouldNavigateToCreateAudioPage: true, audioInfosToUpdate: audioInfos});
+    }
+
+    handleDeleteAudio = (elementId) => {
+        if(!this.isAdminUser()){
+            window.alert("Vous n'avez pas la permission !");
+            return;
+        }
+        fetch("http://localhost:8080/audios/"+elementId, {
+            method: 'DELETE',
+            headers: {
+                "auth-token": this.props.user.token
+            }
+        })
+        .then(res => {
+            if (!res.ok) {
+                throw new Error(res.status);
+            }
+            return res.json();
+        })
+        .then(
+            (result) => {
+                this.setState({audios: this.state.audios.filter(audio => audio._id !== elementId)});
+                window.alert("Audio supprimé !")
+            },
+            (error) => {
+                let errorMessage = "Une erreur s'est produite. Veuillez réessayer plus tard.";
+                if (error instanceof TypeError) {
+                    errorMessage = "Erreur réseau. S'il vous plait, vérifiez votre connexion internet.";
+                } else if (error instanceof SyntaxError) {
+                    errorMessage = "Erreur serveur, données non valides.";
+                } else if (error instanceof Error) {
+                    if (error?.message === "404") {
+                        errorMessage = "Audio introuvable !";
+                    } else if (error?.message === "401") {
+                        errorMessage = "Accès non autorisé";
+                    } else if (error?.message?.charAt(0) === "4") {
+                        errorMessage = "La ressource demandée n'a pas été trouvée.";
+                    }else if (error?.message === "500") {
+                        errorMessage = "Une erreur s'est produite lors de la recherche de l'audio à supprimer dans la base de donnée";
+                    } else if (error?.message?.charAt(0) === "5") {
+                        errorMessage = "Erreur interne du serveur.";
+                    } else {
+                        errorMessage = "Une erreur inattendue s'est produite.";
+                    }
+                }
+                this.setState({
+                    errorMessage: errorMessage
+                });
+            }
+        );
+    }
+
+    navigateToCreateAudioPage = () => {
+        if(!this.isAdminUser()){
+            window.alert("Vous n'avez pas la permission !");
+            return;
+        }
+        this.setState({shouldNavigateToCreateAudioPage: true, audioMetadataToUpdate: null});
+    }
+
+    isAdminUser(){
+        return this.props.user?.token?.trim();
+    }
 
     render(){
         return(
             <div className='generalContainer'>
+                {
+                    !this.isAdminUser() &&
+                    <Navigate 
+                        replace={true}
+                        to="/"
+                        state={{}}/>
+                }
+
                 <SearchBar
                     handleInputSearchChange = {this.handleInputSearchChange}
                     authors = {this.state.authors}
@@ -346,7 +429,11 @@ class AppBody extends React.Component{
                                     audioHandler = {this.audioHandler}
                                     getDurationDisplay = {this.getDurationDisplay}
                                     audioInfos = {element}
-                                    handleAudioInfoDisplay = {this.handleAudioInfoDisplay}/>
+                                    handleAudioInfoDisplay = {this.handleAudioInfoDisplay}
+                                    handleEditAudio = {this.handleEditAudio}
+                                    handleDeleteAudio = {this.handleDeleteAudio}
+                                    user = {this.props.user}
+                                    />
                     )}
 
                     <AudioPlayerCard
@@ -365,6 +452,30 @@ class AppBody extends React.Component{
                     }
 
                 </div>
+                {
+                    this.props.user?.token?.trim() && 
+                    <div className='addAudioIconContainer'>
+                        <IconButton
+                            size='large'
+                            color='primary'
+                            
+                            onClick={() => this.navigateToCreateAudioPage()}
+                            >
+                            <AddCircleOutlineOutlinedIcon />
+                        </IconButton>
+                    </div>
+                }
+                
+                {
+                    this.state.shouldNavigateToCreateAudioPage &&
+                    <Navigate 
+                        replace={false}
+                        to="/create"
+                        state={{authors: this.state.authors, themes: this.state.themes, user: this.props.user, audioInfos: this.state.audioInfosToUpdate}}/>
+                }
+
+                
+
             </div>
         );
     }

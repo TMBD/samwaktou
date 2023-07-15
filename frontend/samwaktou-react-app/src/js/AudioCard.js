@@ -2,6 +2,7 @@ import React from "react";
 import Header from "./audioCardComponents/cardHeader";
 import Bottom from './audioCardComponents/cardBottom';
 import Body from "./audioCardComponents/cardBody";
+import CardBottomAdmin from "./audioCardComponents/cardBottomAdmin";
 import '../style/audioCards.css';
 
 class AudioCard extends React.Component{
@@ -69,6 +70,15 @@ class AudioCard extends React.Component{
                 <Bottom 
                     authorName={this.props.authorName} 
                     recordDate={this.props.recordDate}/>
+                
+                {
+                    this.props.user?.token?.trim() && 
+                    <CardBottomAdmin
+                        audioInfos = {this.props.audioInfos}
+                        handleEditAudio = {this.props.handleEditAudio}
+                        handleDeleteAudio = {this.props.handleDeleteAudio}
+                    />
+                } 
                     
                 <audio 
                     hidden="hidden"

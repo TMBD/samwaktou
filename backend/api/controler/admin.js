@@ -289,12 +289,12 @@ let loginAdmin = async (req, res) => {
             }else{
                 const validePass = await bcryptejs.compare(req.body.password, findAdminResult.admin.password);
                 if(validePass){
-                    const token = jwt.sign({_id: findAdminResult.admin._id, isSuperAdmin: findAdminResult.admin.isSuperAdmin}, process.env.ADMIN_TOKEN_SECRET, {expiresIn: "30m"});
-                    res.header("auth-token", token);
+                    const token = jwt.sign({_id: findAdminResult.admin._id, isSuperAdmin: findAdminResult.admin.isSuperAdmin}, process.env.ADMIN_TOKEN_SECRET, {expiresIn: "24h"});
                     res.status(CONFIG.HTTP_CODE.OK);
                     res.json({
                         _id: findAdminResult.admin._id,
-                        isSuperAdmin: findAdminResult.admin.isSuperAdmin
+                        isSuperAdmin: findAdminResult.admin.isSuperAdmin,
+                        token: token
                     });
                 }else{
                     res.status(CONFIG.HTTP_CODE.PAGE_NOT_FOUND_ERROR);

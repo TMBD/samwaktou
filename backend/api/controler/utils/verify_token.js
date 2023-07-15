@@ -13,7 +13,7 @@ const verifyAdminToken = (req, res, next) => {
     }else{
         try {
             const verifiedToken = jwt.verify(token, process.env.ADMIN_TOKEN_SECRET);
-            const newToken = jwt.sign({_id: verifiedToken._id, isSuperAdmin: verifiedToken.isSuperAdmin}, process.env.ADMIN_TOKEN_SECRET, {expiresIn: "30m"});
+            const newToken = jwt.sign({_id: verifiedToken._id, isSuperAdmin: verifiedToken.isSuperAdmin}, process.env.ADMIN_TOKEN_SECRET, {expiresIn: "24h"});
             res.header("auth-token", newToken);
             const verifiedNewToken = jwt.verify(newToken, process.env.ADMIN_TOKEN_SECRET);
             req.token = verifiedNewToken;
@@ -40,7 +40,7 @@ const verifyUserToken = (req, res, next) => {
     }else{
         try {
             const verifiedToken = jwt.verify(token, process.env.USER_TOKEN_SECRET);
-            const newToken = jwt.sign({_id: verifiedToken._id, username: verifiedToken.username}, process.env.USER_TOKEN_SECRET, {expiresIn: "1h"});
+            const newToken = jwt.sign({_id: verifiedToken._id, username: verifiedToken.username}, process.env.USER_TOKEN_SECRET, {expiresIn: "24h"});
             res.header("auth-token", newToken);
             const verifiedNewToken = jwt.verify(newToken, process.env.USER_TOKEN_SECRET);
             req.token = verifiedNewToken;
@@ -67,7 +67,7 @@ const verifyTokenForDeleteUser = (req, res, next) => {
     }else{
         try {
             const verifiedToken = jwt.verify(token, process.env.USER_TOKEN_SECRET);
-            const newToken = jwt.sign({_id: verifiedToken._id, username: verifiedToken.username}, process.env.USER_TOKEN_SECRET, {expiresIn: "1h"});
+            const newToken = jwt.sign({_id: verifiedToken._id, username: verifiedToken.username}, process.env.USER_TOKEN_SECRET, {expiresIn: "24h"});
             res.header("auth-token", newToken);
             const verifiedNewToken = jwt.verify(newToken, process.env.USER_TOKEN_SECRET);
             req.token = verifiedNewToken;
@@ -76,7 +76,7 @@ const verifyTokenForDeleteUser = (req, res, next) => {
         } catch (veriryUserTokenError) {
             try {
                 const verifiedToken = jwt.verify(token, process.env.ADMIN_TOKEN_SECRET);
-                const newToken = jwt.sign({_id: verifiedToken._id, isSuperAdmin: verifiedToken.isSuperAdmin}, process.env.ADMIN_TOKEN_SECRET, {expiresIn: "30m"});
+                const newToken = jwt.sign({_id: verifiedToken._id, isSuperAdmin: verifiedToken.isSuperAdmin}, process.env.ADMIN_TOKEN_SECRET, {expiresIn: "24h"});
                 res.header("auth-token", newToken);
                 const verifiedNewToken = jwt.verify(newToken, process.env.ADMIN_TOKEN_SECRET);
                 req.token = verifiedNewToken;

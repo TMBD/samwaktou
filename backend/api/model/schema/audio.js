@@ -6,12 +6,6 @@ let AudioSchema = mongoose.Schema({
         type: String,
         required: true
     },
-    title: {
-        type: String,
-        required: true,
-        max: AUDIO_VALIDATION_CONFIG.MAX_TITLE_CHAR,
-        min: AUDIO_VALIDATION_CONFIG.MIN_TITLE_CHAR
-    },
     theme: {
         type: String,
         required: true,
@@ -36,7 +30,7 @@ let AudioSchema = mongoose.Schema({
         default: Date.now()
     },
     keywords: {
-        type: [String],
+        type: String,
         required: true,
         max: AUDIO_VALIDATION_CONFIG.MAX_KEYWORDS_CHAR,
         min: AUDIO_VALIDATION_CONFIG.MIN_KEYWORDS_CHAR
