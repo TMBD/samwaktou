@@ -32,6 +32,7 @@ class AppBody extends React.Component{
         this.handleAudioInfoDisplay = this.handleAudioInfoDisplay.bind(this);
         this.changePopupStatus = this.changePopupStatus.bind(this);
         this.handleInputSearchChange = this.handleInputSearchChange.bind(this);
+        this.API_SERVER_URL = process.env.REACT_APP_API_SERVER_URL;
     }
 
     audioHandler(
@@ -80,7 +81,7 @@ class AppBody extends React.Component{
 
     loadAudios(){
         this.setState({isCurrentlyFetchingAudios: true});
-        fetch("http://localhost:8080/audios", {
+        fetch(this.API_SERVER_URL+"/audios", {
             method: "GET"
         })
         .then(res => {
@@ -109,7 +110,7 @@ class AppBody extends React.Component{
     }
 
     loadAuthors(){
-        fetch("http://localhost:8080/audios/extra/author", {
+        fetch(this.API_SERVER_URL+"/audios/extra/author", {
             method: "GET"
         })
         .then(res => {
@@ -134,7 +135,7 @@ class AppBody extends React.Component{
     }
 
     loadThemes(){
-        fetch("http://localhost:8080/audios/extra/theme", {
+        fetch(this.API_SERVER_URL+"/audios/extra/theme", {
             method: "GET"
         })
         .then(res => {
@@ -185,7 +186,7 @@ class AppBody extends React.Component{
             errorMessage: ""
         });
 
-        fetch("http://localhost:8080/audios?"+query, {
+        fetch(this.API_SERVER_URL+"/audios?"+query, {
             method: 'GET',
             headers: {
                 "Content-Type": "application/json"
@@ -217,7 +218,7 @@ class AppBody extends React.Component{
     getfileName(uri){
         const splitedFileUri = (uri !== null) ? uri.split("/"):"";
         const fileName = splitedFileUri[splitedFileUri.length-1];
-        return "http://localhost:8080/audios/file/"+fileName;
+        return this.API_SERVER_URL+"/audios/file/"+fileName;
     }
 
     handleAudioInfoDisplay(element){
@@ -260,7 +261,7 @@ class AppBody extends React.Component{
             this.setState({
                 errorMessage: ""
             });
-            fetch("http://localhost:8080/audios?"+query, {
+            fetch(this.API_SERVER_URL+"/audios?"+query, {
                 method: 'GET',
                 headers: {
                     "Content-Type": "application/json"
@@ -327,7 +328,7 @@ class AppBody extends React.Component{
             window.alert("Vous n'avez pas la permission !");
             return;
         }
-        fetch("http://localhost:8080/audios/"+elementId, {
+        fetch(this.API_SERVER_URL+"/audios/"+elementId, {
             method: 'DELETE',
             headers: {
                 "auth-token": this.props.user.token

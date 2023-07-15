@@ -1,9 +1,9 @@
 version: "3.9"
 
 networks:
-  tontou-fatwa-network:
+  samwaktou-network:
 volumes:
-  tontou-fatwa-mongo-data:
+  samwaktou-mongo-data:
 
 services:
   mongodb:
@@ -15,9 +15,9 @@ services:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: mypass
     volumes:
-      - tontou-fatwa-mongo-data:/data/db
+      - samwaktou-mongo-data:/data/db
     networks:
-      - tontou-fatwa-network
+      - samwaktou-network
   
   mongo-express:
     image: mongo-express:latest
@@ -31,26 +31,4 @@ services:
     depends_on:
       - mongodb
     networks:
-      - tontou-fatwa-network
-
-  tontou-fatwa-api:
-    build: 
-      context: ../../backend/api/
-    restart: always
-    ports:
-      - 8080:8080
-    depends_on:
-      - mongodb
-    networks:
-      - tontou-fatwa-network
-
-  tontou-fatwa-web-app:
-    build: 
-      context: ../../frontend/samwaktou-react-app/
-    restart: always
-    ports:
-      - 3000:3000
-    depends_on:
-      - tontou-fatwa-api
-    networks:
-      - tontou-fatwa-network
+      - samwaktou-network

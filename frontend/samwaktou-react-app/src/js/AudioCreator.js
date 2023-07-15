@@ -22,8 +22,9 @@ class AudioCreator extends React.Component{
             audio: null,
             errorMessageText: null,
             infoMessageText: null,
-            audioInfos: this.props.audioInfos
+            audioInfos: this.props.audioInfos,
         }
+        this.API_SERVER_URL = process.env.REACT_APP_API_SERVER_URL;
     }
 
     cleanFields = () => {
@@ -76,7 +77,7 @@ class AudioCreator extends React.Component{
         data.append("date", this.state.date.format('DD-MM-YYYY'));
         data.append("audio", this.state.audio);
 
-        fetch("http://localhost:8080/audios", {
+        fetch(this.API_SERVER_URL+"/audios", {
             method: 'POST',
             headers: {
                 "auth-token": this.props.user.token
@@ -112,7 +113,7 @@ class AudioCreator extends React.Component{
         data.append("keywords", this.state.keywords.trim());
         data.append("date", this.state.date.format('DD-MM-YYYY'));
 
-        fetch("http://localhost:8080/audios/"+this.state.audioInfos._id, {
+        fetch(this.API_SERVER_URL+"/audios/"+this.state.audioInfos._id, {
             method: 'PUT',
             headers: {
                 "auth-token": this.props.user.token
