@@ -41,7 +41,7 @@ class Login extends React.Component{
             loginErrorMessage: ""
         });
 
-        fetch("http://localhost:8080/admins/login", {
+        fetch(this.API_SERVER_URL+"/admins/login", {
             method: 'POST',
             headers: {
                 "Content-Type": "application/json"
