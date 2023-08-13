@@ -1,6 +1,5 @@
 let jwt = require("jsonwebtoken");
 let _ = require("lodash");
-require("dotenv/config");
 const CONFIG = require("../config/server_config");
 let requestValidator = require("./utils/user/user_request_validator");
 const User = require("../model/User");

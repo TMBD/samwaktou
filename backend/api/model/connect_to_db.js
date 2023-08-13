@@ -1,4 +1,4 @@
-require("dotenv/config");
+// require("dotenv/config");
 let mongoose = require("mongoose");
 
 const connectToDB = () => {
@@ -7,6 +7,7 @@ const connectToDB = () => {
         authSource: "admin",
         user: process.env.MONGODB_USERNAME,
         pass: process.env.MONGODB_PASSWORD,
+        dbName: process.env.MONGODB_DB_NAME,
         useNewUrlParser: true, 
         useUnifiedTopology: true
     }, (err) => {

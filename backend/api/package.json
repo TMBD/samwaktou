@@ -1,16 +1,18 @@
 {
-  "name": "samwaktou",
+  "name": "tontou-fatwa-backend-api",
   "version": "1.0.0",
   "description": "",
   "main": "serveur.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon server.js"
+    "start": "nodemon -r dotenv/config server.js dotenv_config_path=.env.development",
+    "start-production": "nodemon -r dotenv/config server.js dotenv_config_path=.env"
   },
   "author": "Thierno DIALLO",
   "license": "ISC",
   "dependencies": {
     "@hapi/joi": "^17.1.1",
+    "aws-sdk": "^2.1430.0",
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.19.0",
     "cors": "^2.8.5",

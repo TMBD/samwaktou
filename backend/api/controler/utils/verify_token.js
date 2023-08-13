@@ -1,6 +1,5 @@
 const jwt = require("jsonwebtoken");
 const CONFIG = require("../../config/server_config");
-require("dotenv/config");
 
 const verifyAdminToken = (req, res, next) => {
     const token = req.header("auth-token");

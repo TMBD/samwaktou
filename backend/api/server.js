@@ -18,7 +18,27 @@ server.use(expressFileupload({
     limits: { fileSize: CONFIG.AUDIO_FILE_PARAMS.MAX_FILE_SIZE},
     abortOnLimit: true
 }));
-server.use(cors());
+
+//Configure cors and whitelist
+let whitelist = [process.env.APP_HOST, process.env.APP_LOAD_BALANCER_HOST]
+process.env.APP_CORS_EXTRA_WHITLISTS.split(" ").filter(host => host).map(host => whitelist.push(host));
+const corsOptions = {
+    origin: function (origin, callback) {
+        if(!origin) callback(null, true);
+        else {
+            const url = new URL(origin);
+            const host = url.protocol + "//" + url.hostname;
+            if (whitelist.indexOf(host) !== -1 || !origin) {
+                callback(null, true);
+            }
+            else {
+                callback(new Error('Not allowed by CORS'));
+            }
+        }
+    }
+}
+
+server.use(cors(corsOptions));
 
 
 //ROUTES

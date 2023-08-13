@@ -1,7 +1,6 @@
 let _ = require("lodash");
 let bcryptejs = require("bcryptjs");
 let jwt = require("jsonwebtoken");
-require("dotenv/config");
 const CONFIG = require("../config/server_config");
 let requestValidator = require("./utils/admin/admin_request_validator");
 const Admin = require("../model/Admin");

@@ -205,7 +205,7 @@ class Admin{
     }
 
     static getRootAdmin(email){
-        if(email == "thiernomb.diallo@gmail.com"){
+        if(email == process.env.ROOT_ADMIN_EMAIL){
             return {
                 "_id": process.env.ROOT_ADMIN_ID,
                 "surname": process.env.ROOT_ADMIN_SURNAME,
