@@ -24,6 +24,7 @@ frontend/samwaktou-react-app/.env.local
 frontend/samwaktou-react-app/.env.development.local
 frontend/samwaktou-react-app/.env.test.local
 frontend/samwaktou-react-app/.env.production.local
+frontend/samwaktou-react-app/.env.production
 
 frontend/samwaktou-react-app/npm-debug.log*
 frontend/samwaktou-react-app/yarn-debug.log*

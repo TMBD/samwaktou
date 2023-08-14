@@ -1,111 +1,47 @@
-const AWS = require('aws-sdk');
+let {uploadAudioFileToS3Bucket, getAudioFileFromS3Bucket, getAudioFileMetadataFromS3Bucket, removeAudioFileFromS3Bucket} = require("./s3_audio_file_uploader");
+let {uploadAudioFileInLocal, getAudioFileFromLocal, getAudioFileMetadataFromLocal, removeAudioFileFromLocal} = require("./local_audio_file_uploader");
 
-const credentials = new AWS.Credentials({
-    accessKeyId: process.env.S3_ACCESS_KEY,
-    secretAccessKey: process.env.S3_SECRET_ACCESS_KEY
-})
-
-const s3 = new AWS.S3({
-    region: "us-east-2",
-    credentials: credentials
-});
-
-const uploadAudioFileToS3Bucket = async (file, audioFileName) => {
-
-    return await s3.putObject({
-        Bucket: process.env.S3_ACCESS_POINT_ARN,
-        Key: audioFileName,
-        Body: file.data
-    }
-    ).promise()
-    .then(
-        (data) => {
-            return Promise.resolve({ 
-                success: true,
-                uri: audioFileName
-            })
-        },
-        (error) => {
-            return Promise.resolve({ 
-                success: false,
-                message: error,
-                details: "Couldn't upload the audio file in s3 bucket"
-            });
-        }
-    );
+const uploadAudioFileInternal = async (file, audioFileName) => {
+    if(process.env.PROFILE === "prod") return await uploadAudioFileToS3Bucket(file, audioFileName);
+    else if(process.env.PROFILE === "dev") return await uploadAudioFileInLocal(file, audioFileName);
+    else return Promise.resolve({ 
+        success: false,
+        message: "Unable to upload audio file in the server !",
+        details: "Profile "+process.env.PROFILE+" not found !",
+    });
 }
 
-const getAudioFileFomS3Bucket = async (audioFileName, paramRange) => {
-    return await s3.getObject({
-        Bucket: process.env.S3_ACCESS_POINT_ARN,
-        Key: audioFileName,
-        Range: paramRange
-    }
-    ).promise()
-    .then(
-        (data) => {
-            return Promise.resolve({ 
-                success: true,
-                data: data
-            })
-        },
-        (error) => {
-            return Promise.resolve({ 
-                success: false,
-                message: error,
-                details: "Couldn't get audio file from s3 bucket"
-            });
-        }
-    );
+const getAudioFileInternal = async (audioFileName, startByte, endByte) => {
+    if(process.env.PROFILE === "prod") return await getAudioFileFromS3Bucket(audioFileName, startByte, endByte);
+    else if(process.env.PROFILE === "dev") return await getAudioFileFromLocal(audioFileName, startByte, endByte);
+    else return Promise.resolve({
+        success: false,
+        message: "Unable to get audio file from the server !",
+        details: "Profile "+process.env.PROFILE+" not found !",
+    });
 }
 
-const getAudioFileMetadataFomS3Bucket = async (audioFileName) => {
-    return await s3.headObject({
-        Bucket: process.env.S3_ACCESS_POINT_ARN,
-        Key: audioFileName,
-    }
-    ).promise()
-    .then(
-        (data) => {
-            return Promise.resolve({ 
-                success: true,
-                data: data
-            })
-        },
-        (error) => {
-            return Promise.resolve({ 
-                success: false,
-                message: error,
-                details: "Couldn't get audio file metadata from s3 bucket"
-            });
-        }
-    );
+const getAudioFileMetadataInternal = async (audioFileName) => {
+    if(process.env.PROFILE === "prod") return await getAudioFileMetadataFromS3Bucket(audioFileName);
+    else if(process.env.PROFILE === "dev") return await getAudioFileMetadataFromLocal(audioFileName);
+    else return Promise.resolve({
+        success: false,
+        message: "Unable to get audio file metadata from the server !",
+        details: "Profile "+process.env.PROFILE+" not found !",
+    });
 }
 
-const removeAudioFileFomS3Bucket = async (audioFileName) => {
-    return await s3.deleteObject({
-        Bucket: process.env.S3_ACCESS_POINT_ARN,
-        Key: audioFileName,
-    }
-    ).promise()
-    .then(
-        (data) => {
-            return Promise.resolve({ 
-                success: true,
-                data: data
-            })
-        },
-        (error) => {
-            return Promise.resolve({ 
-                success: false,
-                message: error,
-                details: "Couldn't delete audio file from s3 bucket"
-            });
-        }
-    );
+const removeAudioFileInternal = async (audioFileName) => {
+    if(process.env.PROFILE === "prod") return await removeAudioFileFromS3Bucket(audioFileName);
+    else if(process.env.PROFILE === "dev") return await removeAudioFileFromLocal(audioFileName);
+    else return Promise.resolve({
+        success: false,
+        message: "Unable to delete audio file from the server !",
+        details: "Profile "+process.env.PROFILE+" not found !",
+    });
 }
 
-module.exports = {uploadAudioFileToS3Bucket, getAudioFileFomS3Bucket, getAudioFileMetadataFomS3Bucket, removeAudioFileFomS3Bucket};
+module.exports = {uploadAudioFileInternal, getAudioFileInternal, getAudioFileMetadataInternal, removeAudioFileInternal};
 
 
 

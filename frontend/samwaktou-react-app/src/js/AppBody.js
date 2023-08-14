@@ -161,25 +161,33 @@ class AppBody extends React.Component{
 
     handleInputSearchChange = (advanceSearchValues) => {
         let query = "";
+        let shouldSearch = false;
         if(advanceSearchValues?.keywords?.trim()){
             query += "keywords="+advanceSearchValues.keywords.trim();
+            shouldSearch = advanceSearchValues.keywords.trim().length >= 3
         }
         if(advanceSearchValues?.author?.trim()){
             const authorQuery = "author="+advanceSearchValues.author.trim();
             query += query ? "&"+authorQuery : authorQuery;
+            shouldSearch = true;
         }
         if(advanceSearchValues?.theme?.trim()){
             const themeQuery = "theme="+advanceSearchValues.theme.trim();
             query += query ? "&"+themeQuery : themeQuery;
+            shouldSearch = true;
         }
         if(advanceSearchValues?.minDate){
             const minDateQuery = "minDate="+advanceSearchValues.minDate.format('DD-MM-YYYY');
             query += query ? "&"+minDateQuery : minDateQuery;
+            shouldSearch = true;
         }
         if(advanceSearchValues?.maxDate){
             const maxDateQuery = "maxDate="+advanceSearchValues.maxDate.format('DD-MM-YYYY');
             query += query ? "&"+maxDateQuery : maxDateQuery;
+            shouldSearch = true;
         }
+        
+        if(!shouldSearch && query) return;
 
         this.setState({
             shouldGetAudioResult: false,
@@ -425,7 +433,7 @@ class AppBody extends React.Component{
                                     theme = {element.theme}
                                     authorName = {element.author}
                                     audioDescription = {element.description}
-                                    recordDate = {new Date(element.date).toDateString()}
+                                    recordDate = {new Date(element.date).toLocaleDateString("fr-FR")}
                                     audioUri = {this.getfileName(element.uri)}
                                     audioHandler = {this.audioHandler}
                                     getDurationDisplay = {this.getDurationDisplay}

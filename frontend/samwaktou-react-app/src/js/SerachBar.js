@@ -76,7 +76,7 @@ class SearchBar extends React.Component{
                         type = "submit" 
                         className = "searchButton"
                         onClick={() => this.changeAdvanceSearchPopupStatus(true)}>
-                        <i className="fa fa-sliders"></i>
+                        Recherche avancée
                     </button>
                 </div>
 

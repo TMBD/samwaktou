@@ -9,6 +9,8 @@ import { AdapterMoment } from '@mui/x-date-pickers/AdapterMoment'
 import {ErrorMessage, InfoMessage} from './Message'
 import moment from "moment";
 import { Navigate } from "react-router-dom";
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import IconButton from '@mui/material/IconButton';
 
 class AudioCreator extends React.Component{
     constructor( props ){
@@ -23,17 +25,43 @@ class AudioCreator extends React.Component{
             errorMessageText: null,
             infoMessageText: null,
             audioInfos: this.props.audioInfos,
+            authorsOption: {
+                options: this.props.authors || [],
+            },
+            themesOption: {
+                options: this.props.themes || [],
+            },
+            shouldGoBack: false
         }
         this.API_SERVER_URL = process.env.REACT_APP_API_SERVER_URL;
     }
 
     cleanFields = () => {
         this.setState({
+            theme: "",
             description: "",
             keywords: "",
             audio: null,
             audioInfos: null
         });
+    }
+
+    updateAndCleanFields = () => {
+        let authors = this.state.authorsOption.options;
+        if(authors.indexOf(this.state.author) === -1) authors.push(this.state.author);
+        let themes = this.state.themesOption.options;
+        if(themes.indexOf(this.state.theme) === -1) themes.push(this.state.theme);
+
+        this.setState({
+            authorsOption: {
+                options: authors
+            },
+            themesOption: {
+                options: themes
+            }
+        });
+
+        this.cleanFields();
     }
 
     handleAddAudio = () => {
@@ -92,8 +120,8 @@ class AudioCreator extends React.Component{
         })
         .then(
             (result) => {
+                this.updateAndCleanFields();
                 this.setState({infoMessageText: "Audio ajouté avec succès !"});
-                this.cleanFields();
             },
             (error) => {
                 this.setErrorMessage(error);
@@ -128,8 +156,8 @@ class AudioCreator extends React.Component{
         })
         .then(
             (result) => {
+                this.updateAndCleanFields();
                 this.setState({infoMessageText: "Audio mis à jour avec succès !"});
-                this.cleanFields();
             },
             (error) => {
                 this.setErrorMessage(error);
@@ -172,15 +200,8 @@ class AudioCreator extends React.Component{
     }
 
     render(){
-        const authorsOption = {
-            options: this.props.authors || [],
-        };
-        const themesOption = {
-            options: this.props.themes || [],
-        };
-        
         return(
-            <div className="formContainer"> 
+            <div>
                 {
                     !this.isAdminUser() &&
                     <Navigate 
@@ -189,141 +210,176 @@ class AudioCreator extends React.Component{
                         state={{}}/>
                 }
                 {
-                    this.state.infoMessageText &&
-                    <InfoMessage messageText={this.state.infoMessageText}/>
-                }
-                {
-                    this.state.errorMessageText &&
-                    <ErrorMessage messageText={this.state.errorMessageText}/>
+                    this.state.shouldGoBack &&
+                    <Navigate 
+                    replace={true}
+                    to="/admin" state={{user: this.props.user}}  />
                 }
 
-                <div className="audioFormItemBox">
-                    <Autocomplete
-                        sx={{ marginTop: "20px", marginBottom: "20px" }}
-                        {...authorsOption}
-                        id="author-select"
-                        className="searchFilterComponent"
-                        autoComplete
-                        includeInputInList
-                        fullWidth
-                        autoSelect
-                        freeSolo
-                        renderInput={(params) => (
-                            <TextField 
-                                {...params} 
-                                label="Auteur" 
-                                variant="standard"
-                            />
-                        )}
-                        value={this.state.author}
-                        onInputChange={(even, value) => this.setState({
-                            author: value.toUpperCase(), 
-                            errorMessageText: null, 
-                            infoMessageText: null})}
-                    />
+                <div className="backArrowDiv">
+                    <IconButton
+                        size='large'
+                        onClick={() => this.setState({shouldGoBack: true})}
+                        >
+                        <ArrowBackIcon/>
+                    </IconButton>
+                    
                 </div>
+            
+                <div className="formContainer"> 
+                    {
+                        this.state.infoMessageText &&
+                        <InfoMessage messageText={this.state.infoMessageText}/>
+                    }
+                    {
+                        this.state.errorMessageText &&
+                        <ErrorMessage messageText={this.state.errorMessageText}/>
+                    }
 
-                <div className="audioFormItemBox">
-                    <Autocomplete
-                        sx={{ marginTop: "20px", marginBottom: "20px" }}
-                        {...themesOption}
-                        id="theme-select"
-                        className="searchFilterComponent"
-                        autoComplete
-                        includeInputInList
-                        fullWidth
-                        autoSelect
-                        freeSolo
-                        renderInput={(params) => (
-                            <TextField 
-                                {...params} 
-                                label="Theme" 
-                                variant="standard" 
-                            />
-                        )}
-                        value={this.state.theme}
-                        onInputChange={(even, value) => this.setState({
-                            theme: value.toUpperCase(), 
-                            errorMessageText: null, 
-                            infoMessageText: null})}
-                    /> 
-                </div>
-
-                <div className="audioFormItemBox">
-                    <TextField 
-                        sx={{ marginTop: "20px", marginBottom: "20px" }}
-                        id="description-input"
-                        label="Description" 
-                        variant="standard"
-                        fullWidth
-                        value={this.state.description}
-                        onChange={(even) => this.setState({
-                            description: even.target.value.charAt(0).toUpperCase() + even.target.value.slice(1), 
-                            errorMessageText: null, 
-                            infoMessageText: null})}/>
-                </div>
-                <div className="audioFormItemBox">
-                    <TextField 
-                        sx={{ marginTop: "20px", marginBottom: "20px" }}
-                        id="keywords-input"
-                        label="Mots clés" 
-                        variant="standard"
-                        fullWidth
-                        value={this.state.keywords}
-                        onChange={(even) => this.setState({
-                            keywords: even.target.value.toLowerCase(), 
-                            errorMessageText: null, 
-                            infoMessageText: null})}/>
-                </div>
-
-                <div className="audioFormItemBox">
-                    <LocalizationProvider dateAdapter={AdapterMoment}>
-                        <DatePicker
-                            label="Date"
-                            id="audioDateInput"
-                            format="DD-MM-YYYY"
-                            slotProps={{
-                                textField: {
-                                helperText: 'JJ-MM-AAAA',
-                                sx:{ width: "45%", textTransform: "none", marginTop: "20px", marginBottom: "20px", height: "40px" }
-                                },
-                            }}
-                            disableFuture
-                            value={this.state.date}
-                            onChange={(value) => this.setState({
-                                date: value, 
+                    <div className="audioFormItemBox">
+                        <Autocomplete
+                            sx={{ marginTop: "20px", marginBottom: "20px" }}
+                            {...this.state.authorsOption}
+                            id="author-select"
+                            className="searchFilterComponent"
+                            autoComplete
+                            includeInputInList
+                            fullWidth
+                            autoSelect
+                            freeSolo
+                            renderInput={(params) => (
+                                <TextField 
+                                    {...params} 
+                                    label="Auteur" 
+                                    variant="standard"
+                                />
+                            )}
+                            value={this.state.author}
+                            onInputChange={(even, value) => this.setState({author: value.toUpperCase()})}
+                            
+                            onFocus={(even, value) => this.setState({
                                 errorMessageText: null, 
                                 infoMessageText: null})}
                         />
-                    </LocalizationProvider>
-                    
-                    {
-                        !this.state.audioInfos && 
-                        <Button
-                            sx={{width: "45%", textTransform: "none", marginTop: "20px", marginBottom: "20px", height: "56px", maxHeight: "56px" }}
-                            variant="outlined"
-                            component="label">
-                            {this.state.audio?.name || "Choisir un audio"}
-                            <input
-                                type="file"
-                                hidden
-                                accept="audio/*"
-                                onChange={ (even) => { this.setState({
-                                    audio: even.target.files[0], 
-                                    errorMessageText: null, 
-                                    infoMessageText: null})}}/>
-                        </Button>
-                    }
-                </div>
+                    </div>
 
-                <div className="audioFormItemBox submitButton">
-                    <Button
-                        sx={{textTransform: "none", float: "right", marginTop: "20px", marginBottom: "20px"}} 
-                        variant="contained" 
-                        size="large"
-                        onClick={() => this.state.audioInfos ? this.handleUpdateAudio() : this.handleAddAudio()}>
-                            {this.state.audioInfos ? "Mettre à jour" : "Ajouter"}
-                    </Button>
+                    <div className="audioFormItemBox">
+                        <Autocomplete
+                            sx={{ marginTop: "20px", marginBottom: "20px" }}
+                            {...this.state.themesOption}
+                            id="theme-select"
+                            className="searchFilterComponent"
+                            autoComplete
+                            includeInputInList
+                            fullWidth
+                            autoSelect
+                            freeSolo
+                            renderInput={(params) => (
+                                <TextField 
+                                    {...params} 
+                                    label="Theme" 
+                                    variant="standard" 
+                                />
+                            )}
+                            value={this.state.theme}
+                            onInputChange={(even, value) => this.setState({theme: value.toUpperCase()})}
+                                
+                            onFocus={(even, value) => this.setState({
+                                errorMessageText: null, 
+                                infoMessageText: null})}
+                        /> 
+                    </div>
+
+                    <div className="audioFormItemBox">
+                        <TextField 
+                            sx={{ marginTop: "20px", marginBottom: "20px" }}
+                            id="description-input"
+                            label="Description" 
+                            variant="standard"
+                            fullWidth
+                            multiline
+                            rows={3}
+                            value={this.state.description}
+                            onChange={(even) => this.setState({
+                                description: even.target.value.charAt(0).toUpperCase() + even.target.value.slice(1)})}
+
+                            onFocus={(even, value) => this.setState({
+                                errorMessageText: null, 
+                                infoMessageText: null})}
+                        />
+                    </div>
+                    <div className="audioFormItemBox">
+                        <TextField 
+                            sx={{ marginTop: "20px", marginBottom: "20px" }}
+                            id="keywords-input"
+                            label="Mots clés" 
+                            variant="standard"
+                            fullWidth
+                            multiline
+                            rows={3}
+                            value={this.state.keywords}
+                            onChange={(even) => this.setState({
+                                keywords: even.target.value.toLowerCase()})}
+
+                            onFocus={(even, value) => this.setState({
+                                errorMessageText: null, 
+                                infoMessageText: null})}
+                        />
+                    </div>
+
+                    <div className="audioFormItemBox">
+                        <LocalizationProvider dateAdapter={AdapterMoment}>
+                            <DatePicker
+                                label="Date"
+                                id="audioDateInput"
+                                format="DD-MM-YYYY"
+                                slotProps={{
+                                    textField: {
+                                    helperText: 'JJ-MM-AAAA',
+                                    sx:{ width: "45%", textTransform: "none", marginTop: "20px", marginBottom: "20px", height: "40px" }
+                                    },
+                                }}
+                                disableFuture
+                                value={this.state.date}
+                                onChange={(value) => this.setState({date: value})}
+
+                                onFocus={(even, value) => this.setState({
+                                    errorMessageText: null, 
+                                    infoMessageText: null})}
+                            />
+                        </LocalizationProvider>
+                        
+                        {
+                            !this.state.audioInfos && 
+                            <Button
+                                sx={{width: "45%", textTransform: "none", marginTop: "20px", marginBottom: "20px", height: "56px", maxHeight: "56px" }}
+                                variant="outlined"
+                                component="label">
+                                {this.state.audio?.name || "Choisir un audio"}
+                                <input
+                                    type="file"
+                                    hidden
+                                    accept="audio/*"
+                                    onChange={ (even) => { this.setState({
+                                        audio: even.target.files[0]})}}
+
+                                    onFocus={(even, value) => this.setState({
+                                        errorMessageText: null, 
+                                        infoMessageText: null})}
+                                />
+                            </Button>
+                        }
+                    </div>
+
+                    <div className="audioFormItemBox submitButton">
+                        <Button
+                            sx={{textTransform: "none", float: "right", marginTop: "20px", marginBottom: "20px"}} 
+                            variant="contained" 
+                            size="large"
+                            onClick={() => this.state.audioInfos ? this.handleUpdateAudio() : this.handleAddAudio()}>
+                                {this.state.audioInfos ? "Mettre à jour" : "Ajouter"}
+                        </Button>
+                    </div>
                 </div>
             </div>
         );

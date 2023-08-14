@@ -16,15 +16,15 @@ const router = createBrowserRouter([
     element: <UserApp />,
   },
   {
-    path: "/admin",
+    path: process.env.REACT_APP_ADMIN_PATH,
     element: <AdminAppProvider />,
   },
   {
-    path: "/login",
+    path: process.env.REACT_APP_LOGIN_PATH,
     element: <AdminApp />,
   },
   {
-    path: "/create",
+    path: process.env.REACT_APP_CREATE_AUDIO_PATH,
     element: <AudioCreatorProvider />,
   }
 ]);

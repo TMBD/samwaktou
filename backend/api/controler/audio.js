@@ -3,7 +3,7 @@ const { PassThrough } = require('stream');
 let Audio = require("../model/Audio");
 const CONFIG = require("../config/server_config");
 let requestValidator = require("./utils/audio/audio_request_validator");
-let {uploadAudioFileToS3Bucket, getAudioFileFomS3Bucket, getAudioFileMetadataFomS3Bucket, removeAudioFileFomS3Bucket} = require("./utils/audio/audio_file_uploader");
+let {uploadAudioFileInternal, getAudioFileInternal, getAudioFileMetadataInternal, removeAudioFileInternal} = require("./utils/audio/audio_file_uploader");
 let audioUtils = require("./utils/audio/audio_utils");
 const rootDirPath = "../";
 
@@ -15,7 +15,7 @@ let postAudio = async (req, res) => {
         if(result.success){
             const splitedFileName = _.split(req.files.audio.name, ".");
             const fileExtension = splitedFileName[splitedFileName.length-1];
-            let uploadResult = await uploadAudioFileToS3Bucket(req.files.audio, result.data._id+"."+fileExtension);
+            let uploadResult = await uploadAudioFileInternal(req.files.audio, result.data._id+"."+fileExtension);
             if(uploadResult.success){
                 audio.setUri(uploadResult.uri);
                 let updateResult = await audio.updateToDB();
@@ -120,9 +120,8 @@ let getAudioFile = async (req, res) => {
     let fileName = req.params.fileName;
     if(fileName){
         const CHUNK_SIZE = 500000; // ~500KB
-        const metadata = await getAudioFileMetadataFomS3Bucket(fileName);
+        const metadata = await getAudioFileMetadataInternal(fileName);
         if(metadata?.success){
-            let paramRange = "";
             let startByte = 0;
             let endByte = metadata.data.ContentLength - 1;
             if (req.headers?.range) {
@@ -135,8 +134,7 @@ let getAudioFile = async (req, res) => {
                 );;
             }
 
-            paramRange = `bytes=${startByte}-${endByte}`;
-            const audioResponse = await getAudioFileFomS3Bucket(fileName, paramRange);
+            const audioResponse = await getAudioFileInternal(fileName, startByte, endByte);
             if(audioResponse?.success){
                 const chunk = endByte - startByte + 1;
                 res.setHeader('Content-Type', 'audio/mpeg');
@@ -187,7 +185,7 @@ let deleteAudio = async (req, res) => {
         }else{
             let deleteResult = await Audio.deleteFromDB(req.params.audioId);
             if(deleteResult.success){
-                let deleteAudioFileResult = await removeAudioFileFomS3Bucket(findAudioResult.audio.uri);
+                let deleteAudioFileResult = await removeAudioFileInternal(findAudioResult.audio.uri);
                 if(deleteAudioFileResult.success){
                     res.status(CONFIG.HTTP_CODE.OK);
                     res.json(deleteResult.data);

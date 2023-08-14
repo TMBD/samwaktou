@@ -6,14 +6,14 @@ class PopupView extends React.Component {
         let keywordsElement = null;
         let audioAuthorAndDate = "";
         if(this.props.audioInfos.keywords){
-            keywordsElement = <div className="popupAudioKeywords"><b>Mots clés</b> : {this.props.audioInfos.keywords}</div>;
+            keywordsElement = <div className="popupAudioKeywords"><b>Mots clés</b> : <i>{this.props.audioInfos.keywords.split(" ").map(word => "#"+word).join(" ")}</i></div>;
         }
         if(this.props.audioInfos.author){
             audioAuthorAndDate += "Par " + this.props.audioInfos.author;
         }
         if(this.props.audioInfos.date){
             audioAuthorAndDate += (audioAuthorAndDate === "") ? "" : ", ";
-            audioAuthorAndDate += "le " + new Date(this.props.audioInfos.date).toDateString();
+            audioAuthorAndDate += "le " + new Date(this.props.audioInfos.date).toLocaleDateString("fr-FR");
         }
         return (
             <div className={"custom-model-main " + (this.props.shouldDisplayAudioInfos ? "model-open" : "")}>
