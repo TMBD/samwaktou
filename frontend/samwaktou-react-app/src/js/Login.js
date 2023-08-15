@@ -144,7 +144,7 @@ class Login extends React.Component{
                     this.state.user?.token?.trim() &&
                     <Navigate 
                     replace={true}
-                    to="/admin" state={{user: this.state.user}}  />
+                    to={process.env.REACT_APP_ADMIN_PATH} state={{user: this.state.user}}  />
                 }
             
             </div>)

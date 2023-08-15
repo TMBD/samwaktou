@@ -213,7 +213,7 @@ class AudioCreator extends React.Component{
                     this.state.shouldGoBack &&
                     <Navigate 
                     replace={true}
-                    to="/admin" state={{user: this.props.user}}  />
+                    to={process.env.REACT_APP_ADMIN_PATH} state={{user: this.props.user}}  />
                 }
 
                 <div className="backArrowDiv">

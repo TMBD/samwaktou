@@ -6,7 +6,7 @@ class PopupView extends React.Component {
         let keywordsElement = null;
         let audioAuthorAndDate = "";
         if(this.props.audioInfos.keywords){
-            keywordsElement = <div className="popupAudioKeywords"><b>Mots clés</b> : <i>{this.props.audioInfos.keywords.split(" ").map(word => "#"+word).join(" ")}</i></div>;
+            keywordsElement = <div className="popupAudioKeywords">Mots clés : <i>{this.props.audioInfos.keywords.split(" ").map(word => "#"+word).join(" ")}</i></div>;
         }
         if(this.props.audioInfos.author){
             audioAuthorAndDate += "Par " + this.props.audioInfos.author;

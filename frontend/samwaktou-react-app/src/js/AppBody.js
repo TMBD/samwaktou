@@ -479,7 +479,7 @@ class AppBody extends React.Component{
                     this.state.shouldNavigateToCreateAudioPage &&
                     <Navigate 
                         replace={false}
-                        to="/create"
+                        to={process.env.REACT_APP_CREATE_AUDIO_PATH}
                         state={{authors: this.state.authors, themes: this.state.themes, user: this.props.user, audioInfos: this.state.audioInfosToUpdate}}/>
                 }
 

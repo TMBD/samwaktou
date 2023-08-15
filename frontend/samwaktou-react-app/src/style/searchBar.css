@@ -10,7 +10,7 @@
 
 .searchTerm {
   width: 100%;
-  border: 3px solid #00B4CC;
+  border: 2px solid #00B4CC;
   border-right: none;
   padding: 5px;
   height: 20px;
@@ -26,8 +26,8 @@
 
 .searchButton {
   width: 65px;
-  height: 36px;
-  border: 1px solid #00B4CC;
+  height: 34px;
+  border: 0px;
   background: #00B4CC;
   text-align: center;
   color: #fff;

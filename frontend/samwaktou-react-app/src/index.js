@@ -26,6 +26,10 @@ const router = createBrowserRouter([
   {
     path: process.env.REACT_APP_CREATE_AUDIO_PATH,
     element: <AudioCreatorProvider />,
+  },
+  {
+    path: "*",
+    element: <UserApp />,
   }
 ]);
 
