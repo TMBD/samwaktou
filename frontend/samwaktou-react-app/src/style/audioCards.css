@@ -10,25 +10,25 @@
     padding-right: 5px;
 }
 
-.audioCard:hover{
-    box-shadow: 6px 6px 6px rgba(0, 0, 0, 0.25);
+.audioCardLoaded:hover{
+    box-shadow: 4px 4px 4px rgba(0, 0, 0, 0.25);
 }
 
 .audioCardLoading{
-    background: #e0e0e0;
+    background: #D0D0D0;
     cursor: wait;
 }
 
 .audioCardLoaded{
-    background: #F0F0F0;
-    box-shadow: 4px 4px 4px rgba(0, 0, 0, 0.25);
+    background: #E9E8E8;
+    box-shadow: 3px 3px 3px rgba(0, 0, 0, 0.25);
     cursor: default;
 }
 
 .audioCardOnPlay{
     background: #00b4cc2a;
     box-shadow: 0px 0px 0px;
-    border: 1px solid #00B4CC;
+    border: 1px solid #107B7E;
 }
 
 .audioCardOnPlay:hover{
@@ -49,7 +49,7 @@
     display: flex;
     flex-direction: row;
     justify-content: space-between;
-    font-size: x-small;
+    font-size: xx-small;
 }
 
 .themeContainer{
@@ -58,14 +58,16 @@
 
 .durationContainer{
     width: 34%;
+    color: #777777;
 }
 
 .helpContainer{
     width: 33%;
+    color: #777777;
 }
 
 .cardHelp{
-    color: rgb(146, 146, 146);
+    color: #777777;
     height: 14px;
     min-height: 14px;
     max-height: 14px;
@@ -79,7 +81,7 @@
 }
 
 .cardHelp:hover{
-    color: rgb(255, 57, 57);
+    color: #107B7E;
 }
 
 .cardTitleContainer{
@@ -95,7 +97,22 @@
 
 .cardTheme{
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    font-size: x-small;
+    font-size: xx-small;
+    color: #777777;
+    padding: 1px;
+    padding-left: 2px;
+    padding-right: 2px;
+    background-color: #EEEDED;
+    width: fit-content;
+    border-radius: 3px;
+    box-shadow: 1px 1px 1px 1px rgba(0, 0, 0, 0.2);
+    margin-top: 1px;
+}
+
+.cardTheme:hover{
+    cursor: pointer;
+    color: #107B7E;
+    box-shadow: 1.5px 1.5px 1.5px 1.5px rgba(0, 0, 0, 0.2);
 }
 
 .cardBottomContainer{
@@ -104,6 +121,7 @@
     flex-direction: row;
     justify-content: space-between;
     bottom: 0px;
+    color: #777777;
 }
 
 .cardBottomAdminContainer{
@@ -121,13 +139,13 @@
 
 .cardAuthorContainer{
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    font-size: x-small;
+    font-size: xx-small;
     font-style: italic;
 }
 
 .cardDateContainer{
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    font-size: x-small;
+    font-size: xx-small;
     font-style: italic;
 }
 
@@ -135,6 +153,7 @@
     margin: 2px;
     background: inherit;
     font-size: small;
+    color: black;
     border-radius: 3px;
     height: 37px;
     min-height: 37px;
@@ -158,7 +177,7 @@
 
 .audioPlayerCardContainer{
     width: 100%;
-    background: #f7f7f7;
+    background: #DFE1E7;
     position: fixed;
     bottom: 0px;
 }
@@ -171,10 +190,11 @@
     background: #00b4cc2a;
     box-shadow: 4px 4px 4px rgba(0, 0, 0, 0.25);
     border-radius: 3px;
-    margin: 5px;
     padding: 2px;
     padding-left: 5px;
     padding-right: 5px;
+    margin-top: 5px;
+    margin-bottom: 15px;
     margin-left: auto;
     margin-right: auto;
 }
@@ -188,7 +208,22 @@
 
 .audioPlayerCard-cardTheme{
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    font-size: x-small;
+    font-size: xx-small;
+    color: #777777;
+    padding: 1px;
+    padding-left: 2px;
+    padding-right: 2px;
+    background-color: #00e1ff25;
+    width: fit-content;
+    border-radius: 3px;
+    box-shadow: 1px 1px 1px 1px rgba(0, 0, 0, 0.2);
+    margin-top: 1px;
+}
+
+.audioPlayerCard-cardTheme:hover{
+    cursor: pointer;
+    color: #107B7E;
+    box-shadow: 1.5px 1.5px 1.5px 1.5px rgba(0, 0, 0, 0.2);
 }
 
 .audioPlayerCard-titleContainer{

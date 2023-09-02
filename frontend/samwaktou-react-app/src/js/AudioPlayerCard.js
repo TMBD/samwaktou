@@ -96,7 +96,7 @@ class AudioPlayerCard extends React.Component{
             <div className={"audioPlayerCardContainer " + (this.state.displayAudioPlayer ? "showElementClassName":"hideElementClassName")}>
                 <div className="audioPlayerCard">
                     <div className="audioPlayerCard-header">
-                        <div className="audioPlayerCard-cardTheme">
+                        <div className="audioPlayerCard-cardTheme" onClick={() => this.props.handleThemeFilterClick({theme: this.props.audioMetadata.theme})}>
                             {this.props.audioMetadata.theme}
                         </div>
                         <div className="cardHelp" onClick={() => this.props.handleAudioInfoDisplay(this.props.audioInfos)}>

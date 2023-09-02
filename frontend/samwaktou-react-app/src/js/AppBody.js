@@ -18,6 +18,7 @@ class AppBody extends React.Component{
             audios: [],
             errorMessage: "",
             audioInfos: {},
+            audioInfosPopup: {},
             shouldDisplayAudioInfos: false,
             currentPlayingElementId: "",
             authors: [],
@@ -26,12 +27,14 @@ class AppBody extends React.Component{
             shouldGetAudioResult: false,
             errorObject: null,
             isCurrentlyFetchingAudios: false,
-            audioInfosToUpdate: null
+            audioInfosToUpdate: null,
+            searchInput: ""
         }
         this.audioHandler = this.audioHandler.bind(this);
         this.handleAudioInfoDisplay = this.handleAudioInfoDisplay.bind(this);
         this.changePopupStatus = this.changePopupStatus.bind(this);
         this.handleInputSearchChange = this.handleInputSearchChange.bind(this);
+        this.handleThemeFilterClick = this.handleThemeFilterClick.bind(this);
         this.API_SERVER_URL = process.env.REACT_APP_API_SERVER_URL;
     }
 
@@ -223,6 +226,13 @@ class AppBody extends React.Component{
         );
     }
 
+    handleThemeFilterClick = (advanceSearchValues) => {
+        this.setState({
+            searchInput: advanceSearchValues
+        });
+        this.handleInputSearchChange(advanceSearchValues);
+    }
+
     getfileName(uri){
         const splitedFileUri = (uri !== null) ? uri.split("/"):"";
         const fileName = splitedFileUri[splitedFileUri.length-1];
@@ -231,7 +241,7 @@ class AppBody extends React.Component{
 
     handleAudioInfoDisplay(element){
         this.setState({
-            audioInfos: element,
+            audioInfosPopup: element,
             shouldDisplayAudioInfos: true
         });
     }
@@ -244,7 +254,7 @@ class AppBody extends React.Component{
 
     handleScroll = () => {
         const { scrollTop, clientHeight, scrollHeight } = document.documentElement;
-        if (scrollTop + clientHeight >= scrollHeight) {
+        if (scrollTop + clientHeight >= scrollHeight - clientHeight) {
             this.loadNewAudios();
         }
     }
@@ -408,6 +418,7 @@ class AppBody extends React.Component{
                     handleInputSearchChange = {this.handleInputSearchChange}
                     authors = {this.state.authors}
                     themes = {this.state.themes}
+                    searchInput = {this.state.searchInput}
                 />
                 <div className="audioCardContainer"> 
                     {
@@ -419,7 +430,7 @@ class AppBody extends React.Component{
                     {
                         !this.state.errorMessage && this.state.audios.length <= 0 && this.state.shouldGetAudioResult && 
                         <InfoMessage
-                            messageText = "Aucun resultat à afficher..."
+                            messageText = "Aucun resultat ne correspond à votre recherche..."
                         />
                     }
                     {
@@ -441,6 +452,7 @@ class AppBody extends React.Component{
                                     handleAudioInfoDisplay = {this.handleAudioInfoDisplay}
                                     handleEditAudio = {this.handleEditAudio}
                                     handleDeleteAudio = {this.handleDeleteAudio}
+                                    handleThemeFilterClick = {this.handleThemeFilterClick}
                                     user = {this.props.user}
                                     />
                     )}
@@ -450,12 +462,13 @@ class AppBody extends React.Component{
                         getDurationDisplay = {this.getDurationDisplay}
                         showAudioPlayerCard = {this.state.showAudioPlayerCard}
                         audioInfos = {this.state.audioInfos}
-                        handleAudioInfoDisplay = {this.handleAudioInfoDisplay}/>
+                        handleAudioInfoDisplay = {this.handleAudioInfoDisplay}
+                        handleThemeFilterClick = {this.handleThemeFilterClick}/>
 
                     {
                         this.state.shouldDisplayAudioInfos && 
                         <PopupView 
-                            audioInfos = {this.state.audioInfos}
+                            audioInfosPopup = {this.state.audioInfosPopup}
                             shouldDisplayAudioInfos = {this.state.shouldDisplayAudioInfos}
                             changePopupStatus = {this.changePopupStatus}/>
                     }

@@ -10,25 +10,25 @@
 
 .searchTerm {
   width: 100%;
-  border: 2px solid #00B4CC;
+  border: 2px solid #107B7E;
   border-right: none;
   padding: 5px;
   height: 20px;
   border-radius: 5px 0 0 5px;
   outline: none;
-  color: #9DBFAF;
+  color: #107B7E77;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .searchTerm:focus{
-  color: #00B4CC;
+  color: #107B7E;
 }
 
 .searchButton {
   width: 65px;
   height: 34px;
   border: 0px;
-  background: #00B4CC;
+  background: #107B7E;
   text-align: center;
   color: #fff;
   border-radius: 0 5px 5px 0;

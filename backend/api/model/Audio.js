@@ -9,7 +9,7 @@ class Audio{
         this.uri = uri ? uri : CONFIG.FILE_LOCATION.AUDIO_FILE_LOCATION;
         this.theme = _.toUpper(theme),
         this.author = _.toUpper(author),
-        this.description = _.capitalize(description);
+        this.description = description;
         this.keywords = _.toLower(keywords);
         this.date = date ? moment.utc(date, "DD-MM-YYYY") : moment.utc().startOf("day").format("DD-MM-YYYY");
         this.id = id;
@@ -26,7 +26,7 @@ class Audio{
     setUri(uri){this.uri = uri;}
     setTheme(theme){this.theme = _.toUpper(theme);}
     setAuthor(author){this.author = _.toUpper(author);}
-    setDescription(description){this.description = _.capitalize(description);}
+    setDescription(description){this.description = description;}
     setKeywords(keywords){this.keywords = _.toLower(keywords);}
     setDate(date){this.date = moment.utc(date, "DD-MM-YYYY");}
     setId(id){this.id = id;}

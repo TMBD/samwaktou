@@ -58,7 +58,9 @@ class AudioCard extends React.Component{
                     theme={this.props.theme} 
                     durationDisplay={this.state.durationDisplay}
                     audioInfos={this.props.audioInfos}
-                    handleAudioInfoDisplay = {this.props.handleAudioInfoDisplay}/>
+                    handleAudioInfoDisplay = {this.props.handleAudioInfoDisplay}
+                    handleThemeFilterClick={this.props.handleThemeFilterClick}
+                    />
 
                 <Body 
                     audioDescription={this.props.audioDescription}

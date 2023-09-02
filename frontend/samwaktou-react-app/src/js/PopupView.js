@@ -5,15 +5,15 @@ class PopupView extends React.Component {
     render() {
         let keywordsElement = null;
         let audioAuthorAndDate = "";
-        if(this.props.audioInfos.keywords){
-            keywordsElement = <div className="popupAudioKeywords">Mots clés : <i>{this.props.audioInfos.keywords.split(" ").map(word => "#"+word).join(" ")}</i></div>;
+        if(this.props.audioInfosPopup.keywords){
+            keywordsElement = <div className="popupAudioKeywords">Mots clés : <i>{this.props.audioInfosPopup.keywords.split(" ").map(word => "#"+word).join(" ")}</i></div>;
         }
-        if(this.props.audioInfos.author){
-            audioAuthorAndDate += "Par " + this.props.audioInfos.author;
+        if(this.props.audioInfosPopup.author){
+            audioAuthorAndDate += "Par " + this.props.audioInfosPopup.author;
         }
-        if(this.props.audioInfos.date){
+        if(this.props.audioInfosPopup.date){
             audioAuthorAndDate += (audioAuthorAndDate === "") ? "" : ", ";
-            audioAuthorAndDate += "le " + new Date(this.props.audioInfos.date).toLocaleDateString("fr-FR");
+            audioAuthorAndDate += "le " + new Date(this.props.audioInfosPopup.date).toLocaleDateString("fr-FR");
         }
         return (
             <div className={"custom-model-main " + (this.props.shouldDisplayAudioInfos ? "model-open" : "")}>
@@ -21,8 +21,8 @@ class PopupView extends React.Component {
                     <div className="close-btn" onClick={() => this.props.changePopupStatus(false)}>×</div>
                     <div className="custom-model-wrap">
                         <div className="pop-up-content-wrap">
-                            <div className="popupAudioTheme"><b>{this.props.audioInfos.theme}</b></div>
-                            <div className="popupAudioDescription">{this.props.audioInfos.description}</div>
+                            <div className="popupAudioTheme"><b>{this.props.audioInfosPopup.theme}</b></div>
+                            <div className="popupAudioDescription">{this.props.audioInfosPopup.description}</div>
                             {keywordsElement}
                             <div className="popupAudioAuthorDate"> {audioAuthorAndDate}</div>
                         </div>

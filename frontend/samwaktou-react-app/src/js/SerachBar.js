@@ -17,6 +17,15 @@ class SearchBar extends React.Component{
         };
     }
 
+    componentDidUpdate(prevProps){
+
+        if(this.props.searchInput && this.props.searchInput !== prevProps.searchInput){
+            this.handleAdvanceSearchInputChange(this.props.searchInput);
+        }
+
+        return null;
+    }
+
     changeAdvanceSearchPopupStatus = (isVisible) => {
         this.setState({
             shouldDisplayAdvanceSearchView: isVisible
@@ -36,6 +45,11 @@ class SearchBar extends React.Component{
 
     handleAdvanceSearch = (advanceSearchValues) => {
         this.changeAdvanceSearchPopupStatus(false);
+        this.props.handleInputSearchChange(advanceSearchValues);
+        this.handleAdvanceSearchInputChange(advanceSearchValues);
+    }
+
+    handleAdvanceSearchInputChange = (advanceSearchValues) => {
         let input = "";
         if(advanceSearchValues?.keywords) input += "keywords:("+advanceSearchValues.keywords+")";
         if(advanceSearchValues?.author) input += " author:("+advanceSearchValues.author+")";
@@ -55,7 +69,6 @@ class SearchBar extends React.Component{
                 maxDate: advanceSearchValues?.maxDate
             }
         });
-        this.props.handleInputSearchChange(advanceSearchValues);
     }
 
     render(){
