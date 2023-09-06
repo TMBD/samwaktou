@@ -42,12 +42,14 @@ class AudioCard extends React.Component{
 
     render(){
         let audioCardOnPlayClassName = "";
+        let isOnPlay = false;
         let cursorClassName = "cursorWait";
         let audioLoadStateClassName = "audioCardLoading";
         if(this.state.isAudioLoaded){
             audioLoadStateClassName = "audioCardLoaded";
             cursorClassName = "cursorPointer";
             if(this.props.elementId === this.props.currentPlayingElementId){
+                isOnPlay = true;
                 audioCardOnPlayClassName = "audioCardOnPlay";
                 cursorClassName = "";
             }
@@ -60,6 +62,7 @@ class AudioCard extends React.Component{
                     audioInfos={this.props.audioInfos}
                     handleAudioInfoDisplay = {this.props.handleAudioInfoDisplay}
                     handleThemeFilterClick={this.props.handleThemeFilterClick}
+                    isOnPlay = {isOnPlay}
                     />
 
                 <Body 

@@ -2,10 +2,14 @@ import React from 'react';
 
 class Header extends React.Component{
     render(){
+        let cardThemeClassName = "";
+        if(this.props.isOnPlay){
+            cardThemeClassName = "cardThemeOnPlay";
+        }
         return(
             <div className="cardHeaderContainer">
                 <div className='themeContainer'>
-                    <div className="cardTheme" onClick={() => this.props.handleThemeFilterClick({theme: this.props.theme})}>
+                    <div className={"cardTheme "+cardThemeClassName} onClick={() => this.props.handleThemeFilterClick({theme: this.props.theme})}>
                         {this.props.theme}
                     </div>
                 </div>

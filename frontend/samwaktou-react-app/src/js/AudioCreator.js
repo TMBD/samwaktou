@@ -319,7 +319,7 @@ class AudioCreator extends React.Component{
                             rows={3}
                             value={this.state.keywords}
                             onChange={(even) => this.setState({
-                                keywords: even.target.value.toLowerCase()})}
+                                keywords: even.target.value})}
 
                             onFocus={(even, value) => this.setState({
                                 errorMessageText: null, 

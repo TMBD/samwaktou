@@ -3,18 +3,24 @@
 
 
 .search {
-  width: 100%;
+  width: 75%;
   position: relative;
   display: flex;
+  min-width: 200px;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: 5px;
+  margin-bottom: 2px;
 }
 
 .searchTerm {
   width: 100%;
   border: 2px solid #107B7E;
   border-right: none;
-  padding: 5px;
-  height: 20px;
-  border-radius: 5px 0 0 5px;
+  padding: 7px 7px 7px 15px;
+  height: 17px;
+  border-radius: 17px 0 0 17px;
   outline: none;
   color: #107B7E77;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -25,23 +31,24 @@
 }
 
 .searchButton {
-  width: 65px;
-  height: 34px;
+  width: 100px;
+  height: 35px;
   border: 0px;
   background: #107B7E;
   text-align: center;
   color: #fff;
-  border-radius: 0 5px 5px 0;
+  border-radius: 0 17px 17px 0;
   cursor: pointer;
   font-size: 11px;
 }
 
 .wrap{
-  width: 70%;
-  min-width: 200px;
-  max-width: 500px;
-  margin-left: auto;
-  margin-right: auto;
+  width: 100%;
+  position: fixed;
+  top: 0px;
+  left: 0px;
+  background-color: #cee0e0;
+  z-index: 3;
 }
 
 .advanceSearchContainer{

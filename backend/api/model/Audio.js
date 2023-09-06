@@ -10,7 +10,7 @@ class Audio{
         this.theme = _.toUpper(theme),
         this.author = _.toUpper(author),
         this.description = description;
-        this.keywords = _.toLower(keywords);
+        this.keywords = keywords;
         this.date = date ? moment.utc(date, "DD-MM-YYYY") : moment.utc().startOf("day").format("DD-MM-YYYY");
         this.id = id;
     }
@@ -27,7 +27,7 @@ class Audio{
     setTheme(theme){this.theme = _.toUpper(theme);}
     setAuthor(author){this.author = _.toUpper(author);}
     setDescription(description){this.description = description;}
-    setKeywords(keywords){this.keywords = _.toLower(keywords);}
+    setKeywords(keywords){this.keywords = keywords;}
     setDate(date){this.date = moment.utc(date, "DD-MM-YYYY");}
     setId(id){this.id = id;}
 
