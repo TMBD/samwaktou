@@ -1,8 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
-import {UserApp, AdminApp} from './App';
-import {AdminAppProvider, AudioCreatorProvider} from './js/AppProvider';
+import {UserAppProvider, AdminAppProvider, AdminLoginProvider, AudioCreatorProvider, AudioLinkHandlerProvider} from './js/AppProvider';
 import reportWebVitals from './reportWebVitals';
 import "./style/audioCards.css";
 import {
@@ -13,7 +12,7 @@ import {
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <UserApp />,
+    element: <UserAppProvider />,
   },
   {
     path: process.env.REACT_APP_ADMIN_PATH,
@@ -21,15 +20,19 @@ const router = createBrowserRouter([
   },
   {
     path: process.env.REACT_APP_LOGIN_PATH,
-    element: <AdminApp />,
+    element: <AdminLoginProvider />,
   },
   {
     path: process.env.REACT_APP_CREATE_AUDIO_PATH,
     element: <AudioCreatorProvider />,
   },
   {
+    path: process.env.REACT_APP_AUDIO_LINK_PATH,
+    element: <AudioLinkHandlerProvider />,
+  },
+  {
     path: "*",
-    element: <UserApp />,
+    element: <UserAppProvider />,
   }
 ]);
 

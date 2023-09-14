@@ -36,6 +36,10 @@ router.get("/extra/author", (req, res) => {
     audioController.getDistinctAuthors(req, res);
 });
 
+router.get("/download/:fileName", (req, res) => {
+    audioController.downloadAudioFile(req, res);
+});
+
 router.get("/check/healthy", (req, res) => {
     res.status(CONFIG.HTTP_CODE.OK);
     res.json({

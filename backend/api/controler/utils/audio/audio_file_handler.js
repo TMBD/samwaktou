@@ -1,5 +1,5 @@
-let {uploadAudioFileToS3Bucket, getAudioFileFromS3Bucket, getAudioFileMetadataFromS3Bucket, removeAudioFileFromS3Bucket} = require("./s3_audio_file_uploader");
-let {uploadAudioFileInLocal, getAudioFileFromLocal, getAudioFileMetadataFromLocal, removeAudioFileFromLocal} = require("./local_audio_file_uploader");
+let {uploadAudioFileToS3Bucket, getAudioFileFromS3Bucket, getAudioFileMetadataFromS3Bucket, removeAudioFileFromS3Bucket, downloadAudioFileFromS3Bucket} = require("./s3_audio_file_uploader");
+let {uploadAudioFileInLocal, getAudioFileFromLocal, getAudioFileMetadataFromLocal, removeAudioFileFromLocal, downloadAudioFileFromLocal} = require("./local_audio_file_uploader");
 
 const uploadAudioFileInternal = async (file, audioFileName) => {
     if(process.env.PROFILE === "prod") return await uploadAudioFileToS3Bucket(file, audioFileName);
@@ -41,7 +41,17 @@ const removeAudioFileInternal = async (audioFileName) => {
     });
 }
 
-module.exports = {uploadAudioFileInternal, getAudioFileInternal, getAudioFileMetadataInternal, removeAudioFileInternal};
+const downloadAudioFileInternal = async (audioFileName) => {
+    if(process.env.PROFILE === "prod") return await downloadAudioFileFromS3Bucket(audioFileName);
+    else if(process.env.PROFILE === "dev") return await downloadAudioFileFromLocal(audioFileName);
+    else return Promise.resolve({
+        success: false,
+        message: "Unable to download audio file from the server !",
+        details: "Profile "+process.env.PROFILE+" not found !",
+    });
+}
+
+module.exports = {uploadAudioFileInternal, getAudioFileInternal, getAudioFileMetadataInternal, removeAudioFileInternal, downloadAudioFileInternal};
 
 
 

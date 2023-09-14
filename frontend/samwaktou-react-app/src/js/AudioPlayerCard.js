@@ -1,4 +1,5 @@
 import React from "react";
+import Tooltip from '@mui/material/Tooltip';
 
 class AudioPlayerCard extends React.Component{
     constructor(props){
@@ -99,9 +100,11 @@ class AudioPlayerCard extends React.Component{
                         <div className="audioPlayerCard-cardTheme" onClick={() => this.props.handleThemeFilterClick({theme: this.props.audioMetadata.theme})}>
                             {this.props.audioMetadata.theme}
                         </div>
-                        <div className="cardHelp" onClick={() => this.props.handleAudioInfoDisplay(this.props.audioInfos)}>
-                            i
-                        </div>
+                        <Tooltip title="Voir les détails">
+                            <div className="cardHelp" onClick={() => this.props.handleAudioInfoDisplay(this.props.audioInfos)}>
+                                i
+                            </div>
+                        </Tooltip>
                     </div>
 
                     <div className="audioPlayerCard-body">
@@ -125,7 +128,14 @@ class AudioPlayerCard extends React.Component{
                             <audio 
                                 ref={this.audioRef}
                                 hidden="hidden"
-                                onLoadedMetadata={event => this.handleAudioChange()}
+                                onLoadedMetadata={event => {
+                                    this.handleAudioChange();
+                                    if(!this.state.audioMetadata.durationDisplay){
+                                        this.setState({
+                                            audioMetadata: {...this.state.audioMetadata, durationDisplay: this.props.getDurationDisplay(event.target.duration)}
+                                        });
+                                    }
+                                }}
                                 src={this.props.audioMetadata.audioUri}/>
                         </div>
                     </div>

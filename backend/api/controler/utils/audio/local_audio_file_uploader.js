@@ -1,5 +1,6 @@
 const SERVEUR_CONFIG = require("../../../config/server_config");
 let fs = require('fs');
+const path = require('path');
 
 const uploadAudioFileInLocal = async(file, audioFileName) => {
     let audioUri = SERVEUR_CONFIG.FILE_LOCATION.AUDIO_FILE_LOCATION+audioFileName;
@@ -120,5 +121,36 @@ const removeAudioFileFromLocal = async(audioFileName) => {
     }
 }
 
+const downloadAudioFileFromLocal = async(audioFileName) => {
+  let audioUri = SERVEUR_CONFIG.FILE_LOCATION.AUDIO_FILE_LOCATION+audioFileName;
+  try {
+    const audioFilesFolder = path.resolve(__dirname, "..", "..", "..")
+    const audioFilePath = path.join(audioFilesFolder, audioUri);
+    
+    // Check if the file exists
+    if (fs.existsSync(audioFilePath)) {
+      // Create a read stream from the local file
+      const fileStream = fs.createReadStream(audioFilePath);
 
-module.exports = {uploadAudioFileInLocal, getAudioFileFromLocal, getAudioFileMetadataFromLocal, removeAudioFileFromLocal};
+      return {
+        success: true,
+        data: fileStream,
+      };
+    } else {
+      return {
+        success: false,
+        message: 'Audio file not found on the server.',
+        details: 'File not found: ' + audioFileName,
+      };
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: 'Error while downloading audio file from the server.',
+      details: error.message,
+    };
+  }
+}
+
+
+module.exports = {uploadAudioFileInLocal, getAudioFileFromLocal, getAudioFileMetadataFromLocal, removeAudioFileFromLocal, downloadAudioFileFromLocal};

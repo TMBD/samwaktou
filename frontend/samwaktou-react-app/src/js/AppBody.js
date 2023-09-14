@@ -9,6 +9,8 @@ import {ErrorMessage, InfoMessage} from './Message';
 import IconButton from '@mui/material/IconButton';
 import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined';
 import { Navigate } from "react-router-dom";
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import Tooltip from '@mui/material/Tooltip';
 
 class AppBody extends React.Component{
     constructor(props){
@@ -28,13 +30,16 @@ class AppBody extends React.Component{
             errorObject: null,
             isCurrentlyFetchingAudios: false,
             audioInfosToUpdate: null,
-            searchInput: ""
+            searchInput: "",
+            showAudioPlayerCard: false,
+            shouldGoBack: false
         }
         this.audioHandler = this.audioHandler.bind(this);
         this.handleAudioInfoDisplay = this.handleAudioInfoDisplay.bind(this);
         this.changePopupStatus = this.changePopupStatus.bind(this);
         this.handleInputSearchChange = this.handleInputSearchChange.bind(this);
         this.handleThemeFilterClick = this.handleThemeFilterClick.bind(this);
+        this.handleAudioFileDownload = this.handleAudioFileDownload.bind(this);
         this.API_SERVER_URL = process.env.REACT_APP_API_SERVER_URL;
     }
 
@@ -75,11 +80,46 @@ class AppBody extends React.Component{
         this.setState({
             errorMessage: ""
         });
-        this.loadAudios();
+        if(!this.props.audioFileIdToPlay) this.loadAudios();
         this.loadAuthors();
         this.loadThemes();
         window.addEventListener('scroll', this.handleScroll);
         window.addEventListener('wheel', this.handleWheelMove);
+        this.shouldStartAudio();
+    }
+
+    shouldStartAudio(){
+        if(!this.props.audioFileIdToPlay) return;
+
+        this.fetchAudioInfo(this.props.audioFileIdToPlay);
+
+    }
+
+    formatDate = (date) => {
+        return new Date(date).toLocaleDateString("fr-FR")
+    }
+
+    fetchAudioInfo = (audioId) => {
+        fetch(this.API_SERVER_URL+"/audios/"+audioId, {
+            method: "GET"
+        })
+        .then(res => {
+            if (!res.ok) {
+                throw new Error(res.status);
+            }
+            return res.json();
+        })
+        .then(
+            (result) => {
+                this.setState({
+                    audios: [result],
+                    shouldGetAudioResult: true
+                });
+            },
+            (error) => {
+                this.setErrorMessage(error);
+            }
+        )
     }
 
     loadAudios(){
@@ -403,23 +443,79 @@ class AppBody extends React.Component{
         return this.props.user?.token?.trim();
     }
 
+    handleAudioFileDownload = (audioInfos, callback) => {
+        const fileKey = audioInfos.uri.split("/").pop();
+        const downloadedFileName = this.buildDownloadFileName(audioInfos);
+        fetch(`${this.API_SERVER_URL}/audios/download/${fileKey}`)
+        .then((response) => {
+        // Trigger the download by creating a Blob
+            return response.blob();
+        })
+        .then((blob) => {
+            const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
+            if (isSafari) {
+                window.open(URL.createObjectURL(blob));
+            } else {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = downloadedFileName;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+            }
+            
+            if (callback) callback(true);
+        })
+        .catch(error => {
+            callback(false);
+        });
+    };
+
+    buildDownloadFileName = (audioInfos) => {
+        return audioInfos.theme.split(" ").join("_")
+                +"-"+audioInfos.authorName.split(" ").join("_")
+                +"-"+audioInfos.recordDate.split("/").join("_");
+    }
+
     render(){
         return(
             <div className='generalContainer'>
                 {
-                    !this.isAdminUser() &&
+                    ((this.props.provider === "AdminAppProvider" && !this.isAdminUser()) || (this.state.shouldGoBack)) &&
                     <Navigate 
                         replace={true}
                         to="/"
-                        state={{}}/>
+                    />
                 }
 
-                <SearchBar
-                    handleInputSearchChange = {this.handleInputSearchChange}
-                    authors = {this.state.authors}
-                    themes = {this.state.themes}
-                    searchInput = {this.state.searchInput}
-                />
+                {
+                    this.props.audioFileIdToPlay &&
+                    <div className="backArrowDiv">
+                        <Tooltip title="Retourner à la liste des audios">
+                            <IconButton
+                                size='large'
+                                onClick={() => this.setState({shouldGoBack: true})}
+                                sx={{color: '#107B7E'}}
+                                >
+                                <ArrowBackIcon/>
+                            </IconButton>
+                        </Tooltip>
+                    </div>
+                }
+
+                {
+                    !this.props.audioFileIdToPlay &&
+                    <SearchBar
+                        handleInputSearchChange = {this.handleInputSearchChange}
+                        authors = {this.state.authors}
+                        themes = {this.state.themes}
+                        searchInput = {this.state.searchInput}
+                    />
+                }
+
+                
                 <div className="audioCardContainer"> 
                     {
                         this.state.errorMessage && 
@@ -444,16 +540,16 @@ class AppBody extends React.Component{
                                     theme = {element.theme}
                                     authorName = {element.author}
                                     audioDescription = {element.description}
-                                    recordDate = {new Date(element.date).toLocaleDateString("fr-FR")}
+                                    recordDate = {this.formatDate(element.date)}
                                     audioUri = {this.getfileName(element.uri)}
                                     audioHandler = {this.audioHandler}
                                     getDurationDisplay = {this.getDurationDisplay}
                                     audioInfos = {element}
-                                    handleAudioInfoDisplay = {this.handleAudioInfoDisplay}
                                     handleEditAudio = {this.handleEditAudio}
                                     handleDeleteAudio = {this.handleDeleteAudio}
                                     handleThemeFilterClick = {this.handleThemeFilterClick}
                                     user = {this.props.user}
+                                    handleAudioFileDownload = {this.handleAudioFileDownload}
                                     />
                     )}
 
@@ -470,7 +566,9 @@ class AppBody extends React.Component{
                         <PopupView 
                             audioInfosPopup = {this.state.audioInfosPopup}
                             shouldDisplayAudioInfos = {this.state.shouldDisplayAudioInfos}
-                            changePopupStatus = {this.changePopupStatus}/>
+                            changePopupStatus = {this.changePopupStatus}
+                            handleAudioFileDownload = {this.handleAudioFileDownload}
+                        />
                     }
 
                 </div>
@@ -495,9 +593,6 @@ class AppBody extends React.Component{
                         to={process.env.REACT_APP_CREATE_AUDIO_PATH}
                         state={{authors: this.state.authors, themes: this.state.themes, user: this.props.user, audioInfos: this.state.audioInfosToUpdate}}/>
                 }
-
-                
-
             </div>
         );
     }

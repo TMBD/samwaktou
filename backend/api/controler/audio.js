@@ -3,7 +3,7 @@ const { PassThrough } = require('stream');
 let Audio = require("../model/Audio");
 const CONFIG = require("../config/server_config");
 let requestValidator = require("./utils/audio/audio_request_validator");
-let {uploadAudioFileInternal, getAudioFileInternal, getAudioFileMetadataInternal, removeAudioFileInternal} = require("./utils/audio/audio_file_uploader");
+let {uploadAudioFileInternal, getAudioFileInternal, getAudioFileMetadataInternal, removeAudioFileInternal, downloadAudioFileInternal} = require("./utils/audio/audio_file_handler");
 let audioUtils = require("./utils/audio/audio_utils");
 const rootDirPath = "../";
 
@@ -283,6 +283,33 @@ let sendResponse = (res, response) => {
     }
 }
 
+let downloadAudioFile = async (req, res) => {
+    try{
+        const fileName = req.params.fileName;
+        const audioResponse = await downloadAudioFileInternal(fileName);
+        if(audioResponse?.success){
+            const fileStream = audioResponse.data;
+            res.attachment(fileName);
+            fileStream.pipe(res);
+        }
+        else{
+            console.log(audioResponse);
+            res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+            res.send({
+                message: audioResponse.message,
+                details: audioResponse.details
+            });
+        }
+    }catch(error){
+        console.log(error);
+        res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+        res.json({
+            message: error,
+            details: "ERROR WHILE DOWNLOADING AUDIO FILE !"
+        });
+    }
+}
+
 exports.postAudio = postAudio;
 exports.getAudio = getAudio;
 exports.getManyAudios = getManyAudios;
@@ -291,3 +318,4 @@ exports.deleteAudio = deleteAudio;
 exports.updateAudio = updateAudio;
 exports.getDistinctThemes = getDistinctThemes;
 exports.getDistinctAuthors = getDistinctAuthors;
+exports.downloadAudioFile = downloadAudioFile;

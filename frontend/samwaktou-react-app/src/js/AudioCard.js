@@ -10,8 +10,10 @@ class AudioCard extends React.Component{
         super(props);
         this.state = {
             durationDisplay: "",
-            isAudioLoaded: false
+            isAudioLoaded: false,
+            shouldDisplayAudioDetails: false
         }
+        this.toggleAudioDetailsDisplay = this.toggleAudioDetailsDisplay.bind(this);
     }
 
     handleAudioMetadata = (audioMetadata) => {
@@ -40,6 +42,10 @@ class AudioCard extends React.Component{
         
     }
 
+    toggleAudioDetailsDisplay(){
+        this.setState({shouldDisplayAudioDetails: !this.state.shouldDisplayAudioDetails});
+    }
+
     render(){
         let audioCardOnPlayClassName = "";
         let isOnPlay = false;
@@ -59,10 +65,10 @@ class AudioCard extends React.Component{
                 <Header 
                     theme={this.props.theme} 
                     durationDisplay={this.state.durationDisplay}
-                    audioInfos={this.props.audioInfos}
-                    handleAudioInfoDisplay = {this.props.handleAudioInfoDisplay}
+                    toggleAudioDetailsDisplay = {this.toggleAudioDetailsDisplay}
                     handleThemeFilterClick={this.props.handleThemeFilterClick}
                     isOnPlay = {isOnPlay}
+                    shouldDisplayAudioDetails = {this.state.shouldDisplayAudioDetails}
                     />
 
                 <Body 
@@ -70,6 +76,16 @@ class AudioCard extends React.Component{
                     elementId = {this.props.elementId}
                     handleClickedCardBody = {this.handleClickedCardBody}
                     cursorClassName = {cursorClassName}
+                    shouldDisplayAudioDetails = {this.state.shouldDisplayAudioDetails}
+                    handleAudioFileDownload = {this.props.handleAudioFileDownload}
+                    audioDownloadInfos = {{
+                        uri : this.props.audioInfos.uri,
+                        theme : this.props.theme,
+                        authorName : this.props.authorName,
+                        recordDate : this.props.recordDate
+                    }}
+                    fullAudioUrl = {this.props.audioUri}
+                    keywords = {this.props.audioInfos.keywords}
                     />
 
                 <Bottom 

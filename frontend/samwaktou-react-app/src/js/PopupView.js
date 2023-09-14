@@ -1,12 +1,14 @@
 import React from "react";
 import '../style/popupView.css';
+import OptionsBar from "./OptionsBar";
+import AudioKeywords from "./AudioKeywords";
 
 class PopupView extends React.Component {
     render() {
         let keywordsElement = null;
         let audioAuthorAndDate = "";
         if(this.props.audioInfosPopup.keywords){
-            keywordsElement = <div className="popupAudioKeywords"><u>Mots clés</u> : <i>{this.props.audioInfosPopup.keywords.split(" ").map(word => "#"+word).join(" ")}</i></div>;
+            keywordsElement = <AudioKeywords keywords = {this.props.audioInfosPopup.keywords}/>
         }
         if(this.props.audioInfosPopup.author){
             audioAuthorAndDate += "Par " + this.props.audioInfosPopup.author;
@@ -24,6 +26,16 @@ class PopupView extends React.Component {
                             <div className="popupAudioTheme"><b>{this.props.audioInfosPopup.theme}</b></div>
                             <div className="popupAudioDescription">{this.props.audioInfosPopup.description}</div>
                             {keywordsElement}
+                            <OptionsBar
+                                handleAudioFileDownload = {this.props.handleAudioFileDownload}
+                                audioDownloadInfos = {{
+                                    uri : this.props.audioInfosPopup.uri,
+                                    theme : this.props.audioInfosPopup.theme,
+                                    authorName : this.props.audioInfosPopup.author,
+                                    recordDate : new Date(this.props.audioInfosPopup.date).toLocaleDateString("fr-FR")
+                                }}
+                                elementId = {this.props.audioInfosPopup._id}
+                            />
                             <div className="popupAudioAuthorDate"> {audioAuthorAndDate}</div>
                         </div>
                     </div>

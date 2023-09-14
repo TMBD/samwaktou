@@ -1,4 +1,5 @@
 const AWS = require('aws-sdk');
+const { PassThrough } = require('stream');
 
 const credentials = new AWS.Credentials({
     accessKeyId: process.env.S3_ACCESS_KEY,
@@ -102,4 +103,28 @@ const removeAudioFileFromS3Bucket = async (audioFileName) => {
     );
 }
 
-module.exports = {uploadAudioFileToS3Bucket, getAudioFileFromS3Bucket, getAudioFileMetadataFromS3Bucket, removeAudioFileFromS3Bucket};
+const downloadAudioFileFromS3Bucket = async (audioFileName) => {
+    return await s3.getObject({
+        Bucket: process.env.S3_ACCESS_POINT_ARN,
+        Key: audioFileName,
+    }).promise()
+    .then(
+        (data) => {
+            const stream = new PassThrough();
+            stream.end(data.Body);
+            return Promise.resolve({
+                success: true,
+                data: stream
+            })
+        },
+        (error) => {
+            return Promise.resolve({ 
+                success: false,
+                message: error,
+                details: "Couldn't download audio file from s3 bucket"
+            });
+        }
+    );
+}
+
+module.exports = {uploadAudioFileToS3Bucket, getAudioFileFromS3Bucket, getAudioFileMetadataFromS3Bucket, removeAudioFileFromS3Bucket, downloadAudioFileFromS3Bucket};
