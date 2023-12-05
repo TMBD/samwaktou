@@ -11,6 +11,7 @@ import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOu
 import { Navigate } from "react-router-dom";
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import Tooltip from '@mui/material/Tooltip';
+import fileDownload from 'js-file-download';
 
 class AppBody extends React.Component{
     constructor(props){
@@ -452,20 +453,7 @@ class AppBody extends React.Component{
             return response.blob();
         })
         .then((blob) => {
-            const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-
-            if (isSafari) {
-                window.open(URL.createObjectURL(blob));
-            } else {
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = downloadedFileName;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-            }
-            
+            fileDownload(blob, downloadedFileName);
             if (callback) callback(true);
         })
         .catch(error => {
@@ -474,9 +462,9 @@ class AppBody extends React.Component{
     };
 
     buildDownloadFileName = (audioInfos) => {
-        return audioInfos.theme.split(" ").join("_")
-                +"-"+audioInfos.authorName.split(" ").join("_")
-                +"-"+audioInfos.recordDate.split("/").join("_");
+        return audioInfos.theme.split(" ").join("")
+                +"_"+audioInfos.authorName.split(/\s|\./).join("")
+                +"_"+audioInfos.recordDate.split("/").join("")+".mp3";
     }
 
     render(){
