@@ -1,6 +1,6 @@
 let _ = require("lodash");
-let userModel = require("./schema/user");
-let DB = require("../model/db_crud");
+let userModel = require("./schema/UserSchema");
+let DB = require("./DbCrud");
 
 class User{
     constructor(username, tel, email, date, id){

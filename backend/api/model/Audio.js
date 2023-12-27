@@ -1,8 +1,8 @@
 let _ = require("lodash");
 let moment = require("moment");
-let audioModel = require("./schema/audio");
-let DB = require("../model/db_crud");
-const CONFIG = require("../config/server_config");
+let audioModel = require("./schema/AudioSchema");
+let DB = require("./DbCrud");
+const CONFIG = require("../config/ServerConfig");
 
 class Audio{
     constructor(uri, theme, author, description, keywords, date, id){
