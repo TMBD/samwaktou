@@ -1,11 +1,11 @@
 import React from 'react';
-import AudioCard from "./AudioCard";
-import AudioPlayerCard from "./AudioPlayerCard";
-import PopupView from "./PopupView";
+import AudioCard from "./audio-card.component";
+import AudioPlayerCard from "./audio-player-card.component";
+import PopupView from "./popup-view.component";
 import '../style/audioCards.css';
 import '../style/common.css';
-import SearchBar from './SerachBar';
-import {ErrorMessage, InfoMessage} from './Message';
+import SearchBar from './serach-bar.component';
+import {ErrorMessage, InfoMessage} from './message.component';
 import IconButton from '@mui/material/IconButton';
 import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined';
 import { Navigate } from "react-router-dom";

@@ -1,6 +1,6 @@
 import React from "react";
-import OptionsBar from "../OptionsBar";
-import AudioKeywords from "../AudioKeywords";
+import OptionsBar from "../options-bar.component";
+import AudioKeywords from "../audio-keywords.component";
 
 class Body extends React.Component{
     render(){

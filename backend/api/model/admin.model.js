@@ -1,7 +1,7 @@
 let _ = require("lodash");
-let adminModel = require("./schema/AdminSchema");
-let DB = require("./DbCrud");
-const CONFIG = require("../config/ServerConfig");
+let adminModel = require("./schema/admin.schema");
+let DB = require("./db-crud");
+const CONFIG = require("../config/server.config");
 
 
 class Admin{

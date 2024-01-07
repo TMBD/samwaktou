@@ -6,7 +6,7 @@ import Autocomplete from '@mui/material/Autocomplete';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterMoment } from '@mui/x-date-pickers/AdapterMoment'
-import {ErrorMessage, InfoMessage} from './Message'
+import {ErrorMessage, InfoMessage} from './message.component'
 import moment from "moment";
 import { Navigate } from "react-router-dom";
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';

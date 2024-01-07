@@ -1,7 +1,7 @@
 import React from "react";
 import '../style/searchBar.css';
 import '../style/popupView.css'
-import AdvanceSearch from "./AdvanceSearch";
+import AdvanceSearch from "./advance-search.component";
 import moment from "moment";
 
 class SearchBar extends React.Component{

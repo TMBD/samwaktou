@@ -1,8 +1,8 @@
 import React from "react";
-import Header from "./audioCardComponents/cardHeader";
-import Bottom from './audioCardComponents/cardBottom';
-import Body from "./audioCardComponents/cardBody";
-import CardBottomAdmin from "./audioCardComponents/cardBottomAdmin";
+import Header from "./audioCardComponents/card-header.component";
+import Bottom from './audioCardComponents/card-bottom.component';
+import Body from "./audioCardComponents/card-body.component";
+import CardBottomAdmin from "./audioCardComponents/card-bottom-admin.component";
 import '../style/audioCards.css';
 
 class AudioCard extends React.Component{

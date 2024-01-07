@@ -4,10 +4,10 @@ let bodyParser = require("body-parser");
 let expressFileupload = require("express-fileupload");
 let cors = require("cors");
 //local files requirements
-const CONFIG = require("./config/ServerConfig");
-let audioRoutes = require("./routes/AudioRoute");
-let adminRoutes = require("./routes/AdminRoute");
-let userRoutes = require("./routes/UserRoute");
+const CONFIG = require("./config/server.config");
+let audioRoutes = require("./routes/audio.router");
+let adminRoutes = require("./routes/admin.route");
+let userRoutes = require("./routes/user.router");
 
 //Herokou 
 //Azur 

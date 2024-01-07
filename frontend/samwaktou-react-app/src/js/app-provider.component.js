@@ -1,6 +1,6 @@
-import AppBody from './AppBody';
-import AudioCreator from './AudioCreator';
-import Login from './Login';
+import AppBody from './app-body.component';
+import AudioCreator from './audio-creator.component';
+import Login from './login.component';
 import {
     useLocation,
     useSearchParams

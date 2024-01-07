@@ -3,7 +3,7 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
 import { useState } from 'react';
-import {SimpleSnackBar, SnackBarAlert} from './SnackBar';
+import {SimpleSnackBar, SnackBarAlert} from './snack-bar.component';
 
 
 

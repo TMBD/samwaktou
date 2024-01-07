@@ -1,6 +1,6 @@
 import React from "react";
 import '../style/login.css';
-import { ErrorMessage } from "./Message";
+import { ErrorMessage } from "./message.component";
 import { Button } from "@mui/material";
 import IconButton from '@mui/material/IconButton';
 import Input from '@mui/material/Input';
