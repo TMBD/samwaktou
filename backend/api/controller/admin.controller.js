@@ -6,58 +6,74 @@ let requestValidator = require("./utils/admin/admin-request-validator");
 const Admin = require("../model/admin.model");
 
 let postAdmin = async (req, res) => {
-    let reqValidation = requestValidator.validatePostAdminRequest(req.body);
-    if(!reqValidation.error){
-        const foundAdmin = await Admin.findOneAdminFromDBByEmail(req.body.email);
-        if(foundAdmin.success){
-            if(foundAdmin.admin === null){
+    try{
+        let reqValidation = requestValidator.validatePostAdminRequest(req.body);
+        if(reqValidation.error){
+            res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
+            res.json({
+                success: false,
+                reason: "Fields validation error !",
+                message: "Données invalides. Veuillez renseigner correctement tous les champs !",
+                details: reqValidation.error
+            });
+        } else {
+            let foundAdmin;
+            try{
+                foundAdmin = await Admin.findOneAdminFromDBByEmail(req.body.email);
+            }catch(exception){
+                res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+                res.json({
+                    success: false,
+                    reason: "An error has occured while trying to verify if an admin with this username exists or not !",
+                    message: "Une erreur s'est produite lors de la vérification des informations !",
+                    details: exception
+                });
+            }
+            if(!foundAdmin.admin){
+                res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
+                res.json({
+                    success: false,
+                    reason: "A user with this email already exist.",
+                    message: "Cet email existe déjà.",
+                    details: "Found a user with this email."
+                });
+            } else {
                 const salt = await bcryptejs.genSalt(10);
                 const hashedPassword = await bcryptejs.hash(req.body.password, salt);
                 let admin = new Admin(req.body.surname, req.body.name, req.body.email, hashedPassword, req.body.date, undefined, req.body.isSuperAdmin);
                 let result = await admin.saveToDB();
-                if(result.success){
-                    res.status(CONFIG.HTTP_CODE.OK);
-                    res.json({
-                        _id: result.data._id,
-                        surname: result.data.surname,
-                        name: result.data.name,
-                        email: result.data.email,
-                        date: result.data.date,
-                        isSuperAdmin: result.data.isSuperAdmin
-                    });
-                }else{
-                    res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
-                    res.json({
-                        message: result.message,
-                        details: result.details
-                    });
-                }
-            }else{
-                res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
+                res.status(CONFIG.HTTP_CODE.OK);
                 res.json({
-                    message: "A user with this email alrady exist !"
+                    _id: result.data._id,
+                    surname: result.data.surname,
+                    name: result.data.name,
+                    email: result.data.email,
+                    date: result.data.date,
+                    isSuperAdmin: result.data.isSuperAdmin
                 });
             }
-        }else{
-            res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
-            res.json({
-                message: foundAdmin.message,
-                details: "An error has occured while trying to verify if the user with this email exists or not !"
-            });
         }
-    }else{
-        res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
-        res.json(reqValidation.error.details);
+    }catch(exception){
+        res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+        res.json(exception);
     }
 }
 
 
 let getAdmin = async (req, res) => {
-    if(req.params.adminId){
-        let findAdminResult = await Admin.findOneAdminFromDBById(req.params.adminId);
-        if(findAdminResult.success){
-            if(findAdminResult.admin === null){
-                res.status(CONFIG.HTTP_CODE.PAGE_NOT_FOUND_ERROR);
+    try{
+        if(!req.params.adminId){
+            res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
+            res.json({
+                sucess: false,
+                reason: "No admin id found !",
+                message: "Utilisateur introuvable.", 
+                details: "Admin id is null."
+            });
+        } else {
+            let findAdminResult = await Admin.findOneAdminFromDBById(req.params.adminId);
+            if(!findAdminResult.admin){
+                res.status(CONFIG.HTTP_CODE.OK);
                 res.json({});
             }else{
                 res.status(CONFIG.HTTP_CODE.OK);
@@ -70,220 +86,216 @@ let getAdmin = async (req, res) => {
                     isSuperAdmin: findAdminResult.admin.isSuperAdmin
                 });
             }
-        }else{
-            res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
-            res.json({
-                message: findAdminResult.message,
-                details: findAdminResult.details
-            });
+            
         }
-    }else{
-        res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
-        res.json({
-            message: "BAD REQUEST ERROR, PLEASE VERIFY YOUR REQUEST AND ENSURE THAT ALL THE FIELDS ARE SETUP WELL !", 
-            details: "No admin id found !"
-        });
+    }catch(exception){
+        res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+        res.json(exception);
     }
 }
 
 let getManyAdmins = async(req, res) => {
-    let reqValidation = requestValidator.validateGetAdminRequest(req.body);
-    if(!reqValidation.error){
-        let limitAdminToFind = (req.body.limit) ? req.body.limit : CONFIG.ADMIN_GET_PARAMS.DEFAULT_LIMIT_NUMBER;
-        let skipAdminToFind = (req.body.skip) ? req.body.skip : CONFIG.ADMIN_GET_PARAMS.DEFAULT_SKIP_NUMBER;
-        let findAdminsResults = await Admin.getAdmins(req.body.surname, req.body.name, req.body.email, req.body.dateParams, req.body.isSuperAdmin, skipAdminToFind, limitAdminToFind);
-        if(findAdminsResults.success){
-            if(findAdminsResults.admins === null){
-                res.status(CONFIG.HTTP_CODE.PAGE_NOT_FOUND_ERROR);
+    try{
+        let reqValidation = requestValidator.validateGetAdminRequest(req.body);
+        if(reqValidation.error){
+            res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
+            res.json({
+                success: false,
+                reason: "Fields validation error !",
+                message: "Données invalides. Veuillez renseigner correctement tous les champs !",
+                details: reqValidation.error
+            });
+        } else {
+            let limitAdminToFind = (req.body.limit) ? req.body.limit : CONFIG.ADMIN_GET_PARAMS.DEFAULT_LIMIT_NUMBER;
+            let skipAdminToFind = (req.body.skip) ? req.body.skip : CONFIG.ADMIN_GET_PARAMS.DEFAULT_SKIP_NUMBER;
+            let findAdminsResults = await Admin.getAdmins(req.body.surname, req.body.name, req.body.email, req.body.dateParams, req.body.isSuperAdmin, skipAdminToFind, limitAdminToFind);
+            if(!findAdminsResults.admins){
+                res.status(CONFIG.HTTP_CODE.OK);
                 res.json({});
             }else{
                 res.status(CONFIG.HTTP_CODE.OK);
                 res.json(findAdminsResults.admins);
             }
-        }else{
-            res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
-            res.json({
-                message: findAdminsResults.message,
-                details: findAdminsResults.details
-            });
         }
-    }else{
-        res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
-        res.json(reqValidation.error.details);
+    }catch(exception){
+        res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+        res.json(exception);
     }
 }
 
 
 
 let deleteAdmin = async (req, res) => {
-    let findAdminResult = await Admin.findOneAdminFromDBById(req.params.adminId);
-    if(findAdminResult.success){
-        if(findAdminResult.admin === null){
+    try{
+        let findAdminResult = await Admin.findOneAdminFromDBById(req.params.adminId);
+        if(!findAdminResult.admin){
+            let deleteResult = await Admin.deleteFromDB(req.params.adminId);
+            res.status(CONFIG.HTTP_CODE.OK);
+            res.json(deleteResult.data);
+        } else {
             res.status(CONFIG.HTTP_CODE.PAGE_NOT_FOUND_ERROR);
             res.json({
-                message: "Couldn't delete admin !",
-                details: "No admin with this _id has been found in the database !"
+                sucess: false,
+                reason: "No admin with this id found !",
+                message: "Utilisateur introuvable.", 
+                details: "Admin doesn't exist."
             });
-        }else{
-            let deleteResult = await Admin.deleteFromDB(req.params.adminId);
-            if(deleteResult.success){
-                res.status(CONFIG.HTTP_CODE.OK);
-                res.json(deleteResult.data);
-            }else{
-                res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
-                res.json({
-                    message: deleteResult.message,
-                    details: deleteResult.details
-                });
-            }
         }
-    }else{
-        res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
-        res.json({
-            message: findAdminResult.message,
-            details: findAdminResult.details
-        });
-    } 
+    }catch(exception){
+        res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+        res.json(exception);
+    }
 }
 
 
 let updateAdmin = async (req, res) => {
-    let reqValidation = requestValidator.validateUpdateAdminRequest(req.body);
-    if(!reqValidation.error){
-        if(req.token && ((req.token._id == req.params.adminId) || (req.token.isSuperAdmin))){
-            let findAdminResult = await Admin.findOneAdminFromDBById(req.params.adminId);
-            if(findAdminResult.success){
-                if(findAdminResult.admin === null){
+    try{
+        let reqValidation = requestValidator.validateUpdateAdminRequest(req.body);
+        if(reqValidation.error){
+            res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
+            res.json({
+                success: false,
+                reason: "Fields validation error !",
+                message: "Données invalides. Veuillez renseigner correctement tous les champs !",
+                details: reqValidation.error
+            });
+        } else {
+            if(req.token?.isSuperAdmin){
+                res.status(CONFIG.HTTP_CODE.ACCESS_DENIED_ERROR);
+                res.json({
+                    success: false,
+                    reason: "Acces denied !",
+                    message: "Action non autorisée !",
+                    details: "Only superAdmin can update information of an admin !",
+                });
+            } else {
+                let findAdminResult;
+                try{
+                    findAdminResult = await Admin.findOneAdminFromDBById(req.params.adminId);
+                }catch(exception){
+                    res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+                    res.json({
+                        success: false,
+                        reason: "An error has occured while trying to verify if an admin with this id exists or not !",
+                        message: "Une erreur s'est produite lors de la vérification des informations !",
+                        details: exception
+                    });
+                }
+                if(!findAdminResult.admin){
                     res.status(CONFIG.HTTP_CODE.PAGE_NOT_FOUND_ERROR);
                     res.json({
-                        message: "Couldn't update admin !",
-                        details: "No admin with this _id has been found in the database !"
+                        sucess: false,
+                        reason: "No admin with this id found !",
+                        message: "Utilisateur introuvable.", 
+                        details: "No admin found for update"
                     });
                 }else{
                     let findIfEmailExistResult = await Admin.findOneAdminFromDBByEmail(req.body.email);
-                    if(findIfEmailExistResult.success){
-                        if(findIfEmailExistResult.admin === null || req.body.email == findAdminResult.admin.email){
-                            let isSuperAdmin = (req.token.isSuperAdmin && req.body.isSuperAdmin != undefined) ? req.body.isSuperAdmin : findAdminResult.admin.isSuperAdmin;
-                            let surname = req.body.surname ? req.body.surname : findAdminResult.admin.surname;
-                            let name = req.body.name ? req.body.name : findAdminResult.admin.name;
-                            let email = req.body.email ? req.body.email : findAdminResult.admin.email;
-                            let admin = new Admin(surname, name, email, findAdminResult.admin.password, findAdminResult.admin.date, findAdminResult.admin._id, isSuperAdmin);
-                            let updateResult = await admin.updateToDB();
-                            if(updateResult.success){
-                                res.status(CONFIG.HTTP_CODE.OK);
-                                res.json(updateResult.data);
-                            }else{
-                                res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
-                                res.json({
-                                    message: updateResult.message,
-                                    details: updateResult.details
-                                });
-                            }
-                        }else{
-                            res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
-                            res.json({
-                                message: "Couldn't update admin !",
-                                details: "An admin with this email already existe in the database !"
-                            });
-                        }
+                    if(!findIfEmailExistResult.admin || req.body.email === findAdminResult.admin.email){
+                        let isSuperAdmin = req.token.isSuperAdmin || findAdminResult.admin.isSuperAdmin;
+                        let surname = req.body.surname ? req.body.surname : findAdminResult.admin.surname;
+                        let name = req.body.name ? req.body.name : findAdminResult.admin.name;
+                        let email = req.body.email ? req.body.email : findAdminResult.admin.email;
+                        let admin = new Admin(surname, name, email, findAdminResult.admin.password, findAdminResult.admin.date, findAdminResult.admin._id, isSuperAdmin);
+                        let updateResult = await admin.updateToDB();
+                        res.status(CONFIG.HTTP_CODE.OK);
+                        res.json(updateResult.data);
                     }else{
-                        res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+                        res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
                         res.json({
-                            message: findIfEmailExistResult.message,
-                            details: "This error occured while trying to search if an admin with the same email existe in the database !"
+                            success: false,
+                            reason: "A user with this email already exist.",
+                            message: "Cet email existe déjà.",
+                            details: "Found a user with this email."
                         });
                     }
                 }
-            }else{
-                res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
-                res.json({
-                    message: findAdminResult.message,
-                    details: findAdminResult.details
-                });
             }
-
-        }else{
-            res.status(CONFIG.HTTP_CODE.ACCESS_DENIED_ERROR);
-            res.json({
-                message: "Acces denied !",
-                details: "Can't modify informations of another admin unless you are a superAdmin !"
-            });
         }
-    }else{
-        res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
-        res.json(reqValidation.error.details);
+    }catch(exception){
+        res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+        res.json(exception);
     }
 }
 
-
 let updateAdminPassword = async (req, res) => {
-    let reqValidation = requestValidator.validateUpdateAdminPasswordRequest(req.body);
-    if(!reqValidation.error){
-        if(req.token && (req.token._id == req.params.adminId)){
-            let findAdminResult = await Admin.findOneAdminFromDBById(req.token._id);
-            if(findAdminResult.success){
-                if(findAdminResult.admin === null){
+    try{
+        let reqValidation = requestValidator.validateUpdateAdminPasswordRequest(req.body);
+        if(reqValidation.error){
+            res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
+            res.json({
+                success: false,
+                reason: "Fields validation error !",
+                message: "Données invalides. Veuillez renseigner correctement tous les champs !",
+                details: reqValidation.error
+            });
+        } else {
+            if(req.token?._id !== req.params.adminId){
+                res.status(CONFIG.HTTP_CODE.ACCESS_DENIED_ERROR);
+                res.json({
+                    success: false,
+                    reason: "Acces denied !",
+                    message: "Vous ne pouvez pas modifier le mot de passe d'un autre utilisateur !",
+                    details: "Can't modify password of another admin !"
+                });
+            } else {
+                let findAdminResult = await Admin.findOneAdminFromDBById(req.token._id);
+                if(!findAdminResult.admin){
                     res.status(CONFIG.HTTP_CODE.PAGE_NOT_FOUND_ERROR);
                     res.json({
-                        message: "Couldn't update admin !",
-                        details: "No admin with the provided _id has been found in the database !"
+                        sucess: false,
+                        reason: "No admin with this id found !",
+                        message: "Utilisateur introuvable.", 
+                        details: "No admin found to update"
+                        
                     });
                 }else{
                     const validePass = await bcryptejs.compare(req.body.password, findAdminResult.admin.password);
                     if(validePass){
-
                         const salt = await bcryptejs.genSalt(10);
                         const hashedPassword = await bcryptejs.hash(req.body.newPassword, salt);
                         let admin = new Admin(findAdminResult.admin.surname, findAdminResult.admin.name, findAdminResult.admin.email, hashedPassword, findAdminResult.admin.date, findAdminResult.admin._id, findAdminResult.admin.isSuperAdmin);
                         let updateResult = await admin.updateToDB();
-                        if(updateResult.success){
-                            res.status(CONFIG.HTTP_CODE.OK);
-                            res.json(updateResult.data);
-                        }else{
-                            res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
-                            res.json({
-                                message: updateResult.message,
-                                details: updateResult.details
-                            });
-                        }
+                        res.status(CONFIG.HTTP_CODE.OK);
+                        res.json(updateResult.data);
                     }else{
                         res.status(CONFIG.HTTP_CODE.ACCESS_DENIED_ERROR);
                         res.json({
-                            message: "Wrong password !",
-                            details: "The password you provided doesn't match !"
+                            sucess: false,
+                            reason: "Wrong password !",
+                            message: "Mot de passe incorrect.", 
+                            details: "The password provided doesn't match !"
                         });
                     }
                 }
-            }else{
-                res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
-                res.json({
-                    message: findAdminResult.message,
-                    details: findAdminResult.details
-                });
             }
-        }else{
-            res.status(CONFIG.HTTP_CODE.ACCESS_DENIED_ERROR);
-            res.json({
-                message: "Acces denied !",
-                details: "Can't modify password of another admin !"
-            });
         }
-    }else{
-        res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
-        res.json(reqValidation.error.details);
+    }catch(exception){
+        res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+        res.json(exception);
     }
 }
 
-
 let loginAdmin = async (req, res) => {
-    let reqValidation = requestValidator.validateLoginAdminRequest(req.body);
-    if(!reqValidation.error){
-        let findAdminResult = await Admin.findOneAdminFromDBByEmail(req.body.email);
-        if(findAdminResult.success){
-            if(findAdminResult.admin === null){
+    try{
+        let reqValidation = requestValidator.validateLoginAdminRequest(req.body);
+        if(reqValidation.error){
+            res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
+            res.json({
+                success: false,
+                reason: "Fields validation error !",
+                message: "Données invalides. Veuillez renseigner correctement tous les champs !",
+                details: reqValidation.error
+            });
+        } else {
+            let findAdminResult = await Admin.findOneAdminFromDBByEmail(req.body.email);
+            if(!findAdminResult.admin){
                 res.status(CONFIG.HTTP_CODE.PAGE_NOT_FOUND_ERROR);
                 res.json({
-                    message: "Invalid email !"
+                    success: false,
+                    reason: "Invalid email or password.",
+                    message: "Email ou mot de passe incorrect.",
+                    details: "The email or the password doesn't match."
                 });
             }else{
                 const validePass = await bcryptejs.compare(req.body.password, findAdminResult.admin.password);
@@ -298,20 +310,17 @@ let loginAdmin = async (req, res) => {
                 }else{
                     res.status(CONFIG.HTTP_CODE.PAGE_NOT_FOUND_ERROR);
                     res.json({
-                        message: "Invalid password !"
+                        success: false,
+                        reason: "Invalid email or password.",
+                        message: "Email ou mot de passe incorrect.",
+                        details: "The email or the password doesn't match."
                     });
                 }
             }
-        }else{
-            res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
-            res.json({
-                message: findAdminResult.message,
-                details: findAdminResult.details
-            });
         }
-    }else{
-        res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
-        res.json(reqValidation.error.details);
+    }catch(exception){
+        res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+        res.json(exception);
     }
 }
 

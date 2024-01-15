@@ -63,7 +63,13 @@ class Admin{
             this.setDate(result.data.date);
             return Promise.resolve(result);
         } catch (saveError) {
-            return Promise.resolve(saveError);
+            return Promise.reject({
+                success: false,
+                reason: "Couldn't save admin from the database",
+                message: "Une erreur s'est produite lors de l'enregistrement des informations.",
+                details: updateError,
+                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
+            });
         }
     }
 
@@ -75,10 +81,12 @@ class Admin{
                 data: result
             });
         } catch (updateError) {
-            return Promise.resolve({
-                success: false, 
-                message: updateError,
-                details: "Couldn't aupdate admin from the database"
+            return Promise.reject({
+                success: false,
+                reason: "Couldn't aupdate admin from the database",
+                message: "Une erreur s'est produite lors de la mise à jour des informations.",
+                details: updateError,
+                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     }
@@ -92,10 +100,12 @@ class Admin{
                 data: result
             });
         } catch (deleteError) {
-            return Promise.resolve({
-                success: false, 
-                message: deleteError,
-                details: "Couldn't delete admin from the database"
+            return Promise.reject({
+                success: false,
+                reason: "Couldn't delete admin from the database",
+                message: "Une erreur s'est produite lors de la suppression des informations.",
+                details: deleteError,
+                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     }
@@ -108,10 +118,12 @@ class Admin{
                 data: result
             });
         } catch (deleteError) {
-            return Promise.resolve({
-                success: false, 
-                message: deleteError,
-                details: "Couldn't delete admin from the database"
+            return Promise.reject({
+                success: false,
+                reason: "Couldn't delete admin from the database",
+                message: "Une erreur s'est produite lors de la suppression des informations.",
+                details: deleteError,
+                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     }
@@ -125,10 +137,12 @@ class Admin{
                 admin: admin
             });
         } catch (deleteError) {
-            return Promise.resolve({
-                success: false, 
-                message: deleteError,
-                details: "Couldn't find admin from the database"
+            return Promise.reject({
+                success: false,
+                reason: "Couldn't find admin from the database",
+                message: "Une erreur s'est produite lors de la récupération des informations.",
+                details: deleteError,
+                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     }
@@ -144,10 +158,12 @@ class Admin{
                 admin: admin
             });
         } catch (deleteError) {
-            return Promise.resolve({
+            return Promise.reject({
                 success: false, 
-                message: deleteError,
-                details: "Couldn't find any admin from the database !"
+                reason: "Couldn't find any admin from the database !",
+                message: "Une erreur s'est produite lors de la récupération des informations.",
+                details: deleteError,
+                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     }
@@ -196,10 +212,12 @@ class Admin{
                 admins: data
             });
         } catch (deleteError) {
-            return Promise.resolve({
-                success: false, 
-                message: deleteError,
-                details: "Couldn't find admins from the database"
+            return Promise.reject({
+                success: false,
+                reason: "Couldn't find admins from the database",
+                message: "Une erreur s'est produite lors de la récupération des informations.",
+                details: deleteError,
+                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     }

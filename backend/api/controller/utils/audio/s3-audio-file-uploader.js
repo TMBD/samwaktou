@@ -26,10 +26,12 @@ const uploadAudioFileToS3Bucket = async (file, audioFileName) => {
             })
         },
         (error) => {
-            return Promise.resolve({ 
+            return Promise.reject({ 
                 success: false,
-                message: error,
-                details: "Couldn't upload the audio file in s3 bucket"
+                reason: "Couldn't upload the audio file in s3 bucket",
+                message: "Une erreur s'est produite lors du chargement du fichier audio.",
+                details: error,
+                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     );
@@ -50,10 +52,12 @@ const getAudioFileFromS3Bucket = async (audioFileName, startByte, endByte) => {
             })
         },
         (error) => {
-            return Promise.resolve({ 
+            return Promise.reject({ 
                 success: false,
-                message: error,
-                details: "Couldn't get audio file from s3 bucket"
+                reason: "Couldn't get audio file from s3 bucket",
+                message: "Une erreur s'est produite lors de la récupération du fichier audio.",
+                details: error,
+                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     );
@@ -72,10 +76,12 @@ const getAudioFileMetadataFromS3Bucket = async (audioFileName) => {
             })
         },
         (error) => {
-            return Promise.resolve({ 
+            return Promise.reject({ 
                 success: false,
-                message: error,
-                details: "Couldn't get audio file metadata from s3 bucket"
+                reason: "Couldn't get audio file metadata from s3 bucket",
+                message: "Une erreur s'est produite lors de la lecture des informations du fichier audio.",
+                details: error,
+                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     );
@@ -94,10 +100,12 @@ const removeAudioFileFromS3Bucket = async (audioFileName) => {
             })
         },
         (error) => {
-            return Promise.resolve({ 
+            return Promise.reject({ 
                 success: false,
-                message: error,
-                details: "Couldn't delete audio file from s3 bucket"
+                reason: "Couldn't delete audio file from s3 bucket",
+                message: "Une erreur s'est produite lors de la suppression du fichier audio.",
+                details: error,
+                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     );
@@ -118,10 +126,12 @@ const downloadAudioFileFromS3Bucket = async (audioFileName) => {
             })
         },
         (error) => {
-            return Promise.resolve({ 
+            return Promise.reject({ 
                 success: false,
-                message: error,
-                details: "Couldn't download audio file from s3 bucket"
+                reason: "Couldn't download audio file from s3 bucket",
+                message: "Une erreur s'est produite lors du téléchargement du fichier audio.",
+                details: error,
+                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     );

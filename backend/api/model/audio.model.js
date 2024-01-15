@@ -61,7 +61,13 @@ class Audio{
             this.setDate(result.data.date);
             return Promise.resolve(result);
         } catch (saveError) {
-            return Promise.resolve(saveError);
+            return Promise.reject({
+                success: false,
+                reason: "Couldn't save the audio from the database",
+                message: "Une erreur s'est produite lors de l'enregistrement des informations.",
+                details: updateError,
+                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
+            });
         }
     }
 
@@ -73,10 +79,12 @@ class Audio{
                 data: result
             });
         } catch (updateError) {
-            return Promise.resolve({
-                success: false, 
-                message: updateError,
-                details: "Couldn't aupdate the audio from the database"
+            return Promise.reject({
+                success: false,
+                reason: "Couldn't aupdate the audio from the database",
+                message: "Une erreur s'est produite lors de la mise à jour des informations.",
+                details: updateError,
+                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     }
@@ -89,10 +97,12 @@ class Audio{
                 data: result
             });
         } catch (deleteError) {
-            return Promise.resolve({
-                success: false, 
-                message: deleteError,
-                details: "Couldn't delete the audio from the database"
+            return Promise.reject({
+                success: false,
+                reason: "Couldn't delete the audio from the database",
+                message: "Une erreur s'est produite lors de la suppression des informations.",
+                details: deleteError,
+                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     }
@@ -105,10 +115,12 @@ class Audio{
                 data: result
             });
         } catch (deleteError) {
-            return Promise.resolve({
+            return Promise.reject({
                 success: false, 
-                message: deleteError,
-                details: "Couldn't delete the audio from the database"
+                reason: "Couldn't delete the audio from the database",
+                message: "Une erreur s'est produite lors de la suppression des informations.",
+                details: deleteError,
+                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     }
@@ -122,10 +134,12 @@ class Audio{
                 audio: audio
             });
         } catch (deleteError) {
-            return Promise.resolve({
-                success: false, 
-                message: deleteError,
-                details: "Couldn't find the audio from the database"
+            return Promise.reject({
+                success: false,
+                reason: "Couldn't find the audio from the database",
+                message: "Une erreur s'est produite lors de la récupération des informations.",
+                details: deleteError,
+                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     }
@@ -139,10 +153,12 @@ class Audio{
                 audio: audio
             });
         } catch (deleteError) {
-            return Promise.resolve({
+            return Promise.reject({
                 success: false, 
-                message: deleteError,
-                details: "Couldn't find the audio from the database"
+                reason: "Couldn't find the audio from the database",
+                message: "Une erreur s'est produite lors de la récupération des informations.",
+                details: deleteError,
+                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     }
@@ -198,10 +214,12 @@ class Audio{
                 audios: data
             });
         } catch (error) {
-            return Promise.resolve({
-                success: false, 
-                message: error,
-                details: "Couldn't find any audio from the database"
+            return Promise.reject({
+                success: false,
+                reason: "Couldn't find any audio from the database",
+                message: "Une erreur s'est produite lors de la récupération des informations.",
+                details: error,
+                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     }
@@ -215,10 +233,12 @@ class Audio{
                 data: themes
             });
         } catch (deleteError) {
-            return Promise.resolve({
-                success: false, 
-                message: _.toString(deleteError),
-                details: "Couldn't find the themes from the database"
+            return Promise.reject({
+                success: false,
+                reason: "Couldn't find the themes from the database",
+                message: "Une erreur s'est produite lors de la récupération des informations.",
+                details: deleteError,
+                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     }
@@ -232,10 +252,12 @@ class Audio{
                 data: authors
             });
         } catch (deleteError) {
-            return Promise.resolve({
-                success: false, 
-                message: _.toString(deleteError),
-                details: "Couldn't find the authors from the database"
+            return Promise.reject({
+                success: false,
+                reason: "Couldn't find the authors from the database",
+                message: "Une erreur s'est produite lors de la récupération des informations.",
+                details: deleteError,
+                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     }

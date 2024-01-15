@@ -1,6 +1,6 @@
 let mongoose = require("mongoose");
 
-const connectToDB = () => {
+const connectToDB = async () => {
     mongoose.connect(process.env.DB_CONNECTION, 
     {
         authSource: "admin",
@@ -10,7 +10,12 @@ const connectToDB = () => {
         useNewUrlParser: true, 
         useUnifiedTopology: true
     }, (err) => {
-        if(err) return Promise.reject(err);
+        if(err) return Promise.reject({
+            success: false,
+            reason: "Error while connecting to the database !",
+            message: "",
+            details: err
+        });
     });
 }
 

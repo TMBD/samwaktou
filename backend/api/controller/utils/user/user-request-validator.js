@@ -70,8 +70,6 @@ const validateLoginUserRequest = (body) => {
     return schema.validate(body);
 }
 
-
-
 exports.validatePostUserRequest = validatePostUserRequest;
 exports.validateGetUserRequest = validateGetUserRequest;
 exports.validateUpdateUserRequest = validateUpdateUserRequest;

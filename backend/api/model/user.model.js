@@ -50,7 +50,13 @@ class User{
             this.setDate(result.data.date);
             return Promise.resolve(result);
         } catch (saveError) {
-            return Promise.resolve(saveError);
+            return Promise.reject({
+                success: false,
+                reason: "Couldn't save the user from the database",
+                message: "Une erreur s'est produite lors de l'enregistrement des informations.",
+                details: updateError,
+                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
+            });
         }
     }
 
@@ -62,10 +68,12 @@ class User{
                 data: result
             });
         } catch (updateError) {
-            return Promise.resolve({
-                success: false, 
-                message: updateError,
-                details: "Couldn't aupdate user from the database"
+            return Promise.reject({
+                success: false,
+                reason: "Couldn't aupdate user from the database",
+                message: "Une erreur s'est produite lors de la mise à jour des informations.",
+                details: updateError,
+                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     }
@@ -79,10 +87,12 @@ class User{
                 data: result
             });
         } catch (deleteError) {
-            return Promise.resolve({
-                success: false, 
-                message: deleteError,
-                details: "Couldn't delete user from the database"
+            return Promise.reject({
+                success: false,
+                reason: "Couldn't delete user from the database",
+                message: "Une erreur s'est produite lors de la suppression des informations.",
+                details: deleteError,
+                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     }
@@ -95,10 +105,12 @@ class User{
                 data: result
             });
         } catch (deleteError) {
-            return Promise.resolve({
-                success: false, 
-                message: deleteError,
-                details: "Couldn't delete user from the database"
+            return Promise.reject({
+                success: false,
+                reason: "Couldn't delete user from the database",
+                message: "Une erreur s'est produite lors de la suppression des informations.",
+                details: deleteError,
+                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     }
@@ -112,10 +124,12 @@ class User{
                 user: user
             });
         } catch (deleteError) {
-            return Promise.resolve({
-                success: false, 
-                message: deleteError,
-                details: "Couldn't find user from the database"
+            return Promise.reject({
+                success: false,
+                reason: "Couldn't find user from the database",
+                message: "Une erreur s'est produite lors de la récupération des informations.",
+                details: deleteError,
+                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     }
@@ -129,10 +143,12 @@ class User{
                 user: user
             });
         } catch (deleteError) {
-            return Promise.resolve({
-                success: false, 
-                message: deleteError,
-                details: "Couldn't find any user from the database !"
+            return Promise.reject({
+                success: false,
+                reason: "Couldn't find any user from the database !",
+                message: "Une erreur s'est produite lors de la récupération des informations.",
+                details: deleteError,
+                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     }
@@ -176,10 +192,12 @@ class User{
                 users: data
             });
         } catch (getUserError) {
-            return Promise.resolve({
-                success: false, 
-                message: getUserError,
-                details: "Couldn't find any user from the database"
+            return Promise.reject({
+                success: false,
+                reason: "Couldn't find any user from the database",
+                message: "Une erreur s'est produite lors de la récupération des informations.",
+                details: getUserError,
+                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     }

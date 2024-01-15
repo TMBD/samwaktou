@@ -11,10 +11,12 @@ const uploadAudioFileInLocal = async(file, audioFileName) => {
             uri: audioUri
         });
     } catch (uploadError) {
-        return Promise.resolve({ 
+        return Promise.reject({ 
             success: false,
-            message: uploadError,
-            details: "Couldn't upload the file locally !"
+            reason: "Couldn't upload the audio file locally !",
+            message: "Une erreur s'est produite lors du chargement du fichier audio.",
+            details: uploadError,
+            httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
         });
     }
 }
@@ -31,8 +33,10 @@ const getAudioFileFromLocal = (audioFileName, startByte, endByte) => {
           if (startByte < 0 || endByte >= fileSize || startByte > endByte) {
             return reject({
               success: false,
-              message: "Invalid byte range",
-              details: "Invalid byte range"
+              reason: "Invalid byte range",
+              message: "Une erreur s'est produite lors de la récupération du fichier audio.",
+              details: "Invalid byte range",
+              httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
             });
           }
   
@@ -42,8 +46,10 @@ const getAudioFileFromLocal = (audioFileName, startByte, endByte) => {
             if (openError) {
               return reject({
                 success: false,
-                message: openError,
-                details: "Error opening audio file"
+                reason: "Error opening audio file",
+                message: "Une erreur s'est produite lors de la récupération du fichier audio.",
+                details: openError,
+                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
               });
             }
   
@@ -52,16 +58,20 @@ const getAudioFileFromLocal = (audioFileName, startByte, endByte) => {
                 if (closeError) {
                   return reject({
                     success: false,
-                    message: closeError,
-                    details: "Error closing audio file"
+                    reason: "Error closing audio file",
+                    message: "Une erreur s'est produite lors de la récupération du fichier audio.",
+                    details: closeError,
+                    httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
                   });
                 }
   
                 if (readError) {
                   return reject({
                     success: false,
-                    message: readError,
-                    details: "Error reading audio file"
+                    reason: "Error reading audio file",
+                    message: "Une erreur s'est produite lors de la récupération du fichier audio.",
+                    details: readError,
+                    httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
                   });
                 }
   
@@ -78,8 +88,10 @@ const getAudioFileFromLocal = (audioFileName, startByte, endByte) => {
         .catch(error => {
           reject({
             success: false,
-            message: error,
-            details: "Error getting audio file metadata from local"
+            reason: "Error getting audio file metadata from local",
+            message: "Une erreur s'est produite lors de la récupération du fichier audio.",
+            details: error,
+            httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
           });
         });
     });
@@ -97,10 +109,12 @@ const getAudioFileMetadataFromLocal = async(audioFileName) => {
         });
 
     }catch(error){
-        return Promise.resolve({
+        return Promise.reject({
             success: false,
-            message: error,
-            details: "Error getting audio file metadata from local"
+            reason: "Error getting audio file metadata from local",
+            message: "Une erreur s'est produite lors de la lecture des informations du fichier audio.",
+            details: error,
+            httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
         });
     }
 }
@@ -113,10 +127,12 @@ const removeAudioFileFromLocal = async(audioFileName) => {
             success: true
         });
     } catch (removeError) {
-        return Promise.resolve({
+        return Promise.reject({
             success: false,
-            message: removeError,
-            details: "Couldn't delete audio file from local"
+            reason: "Couldn't delete audio file from local",
+            message: "Une erreur s'est produite lors de la suppression du fichier audio.",
+            details: removeError,
+            httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
         });
     }
 }
@@ -132,23 +148,27 @@ const downloadAudioFileFromLocal = async(audioFileName) => {
       // Create a read stream from the local file
       const fileStream = fs.createReadStream(audioFilePath);
 
-      return {
+      return Promise.resolve({
         success: true,
         data: fileStream,
-      };
+      });
     } else {
-      return {
+      Promise.reject({
         success: false,
-        message: 'Audio file not found on the server.',
+        reason: 'Audio file not found on the server.',
+        message: "Une erreur s'est produite lors du téléchargement du fichier audio.",
         details: 'File not found: ' + audioFileName,
-      };
+        httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
+      });
     }
   } catch (error) {
-    return {
+    Promise.reject({
       success: false,
-      message: 'Error while downloading audio file from the server.',
+      reason: 'Error while downloading audio file from the server.',
+      message: "Une erreur s'est produite lors du téléchargement du fichier audio.",
       details: error.message,
-    };
+      httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
+    });
   }
 }
 

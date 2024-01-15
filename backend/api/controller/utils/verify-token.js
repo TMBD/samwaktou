@@ -6,7 +6,8 @@ const verifyAdminToken = (req, res, next) => {
     if(!token){
         res.status(CONFIG.HTTP_CODE.ACCESS_DENIED_ERROR);
         res.json({
-            message: "Access denied !",
+            reason: "Access denied !",
+            message: "Vous devez vous authentifier.",
             details: "You need to login before !"
         })
     }else{
@@ -20,7 +21,8 @@ const verifyAdminToken = (req, res, next) => {
         } catch (veriryTokenError) {
             res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
             res.json({
-                message: "Invalid token !",
+                reason: "Invalid token !",
+                message: "Veuillez-vous authentifier.",
                 details: "Invalid token, please login !"
             })
         }
@@ -33,7 +35,8 @@ const verifyUserToken = (req, res, next) => {
     if(!token){
         res.status(CONFIG.HTTP_CODE.ACCESS_DENIED_ERROR);
         res.json({
-            message: "Access denied !",
+            reason: "Access denied !",
+            message: "Vous devez vous authentifier.",
             details: "You need to login before !"
         })
     }else{
@@ -47,7 +50,8 @@ const verifyUserToken = (req, res, next) => {
         } catch (veriryTokenError) {
             res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
             res.json({
-                message: "Invalid token !",
+                reason: "Invalid token !",
+                message: "Veuillez-vous authentifier.",
                 details: "Invalid token, please login !"
             })
         }
@@ -60,7 +64,8 @@ const verifyTokenForDeleteUser = (req, res, next) => {
     if(!token){
         res.status(CONFIG.HTTP_CODE.ACCESS_DENIED_ERROR);
         res.json({
-            message: "Access denied !",
+            reason: "Access denied !",
+            message: "Vous devez vous authentifier.",
             details: "You need to login before !"
         })
     }else{
@@ -83,7 +88,8 @@ const verifyTokenForDeleteUser = (req, res, next) => {
             } catch (veriryAdminTokenError) {
                 res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
                 res.json({
-                    message: "Invalid token !",
+                    reason: "Invalid token !",
+                    message: "Veuillez-vous authentifier.",
                     details: "Invalid token, please login !"
                 })
             }
