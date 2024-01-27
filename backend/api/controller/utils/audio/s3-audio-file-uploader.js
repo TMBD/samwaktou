@@ -1,15 +1,27 @@
-const AWS = require('aws-sdk');
 const { PassThrough } = require('stream');
+const CONFIG = require("./../../../config/server.config");
 
+let s3;
+
+const AWS = require('aws-sdk');
 const credentials = new AWS.Credentials({
     accessKeyId: process.env.S3_ACCESS_KEY,
     secretAccessKey: process.env.S3_SECRET_ACCESS_KEY
-})
-
-const s3 = new AWS.S3({
-    region: "us-east-2",
-    credentials: credentials
 });
+
+if(process.env.PROFILE === "prod"){
+    s3 = new AWS.S3({
+        region: "us-east-2",
+        credentials: credentials
+    });
+} else if (process.env.PROFILE === "dev"){
+    s3 = new AWS.S3({
+        region: "us-east-2",
+        credentials: credentials,
+        endpoint: "http://127.0.0.1:9000",
+        s3ForcePathStyle: true
+    });
+}
 
 const uploadAudioFileToS3Bucket = async (file, audioFileName) => {
 

@@ -4,6 +4,7 @@ let jwt = require("jsonwebtoken");
 const CONFIG = require("../config/server.config");
 let requestValidator = require("./utils/admin/admin-request-validator");
 const Admin = require("../model/admin.model");
+let {parseErrorInJson} = require("./utils/utilities");
 
 let postAdmin = async (req, res) => {
     try{
@@ -55,7 +56,7 @@ let postAdmin = async (req, res) => {
         }
     }catch(exception){
         res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
-        res.json(exception);
+        res.json(parseErrorInJson(exception));
     }
 }
 
@@ -90,7 +91,7 @@ let getAdmin = async (req, res) => {
         }
     }catch(exception){
         res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
-        res.json(exception);
+        res.json(parseErrorInJson(exception));
     }
 }
 
@@ -119,7 +120,7 @@ let getManyAdmins = async(req, res) => {
         }
     }catch(exception){
         res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
-        res.json(exception);
+        res.json(parseErrorInJson(exception));
     }
 }
 
@@ -143,7 +144,7 @@ let deleteAdmin = async (req, res) => {
         }
     }catch(exception){
         res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
-        res.json(exception);
+        res.json(parseErrorInJson(exception));
     }
 }
 
@@ -214,7 +215,7 @@ let updateAdmin = async (req, res) => {
         }
     }catch(exception){
         res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
-        res.json(exception);
+        res.json(parseErrorInJson(exception));
     }
 }
 
@@ -272,7 +273,7 @@ let updateAdminPassword = async (req, res) => {
         }
     }catch(exception){
         res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
-        res.json(exception);
+        res.json(parseErrorInJson(exception));
     }
 }
 
@@ -320,7 +321,7 @@ let loginAdmin = async (req, res) => {
         }
     }catch(exception){
         res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
-        res.json(exception);
+        res.json(parseErrorInJson(exception));
     }
 }
 

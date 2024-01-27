@@ -4,6 +4,7 @@ let Audio = require("../model/audio.model");
 const CONFIG = require("../config/server.config");
 let requestValidator = require("./utils/audio/audio-request-validator");
 let {uploadAudioFileInternal, getAudioFileInternal, getAudioFileMetadataInternal, removeAudioFileInternal, downloadAudioFileInternal} = require("./utils/audio/audio-file-handler");
+let {parseErrorInJson} = require("./utils/utilities");
 
 let postAudio = async (req, res) => {
     try{
@@ -37,7 +38,7 @@ let postAudio = async (req, res) => {
         }
     }catch(exception){
         res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
-        res.json(exception);
+        res.json(parseErrorInJson(exception));
     }
 }
 
@@ -63,7 +64,7 @@ let getAudio = async (req, res) => {
         }
     }catch(exception){
         res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
-        res.json(exception);
+        res.json(parseErrorInJson(exception));
     }
 }
 
@@ -93,7 +94,7 @@ let getManyAudios = async(req, res) => {
         }
     }catch(exception){
         res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
-        res.json(exception);
+        res.json(parseErrorInJson(exception));
     }
 }
 
@@ -136,7 +137,7 @@ let getAudioFile = async (req, res) => {
         }
     }catch(exception){
         res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
-        res.json(exception);
+        res.json(parseErrorInJson(exception));
     }
 }
 
@@ -159,7 +160,7 @@ let deleteAudio = async (req, res) => {
         }
     }catch(exception){
         res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
-        res.json(exception);
+        res.json(parseErrorInJson(exception));
     }
 }
 
@@ -199,7 +200,7 @@ let updateAudio = async (req, res) => {
         }
     }catch(exception){
         res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
-        res.json(exception);
+        res.json(parseErrorInJson(exception));
     }
 }
 
@@ -210,7 +211,7 @@ let getDistinctThemes = async (req, res) => {
         res.json(themesResponse.data);
     }catch(exception){
         res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
-        res.json(exception);
+        res.json(parseErrorInJson(exception));
     }
 }
 
@@ -221,7 +222,7 @@ let getDistinctAuthors = async (req, res) => {
         res.json(authorsResponse.data);
     }catch(exception){
         res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
-        res.json(exception);
+        res.json(parseErrorInJson(exception));
     }
 }
 
@@ -244,7 +245,7 @@ let downloadAudioFile = async (req, res) => {
         }
     }catch(exception){
         res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
-        res.json(exception);
+        res.json(parseErrorInJson(exception));
     }
 }
 

@@ -3,6 +3,7 @@ let _ = require("lodash");
 const CONFIG = require("../config/server.config");
 let requestValidator = require("./utils/user/user-request-validator");
 const User = require("../model/user.model");
+let {parseErrorInJson} = require("./utils/utilities");
 
 let postUser = async (req, res) => {
     try{
@@ -46,7 +47,7 @@ let postUser = async (req, res) => {
         }
     }catch(exception){
         res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
-        res.json(exception);
+        res.json(parseErrorInJson(exception));
     }
 }
 
@@ -72,7 +73,7 @@ let getUser = async (req, res) => {
         }
     }catch(exception){
         res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
-        res.json(exception);
+        res.json(parseErrorInJson(exception));
     }
 }
 
@@ -101,7 +102,7 @@ let getManyUsers = async(req, res) => {
         }
     }catch(exception){
         res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
-        res.json(exception);
+        res.json(parseErrorInJson(exception));
     }
 }
 
@@ -133,7 +134,7 @@ let deleteUser = async (req, res) => {
         }
     }catch(exception){
         res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
-        res.json(exception);
+        res.json(parseErrorInJson(exception));
     }
 }
 
@@ -203,7 +204,7 @@ let updateUser = async (req, res) => {
         }
     }catch(exception){
         res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
-        res.json(exception);
+        res.json(parseErrorInJson(exception));
     }
 }
 
@@ -253,7 +254,7 @@ let loginUser = async (req, res) => {
         }
     }catch(exception){
         res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
-        res.json(exception);
+        res.json(parseErrorInJson(exception));
     }
 }
 

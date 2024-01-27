@@ -1,3 +1,4 @@
+const { Mongoose } = require("mongoose");
 let connectToDB = require("./db-connection");
 
 const DB = {
