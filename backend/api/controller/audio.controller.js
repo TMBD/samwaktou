@@ -1,9 +1,10 @@
 let _ = require("lodash");
+let moment = require("moment");
 const { PassThrough } = require('stream');
 let Audio = require("../model/audio.model");
 const CONFIG = require("../config/server.config");
 let requestValidator = require("./utils/audio/audio-request-validator");
-let {uploadAudioFileInternal, getAudioFileInternal, getAudioFileMetadataInternal, removeAudioFileInternal, downloadAudioFileInternal} = require("./utils/audio/audio-file-handler");
+let {uploadAudioFileInternal, getAudioFileInternal, getAudioFileMetadataInternal, removeAudioFileInternal, downloadAudioFileInternal, downloadAudioBucket} = require("./utils/audio/audio-file-handler");
 let {parseErrorInJson} = require("./utils/utilities");
 
 let postAudio = async (req, res) => {
@@ -249,6 +250,21 @@ let downloadAudioFile = async (req, res) => {
     }
 }
 
+let downloadAll = async (req, res) => {
+    try{
+        const zipStream = await downloadAudioBucket();
+        // const fileStream = audioResponse.data;
+        // res.attachment(`Audio_backup_${new Date()}.zip`);
+        // Set response headers for zip file
+        res.setHeader('Content-Type', 'application/zip');
+        res.setHeader('Content-Disposition', `attachment; filename=Backup_audios_du_${moment.utc().startOf("second").format("YYYYMMDD_HHmmss")}.zip`);
+        zipStream.pipe(res);
+    }catch(exception){
+        res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+        res.json(parseErrorInJson(exception));
+    }
+}
+
 exports.postAudio = postAudio;
 exports.getAudio = getAudio;
 exports.getManyAudios = getManyAudios;
@@ -258,3 +274,4 @@ exports.updateAudio = updateAudio;
 exports.getDistinctThemes = getDistinctThemes;
 exports.getDistinctAuthors = getDistinctAuthors;
 exports.downloadAudioFile = downloadAudioFile;
+exports.downloadAll = downloadAll;

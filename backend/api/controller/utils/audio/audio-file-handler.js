@@ -3,7 +3,8 @@ let {
     getAudioFileFromS3Bucket, 
     getAudioFileMetadataFromS3Bucket, 
     removeAudioFileFromS3Bucket, 
-    downloadAudioFileFromS3Bucket
+    downloadAudioFileFromS3Bucket,
+    downloadAudioBucketFromS3
 } = require("./s3-audio-file-uploader");
 
 const uploadAudioFileInternal = async (file, audioFileName) => {
@@ -26,7 +27,11 @@ const downloadAudioFileInternal = async (audioFileName) => {
     return await downloadAudioFileFromS3Bucket(audioFileName);
 }
 
-module.exports = {uploadAudioFileInternal, getAudioFileInternal, getAudioFileMetadataInternal, removeAudioFileInternal, downloadAudioFileInternal};
+const downloadAudioBucket = async () => {
+    return await downloadAudioBucketFromS3();
+}
+
+module.exports = {uploadAudioFileInternal, getAudioFileInternal, getAudioFileMetadataInternal, removeAudioFileInternal, downloadAudioFileInternal, downloadAudioBucket};
 
 
 

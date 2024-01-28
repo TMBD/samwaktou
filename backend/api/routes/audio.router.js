@@ -40,6 +40,10 @@ router.get("/download/:fileName", (req, res) => {
     audioController.downloadAudioFile(req, res);
 });
 
+router.get("/backup/download", verifyAdminToken, (req, res) => {
+    audioController.downloadAll(req, res);
+});
+
 router.get("/check/healthy", (req, res) => {
     res.status(CONFIG.HTTP_CODE.OK);
     res.json({

@@ -1,5 +1,6 @@
 const { PassThrough } = require('stream');
 const CONFIG = require("./../../../config/server.config");
+const archiver = require('archiver');
 
 let s3;
 
@@ -149,4 +150,56 @@ const downloadAudioFileFromS3Bucket = async (audioFileName) => {
     );
 }
 
-module.exports = {uploadAudioFileToS3Bucket, getAudioFileFromS3Bucket, getAudioFileMetadataFromS3Bucket, removeAudioFileFromS3Bucket, downloadAudioFileFromS3Bucket};
+const downloadAudioBucketFromS3 = async () => {
+    // List all objects in the bucket (handle pagination in case the bucket contains more than 1000 objects)
+    const objects = await listAllObjects(process.env.S3_ACCESS_POINT_ARN);
+
+    // Create a writable stream for the zip file
+    const zipStream = new PassThrough();
+
+    // Create an archiver and pipe it to the zip stream
+    const archive = archiver('zip', { zlib: { level: 9 } });
+    archive.pipe(zipStream);
+
+    // Download all objects and add them to the zip archive
+    const downloadPromises = objects.map(async (object) => {
+        const data = await s3.getObject({
+            Bucket: process.env.S3_ACCESS_POINT_ARN,
+            Key: object.Key,
+        }).promise();
+
+        // Add the downloaded file to the zip archive
+        archive.append(data.Body, { name: object.Key });
+    });
+
+    // Wait for all downloads to complete
+    await Promise.all(downloadPromises);
+
+    // Finalize the zip archive
+    archive.finalize();
+    return Promise.resolve(zipStream);
+}
+
+async function listAllObjects(bucketName) {
+    const allObjects = [];
+    let continuationToken;
+
+    do {
+        const params = {
+            Bucket: bucketName,
+            ContinuationToken: continuationToken,
+        };
+
+        const response = await s3.listObjects(params).promise();
+
+        // Add the objects to the array
+        allObjects.push(...response.Contents);
+
+        // Update the continuation token for the next iteration
+        continuationToken = response.NextContinuationToken;
+    } while (continuationToken);
+
+    return Promise.resolve(allObjects);
+}
+
+module.exports = {uploadAudioFileToS3Bucket, getAudioFileFromS3Bucket, getAudioFileMetadataFromS3Bucket, removeAudioFileFromS3Bucket, downloadAudioFileFromS3Bucket, downloadAudioBucketFromS3};
