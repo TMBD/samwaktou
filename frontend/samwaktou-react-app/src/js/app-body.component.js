@@ -12,6 +12,7 @@ import { Navigate } from "react-router-dom";
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import Tooltip from '@mui/material/Tooltip';
 import fileDownload from 'js-file-download';
+import moment from 'moment';
 
 class AppBody extends React.Component{
     constructor(props){
@@ -66,7 +67,8 @@ class AppBody extends React.Component{
           audioInfos: audioInfos,
           currentPlayingElementId: elementId,
           shouldNavigateToCreateAudioPage: false
-        })
+        });
+        this.sendAnalytics("START_LISTENING_AUDIO");
       }
 
       getDurationDisplay = (duration) => {
@@ -87,6 +89,29 @@ class AppBody extends React.Component{
         window.addEventListener('scroll', this.handleScroll);
         window.addEventListener('wheel', this.handleWheelMove);
         this.shouldStartAudio();
+        this.initLocalStorage();
+        this.sendAnalytics("PAGE_LOAD");
+    }
+
+    initLocalStorage = () => {
+        const clientId = JSON.parse(localStorage.getItem("clientId"));
+        if(!clientId) {
+            localStorage.setItem("clientId", JSON.stringify(crypto.randomUUID()));
+        }
+    }
+
+    sendAnalytics = (eventName) => {
+        fetch(this.API_SERVER_URL+"/analytics", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                clientId: JSON.parse(localStorage.getItem("clientId")),
+                date: moment.utc(),
+                eventName: eventName,
+            })
+        });
     }
 
     shouldStartAudio(){
@@ -454,6 +479,7 @@ class AppBody extends React.Component{
         })
         .then((blob) => {
             fileDownload(blob, downloadedFileName);
+            this.sendAnalytics("AUDIO_DOWNLOADED");
             if (callback) callback(true);
         })
         .catch(error => {

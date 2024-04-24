@@ -6,8 +6,9 @@ let cors = require("cors");
 //local files requirements
 const CONFIG = require("./config/server.config");
 let audioRoutes = require("./routes/audio.router");
-let adminRoutes = require("./routes/admin.route");
+let adminRoutes = require("./routes/admin.router");
 let userRoutes = require("./routes/user.router");
+let analyticRoutes = require("./routes/analytic.router");
 
 //Herokou 
 //Azur 
@@ -45,6 +46,7 @@ server.use(cors(corsOptions));
 server.use("/audios", audioRoutes);
 server.use("/admins", adminRoutes);
 server.use("/users", userRoutes);
+server.use("/analytics", analyticRoutes);
 
 //Listening at the port defined in the server_config
 server.listen(CONFIG.SERVEUR_CONFIG.PORT);

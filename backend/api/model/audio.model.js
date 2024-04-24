@@ -63,7 +63,7 @@ class Audio{
         } catch (saveError) {
             return Promise.reject({
                 success: false,
-                reason: "Couldn't save the audio from the database",
+                reason: "Couldn't save the audio to the database",
                 message: "Une erreur s'est produite lors de l'enregistrement des informations.",
                 details: updateError,
                 httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR

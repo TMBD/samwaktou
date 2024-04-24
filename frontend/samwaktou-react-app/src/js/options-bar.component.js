@@ -36,7 +36,7 @@ export default function OptionsBar(props){
     const handleAudioDownloadClick = () => {
         if(blinkingClassName) return;
         setBlinkingClassName("waitingBlinker");
-        props.handleAudioFileDownload(props.audioDownloadInfos, handleDownloadFinished)
+        props.handleAudioFileDownload(props.audioDownloadInfos, handleDownloadFinished);
     }
     
     return <div className="optionsBarContainer">
