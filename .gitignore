@@ -4,6 +4,8 @@ backend/api/.env
 backend/api/.env.development
 backend/api/files/audios/*
 !backend/api/files/audios/.gitkeep
+backend/api/dist/*
+!backend/api/dist/.gitkeep
 
 # ================================
 # FOR THE FRONTEND APP

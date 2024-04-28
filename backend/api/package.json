@@ -5,8 +5,13 @@
   "main": "serveur.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon -r dotenv/config server.js dotenv_config_path=.env.development",
-    "start-production": "nodemon -r dotenv/config server.js dotenv_config_path=.env"
+    "start-old": "nodemon -r dotenv/config ./dist/server.js dotenv_config_path=.env.development",
+    "start-production-old": "nodemon -r dotenv/config server.js dotenv_config_path=.env",
+
+    "tsc": "tsc",
+    "postinstall": "npm run tsc",
+    "start-production": "node --env-file=.env ./dist/server.js",
+    "dev": "ts-node-dev --respawn --pretty --transpile-only --env-file=.env.development src/server.ts"
   },
   "author": "Thierno DIALLO",
   "license": "ISC",
@@ -27,7 +32,15 @@
     "nodemon": "^3.1.0"
   },
   "devDependencies": {
+    "@aws-sdk/types": "^3.535.0",
+    "@types/archiver": "^6.0.2",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/body-parser": "^1.19.5",
+    "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
+    "@types/express-fileupload": "^1.5.0",
+    "@types/jsonwebtoken": "^9.0.6",
+    "@types/lodash": "^4.17.0",
     "@types/node": "^20.12.7",
     "@typescript-eslint/parser": "^7.7.1",
     "ts-node": "^10.9.2",
