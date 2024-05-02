@@ -1,7 +1,9 @@
-let mongoose = require("mongoose");
-let {AUDIO_VALIDATION_CONFIG} = require("../../config/server.config");
+import mongoose from "mongoose";
 
-let AudioSchema = mongoose.Schema({
+import { AUDIO_VALIDATION_CONFIG } from "../../config/server.config";
+
+
+let AudioSchema = new mongoose.Schema({
     uri:{
         type: String,
         required: true
@@ -37,4 +39,4 @@ let AudioSchema = mongoose.Schema({
     }
 });
 
-module.exports = mongoose.model("Audio", AudioSchema); //has to be refered as audios in the database
+export default mongoose.model("Audio", AudioSchema); //has to be refered as audios in the database

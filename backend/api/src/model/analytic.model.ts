@@ -1,11 +1,22 @@
-let _ = require("lodash");
-let moment = require("moment");
-let analyticModel = require("./schema/analytic.schema");
-let DB = require("./db-crud");
-const CONFIG = require("../config/server.config");
+// let _ = require("lodash");
+// let moment = require("moment");
+// let analyticModel = require("./schema/analytic.schema");
+// let DB = require("./db-crud");
+// const CONFIG = require("../config/server.config");
 
-class Analytic {
-    constructor(clientId, date, eventName){
+import _ from 'lodash';
+import moment, { Moment } from 'moment';
+
+import analyticModel from './schema/analytic.schema';
+import DB from './db-crud';
+import { HTTP_CODE } from '../config/server.config'; 
+
+
+export default class Analytic {
+    constructor(
+        private clientId: string, 
+        private date: Moment, 
+        private eventName: string){
         this.clientId = clientId;
         this.date = date ? date : moment.utc();
         this.eventName = _.toUpper(eventName);
@@ -48,8 +59,8 @@ class Analytic {
                 success: false,
                 reason: "Couldn't save the analytic to the database",
                 message: "Une erreur s'est produite lors de l'enregistrement des informations.",
-                details: updateError,
-                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
+                details: saveError,
+                httpCode: HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     }

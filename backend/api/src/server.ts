@@ -1,29 +1,30 @@
-let express = require("express");
-let server = express();
-let bodyParser = require("body-parser");
-let expressFileupload = require("express-fileupload");
-let cors = require("cors");
-//local files requirements
-const CONFIG = require("./config/server.config");
-let audioRoutes = require("./routes/audio.router");
-let adminRoutes = require("./routes/admin.router");
-let userRoutes = require("./routes/user.router");
-let analyticRoutes = require("./routes/analytic.router");
+import express from 'express';
+import bodyParser from 'body-parser';
+import expressFileupload from 'express-fileupload';
+import cors, { CorsOptions } from 'cors';
+
+import {SERVEUR_CONFIG, AUDIO_FILE_PARAMS} from './config/server.config';
+import audioRoutes from './routes/audio.router';
+import adminRoutes from './routes/admin.router';
+import userRoutes from './routes/user.router';
+import analyticRoutes from './routes/analytic.router';
+
 
 //Herokou 
 //Azur 
+const server = express();
 
 //MIDDLEWARES
 server.use(bodyParser.json());
 server.use(expressFileupload({
-    limits: { fileSize: CONFIG.AUDIO_FILE_PARAMS.MAX_FILE_SIZE},
+    limits: { fileSize: AUDIO_FILE_PARAMS.MAX_FILE_SIZE},
     abortOnLimit: true
 }));
 
 //Configure cors and whitelist
 let whitelist = [process.env.APP_HOST, process.env.APP_LOAD_BALANCER_HOST]
 process.env.APP_CORS_EXTRA_WHITLISTS.split(" ").filter(host => host).map(host => whitelist.push(host));
-const corsOptions = {
+const corsOptions : CorsOptions = {
     origin: function (origin, callback) {
         if(!origin) callback(null, true);
         else {
@@ -49,4 +50,4 @@ server.use("/users", userRoutes);
 server.use("/analytics", analyticRoutes);
 
 //Listening at the port defined in the server_config
-server.listen(CONFIG.SERVEUR_CONFIG.PORT);
+server.listen(SERVEUR_CONFIG.PORT);

@@ -1,15 +1,23 @@
-let jwt = require("jsonwebtoken");
-let _ = require("lodash");
-const CONFIG = require("../config/server.config");
-let requestValidator = require("./utils/user/user-request-validator");
-const User = require("../model/user.model");
-let {parseErrorInJson} = require("./utils/utilities");
+import jwt from 'jsonwebtoken';
+import _ from 'lodash';
+import moment from 'moment';
 
-let postUser = async (req, res) => {
+import { DATE_CONFIG, HTTP_CODE, USER_GET_PARAMS } from '../config/server.config';
+import { parseErrorInJson } from './utils/utilities';
+import User from '../model/user.model';
+import { 
+    validatePostUserRequest, 
+    validateGetUserRequest, 
+    validateUpdateUserRequest, 
+    validateLoginUserRequest 
+} from './utils/user/user-request-validator';
+
+
+export const postUser = async (req, res) => {
     try{
-        let reqValidation = requestValidator.validatePostUserRequest(req.body);
+        let reqValidation = validatePostUserRequest(req.body);
         if(reqValidation.error){
-            res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
+            res.status(HTTP_CODE.BAD_REQUEST_ERROR);
             res.json({
                 success: false,
                 reason: "Fields validation error !",
@@ -21,7 +29,7 @@ let postUser = async (req, res) => {
             try{ //we use a dedicated try catch because an exception here has to be treated differently
                 foundUser = await User.findOneUserFromDBByUsername(req.body.username);
             }catch(exception){
-                res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+                res.status(HTTP_CODE.INTERNAL_SERVER_ERROR);
                 res.json({
                     success: false,
                     reason: "An error has occured while trying to verify if a user with this username exists or not !",
@@ -30,7 +38,7 @@ let postUser = async (req, res) => {
                 });
             }
             if(foundUser.user){
-                res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
+                res.status(HTTP_CODE.BAD_REQUEST_ERROR);
                 res.json({
                     success: false,
                     reason: "A user with this username already exist.",
@@ -39,22 +47,22 @@ let postUser = async (req, res) => {
                 });
             } else {
                 let email = req.body.email ? req.body.email : null;
-                let user = new User(req.body.username, req.body.tel, email, req.body.date, undefined);
+                let user = new User(req.body.username, req.body.tel, email, moment.utc(req.body.date, DATE_CONFIG.DEFAULT_FORMAT), undefined);
                 let result = await user.saveToDB();
-                res.status(CONFIG.HTTP_CODE.OK);
+                res.status(HTTP_CODE.OK);
                 res.json(result.data);
             }
         }
     }catch(exception){
-        res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+        res.status(exception.httpCode ? exception.httpCode : HTTP_CODE.INTERNAL_SERVER_ERROR);
         res.json(parseErrorInJson(exception));
     }
 }
 
-let getUser = async (req, res) => {
+export const getUser = async (req, res) => {
     try{
         if(!req.params.userId){
-            res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
+            res.status(HTTP_CODE.BAD_REQUEST_ERROR);
             res.json({
                 sucess: false,
                 reason: "No user id found !",
@@ -64,24 +72,24 @@ let getUser = async (req, res) => {
         } else {
             let findUserResult = await User.findOneUserFromDBById(req.params.userId);
             if(!findUserResult.user){
-                res.status(CONFIG.HTTP_CODE.OK);
+                res.status(HTTP_CODE.OK);
                 res.json({});
             }else{
-                res.status(CONFIG.HTTP_CODE.OK);
+                res.status(HTTP_CODE.OK);
                 res.json(findUserResult.user);
             }
         }
     }catch(exception){
-        res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+        res.status(exception.httpCode ? exception.httpCode : HTTP_CODE.INTERNAL_SERVER_ERROR);
         res.json(parseErrorInJson(exception));
     }
 }
 
-let getManyUsers = async(req, res) => {
+export const getManyUsers = async(req, res) => {
     try{
-        let reqValidation = requestValidator.validateGetUserRequest(req.body);
+        let reqValidation = validateGetUserRequest(req.body);
         if(reqValidation.error){
-            res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
+            res.status(HTTP_CODE.BAD_REQUEST_ERROR);
             res.json({
                 success: false,
                 reason: "Fields validation error !",
@@ -89,27 +97,27 @@ let getManyUsers = async(req, res) => {
                 details: reqValidation.error
             });
         } else {
-            let limitUserToFind = (req.body.limit) ? req.body.limit : CONFIG.USER_GET_PARAMS.DEFAULT_LIMIT_NUMBER;
-            let skipUserToFind = (req.body.skip) ? req.body.skip : CONFIG.USER_GET_PARAMS.DEFAULT_SKIP_NUMBER;
-            let findUsersResults = await User.getUsers(req.body.username, req.body.tel, req.body.email, req.body.interestParams, req.body.dateParams, skipUserToFind, limitUserToFind);
+            let limitUserToFind = (req.body.limit) ? req.body.limit : USER_GET_PARAMS.DEFAULT_LIMIT_NUMBER;
+            let skipUserToFind = (req.body.skip) ? req.body.skip : USER_GET_PARAMS.DEFAULT_SKIP_NUMBER;
+            let findUsersResults = await User.getUsers(req.body.username, req.body.tel, req.body.email, req.body.dateParams, skipUserToFind, limitUserToFind);
             if(!findUsersResults.users){
-                res.status(CONFIG.HTTP_CODE.OK);
+                res.status(HTTP_CODE.OK);
                 res.json({});
             }else{
-                res.status(CONFIG.HTTP_CODE.OK);
+                res.status(HTTP_CODE.OK);
                 res.json(findUsersResults.users);
             }
         }
     }catch(exception){
-        res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+        res.status(exception.httpCode ? exception.httpCode : HTTP_CODE.INTERNAL_SERVER_ERROR);
         res.json(parseErrorInJson(exception));
     }
 }
 
-let deleteUser = async (req, res) => {
+export const deleteUser = async (req, res) => {
     try{
         if(!req.isAdmin && req.token?._id !== req.params.userId){
-            res.status(CONFIG.HTTP_CODE.ACCESS_DENIED_ERROR);
+            res.status(HTTP_CODE.ACCESS_DENIED_ERROR);
             res.json({
                 success: false,
                 reason: "Access denied !",
@@ -119,7 +127,7 @@ let deleteUser = async (req, res) => {
         } else {
             let findUserResult = await User.findOneUserFromDBById(req.params.userId);
             if(!findUserResult.user){
-                res.status(CONFIG.HTTP_CODE.PAGE_NOT_FOUND_ERROR);
+                res.status(HTTP_CODE.PAGE_NOT_FOUND_ERROR);
                 res.json({
                     sucess: false,
                     reason: "No user with this id found !",
@@ -128,21 +136,21 @@ let deleteUser = async (req, res) => {
                 });
             }else{
                 let deleteResult = await User.deleteFromDB(req.params.userId);
-                res.status(CONFIG.HTTP_CODE.OK);
+                res.status(HTTP_CODE.OK);
                 res.json(deleteResult.data);
             }
         }
     }catch(exception){
-        res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+        res.status(exception.httpCode ? exception.httpCode : HTTP_CODE.INTERNAL_SERVER_ERROR);
         res.json(parseErrorInJson(exception));
     }
 }
 
-let updateUser = async (req, res) => {
+export const updateUser = async (req, res) => {
     try{
-        let reqValidation = requestValidator.validateUpdateUserRequest(req.body);
+        let reqValidation = validateUpdateUserRequest(req.body);
         if(reqValidation.error){
-            res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
+            res.status(HTTP_CODE.BAD_REQUEST_ERROR);
             res.json({
                 success: false,
                 reason: "Fields validation error !",
@@ -151,7 +159,7 @@ let updateUser = async (req, res) => {
             });
         } else {
             if(req.token?._id !== req.params.userId){
-                res.status(CONFIG.HTTP_CODE.ACCESS_DENIED_ERROR);
+                res.status(HTTP_CODE.ACCESS_DENIED_ERROR);
                 res.json({
                     success: false,
                     reason: "Acces denied !",
@@ -161,7 +169,7 @@ let updateUser = async (req, res) => {
             } else {
                 let findUserResult = await User.findOneUserFromDBById(req.params.userId);
                 if(!findUserResult.user){
-                    res.status(CONFIG.HTTP_CODE.PAGE_NOT_FOUND_ERROR);
+                    res.status(HTTP_CODE.PAGE_NOT_FOUND_ERROR);
                     res.json({
                         sucess: false,
                         reason: "No user with this id found !",
@@ -173,7 +181,7 @@ let updateUser = async (req, res) => {
                     try{
                         findIfUsernameExistResult = await User.findOneUserFromDBByUsername(req.body.username);
                     }catch(exception){
-                        res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+                        res.status(HTTP_CODE.INTERNAL_SERVER_ERROR);
                         res.json({
                             success: false,
                             reason: "An error has occured while trying to verify if a user with this username exists or not !",
@@ -184,14 +192,14 @@ let updateUser = async (req, res) => {
                     if(!findIfUsernameExistResult.user || req.body.username === findUserResult.user.username){
                         let tel = req.body.tel ? req.body.tel : findUserResult.user.tel;
                         let email = req.body.email ? req.body.email : findUserResult.user.email;
-                        let user = new User(req.body.username, tel, email, findUserResult.user.date, findUserResult.user._id);
+                        let user = new User(req.body.username, tel, email, moment.utc(findUserResult.user.date, DATE_CONFIG.DEFAULT_FORMAT), findUserResult.user._id);
                         let updateResult = await user.updateToDB();
                         const token = jwt.sign({_id: findUserResult.user._id, username: req.body.username}, process.env.USER_TOKEN_SECRET, {expiresIn: "10h"});
                         res.header("auth-token", token);
-                        res.status(CONFIG.HTTP_CODE.OK);
+                        res.status(HTTP_CODE.OK);
                         res.json(updateResult.data);
                     }else{
-                        res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
+                        res.status(HTTP_CODE.BAD_REQUEST_ERROR);
                         res.json({
                             success: false,
                             reason: "A user with this username already exist.",
@@ -203,16 +211,16 @@ let updateUser = async (req, res) => {
             }
         }
     }catch(exception){
-        res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+        res.status(exception.httpCode ? exception.httpCode : HTTP_CODE.INTERNAL_SERVER_ERROR);
         res.json(parseErrorInJson(exception));
     }
 }
 
-let loginUser = async (req, res) => {
+export const loginUser = async (req, res) => {
     try{
-        let reqValidation = requestValidator.validateLoginUserRequest(req.body);
+        let reqValidation = validateLoginUserRequest(req.body);
         if(reqValidation.error){
-            res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
+            res.status(HTTP_CODE.BAD_REQUEST_ERROR);
             res.json({
                 success: false,
                 reason: "Fields validation error !",
@@ -223,7 +231,7 @@ let loginUser = async (req, res) => {
             let findUserResult = await User.findOneUserFromDBByUsername(req.body.username);
             
             if(!findUserResult.user){
-                res.status(CONFIG.HTTP_CODE.PAGE_NOT_FOUND_ERROR);
+                res.status(HTTP_CODE.PAGE_NOT_FOUND_ERROR);
                 res.json({
                     success: false,
                     reason: "Invalid username or phone number.",
@@ -235,14 +243,14 @@ let loginUser = async (req, res) => {
                 if(valideUser){
                     const token = jwt.sign({_id: findUserResult.user._id, username: findUserResult.user.username}, process.env.USER_TOKEN_SECRET, {expiresIn: "24h"});
                     res.header("auth-token", token);
-                    res.status(CONFIG.HTTP_CODE.OK);
+                    res.status(HTTP_CODE.OK);
                     res.json({
                         _id: findUserResult.user._id,
                         username: findUserResult.user.username,
                         tel: findUserResult.user.tel
                     });
                 }else{
-                    res.status(CONFIG.HTTP_CODE.PAGE_NOT_FOUND_ERROR);
+                    res.status(HTTP_CODE.PAGE_NOT_FOUND_ERROR);
                     res.json({
                         success: false,
                         reason: "Invalid username or phone number.",
@@ -253,14 +261,7 @@ let loginUser = async (req, res) => {
             }
         }
     }catch(exception){
-        res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+        res.status(exception.httpCode ? exception.httpCode : HTTP_CODE.INTERNAL_SERVER_ERROR);
         res.json(parseErrorInJson(exception));
     }
 }
-
-exports.postUser = postUser;
-exports.getUser = getUser;
-exports.getManyUsers = getManyUsers;
-exports.updateUser = updateUser;
-exports.deleteUser = deleteUser;
-exports.loginUser = loginUser;

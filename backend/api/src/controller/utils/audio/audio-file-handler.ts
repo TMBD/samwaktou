@@ -1,42 +1,33 @@
-let {
+import {
     uploadAudioFileToS3Bucket, 
     getAudioFileFromS3Bucket, 
     getAudioFileMetadataFromS3Bucket, 
     removeAudioFileFromS3Bucket, 
     downloadAudioFileFromS3Bucket,
     downloadAudioBucketFromS3
-} = require("./s3-audio-file-uploader");
+} from './s3-audio-file-uploader';
 
-const uploadAudioFileInternal = async (file, audioFileName) => {
+
+export const uploadAudioFileInternal = async (file, audioFileName) => {
     return await uploadAudioFileToS3Bucket(file, audioFileName);
 }
 
-const getAudioFileInternal = async (audioFileName, startByte, endByte) => {
+export const getAudioFileInternal = async (audioFileName, startByte, endByte) => {
     return await getAudioFileFromS3Bucket(audioFileName, startByte, endByte);
 }
 
-const getAudioFileMetadataInternal = async (audioFileName) => {
+export const getAudioFileMetadataInternal = async (audioFileName) => {
     return await getAudioFileMetadataFromS3Bucket(audioFileName);
 }
 
-const removeAudioFileInternal = async (audioFileName) => {
+export const removeAudioFileInternal = async (audioFileName) => {
     return await removeAudioFileFromS3Bucket(audioFileName);
 }
 
-const downloadAudioFileInternal = async (audioFileName) => {
+export const downloadAudioFileInternal = async (audioFileName) => {
     return await downloadAudioFileFromS3Bucket(audioFileName);
 }
 
-const downloadAudioBucket = async () => {
+export const downloadAudioBucket = async () => {
     return await downloadAudioBucketFromS3();
 }
-
-module.exports = {uploadAudioFileInternal, getAudioFileInternal, getAudioFileMetadataInternal, removeAudioFileInternal, downloadAudioFileInternal, downloadAudioBucket};
-
-
-
-
-
-
-
-

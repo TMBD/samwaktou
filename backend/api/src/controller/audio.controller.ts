@@ -1,17 +1,30 @@
-let _ = require("lodash");
-let moment = require("moment");
-const { PassThrough } = require('stream');
-let Audio = require("../model/audio.model");
-const CONFIG = require("../config/server.config");
-let requestValidator = require("./utils/audio/audio-request-validator");
-let {uploadAudioFileInternal, getAudioFileInternal, getAudioFileMetadataInternal, removeAudioFileInternal, downloadAudioFileInternal, downloadAudioBucket} = require("./utils/audio/audio-file-handler");
-let {parseErrorInJson} = require("./utils/utilities");
+import _ from 'lodash';
+import moment from 'moment';
+import { PassThrough } from 'stream';
 
-let postAudio = async (req, res) => {
+import Audio from '../model/audio.model';
+import { parseErrorInJson } from './utils/utilities';
+import { HTTP_CODE, AUDIO_GET_PARAMS, DATE_CONFIG } from '../config/server.config';
+import { 
+    validatePostAudioRequest, 
+    validateGetAudioRequest, 
+    validateUpdateAudioRequest 
+} from './utils/audio/audio-request-validator';
+import {
+    uploadAudioFileInternal, 
+    getAudioFileInternal, 
+    getAudioFileMetadataInternal, 
+    removeAudioFileInternal, 
+    downloadAudioFileInternal, 
+    downloadAudioBucket
+} from './utils/audio/audio-file-handler';
+
+
+export const postAudio = async (req, res) => {
     try{
-        let reqValidation = requestValidator.validatePostAudioRequest(req);
+        let reqValidation = validatePostAudioRequest(req);
         if(!reqValidation.success){
-            res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
+            res.status(HTTP_CODE.BAD_REQUEST_ERROR);
             res.json({
                 success: false,
                 reason: "Fields validation error !",
@@ -19,7 +32,7 @@ let postAudio = async (req, res) => {
                 details: reqValidation.details
             });
         } else {
-            var audio = new Audio(req.body.uri, req.body.theme, req.body.author, req.body.description, req.body.keywords, req.body.date, null);
+            var audio = new Audio(req.body.uri, req.body.theme, req.body.author, req.body.description, req.body.keywords, moment.utc(req.body.date, DATE_CONFIG.DEFAULT_FORMAT), null);
             let result = await audio.saveToDB();
             const splitedFileName = _.split(req.files.audio.name, ".");
             const fileExtension = splitedFileName[splitedFileName.length-1];
@@ -34,19 +47,19 @@ let postAudio = async (req, res) => {
             audio.setUri(uploadResult.uri);
             let updateResult = await audio.updateToDB();
             result.data.uri = audio.getUri();
-            res.status(CONFIG.HTTP_CODE.OK);
+            res.status(HTTP_CODE.OK);
             res.json(result.data);
         }
     }catch(exception){
-        res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+        res.status(exception.httpCode ? exception.httpCode : HTTP_CODE.INTERNAL_SERVER_ERROR);
         res.json(parseErrorInJson(exception));
     }
 }
 
-let getAudio = async (req, res) => {
+export const getAudio = async (req, res) => {
     try{
         if(!req.params.audioId){
-            res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
+            res.status(HTTP_CODE.BAD_REQUEST_ERROR);
             res.json({
                 sucess: false,
                 reason: "No audio id found !",
@@ -56,24 +69,24 @@ let getAudio = async (req, res) => {
         } else {
             let findAudioResult = await Audio.findOneAudioFromDBById(req.params.audioId);
             if(!findAudioResult.audio){
-                res.status(CONFIG.HTTP_CODE.OK);
+                res.status(HTTP_CODE.OK);
                 res.json({});
             }else{
-                res.status(CONFIG.HTTP_CODE.OK);
+                res.status(HTTP_CODE.OK);
                 res.json(findAudioResult.audio);
             }
         }
     }catch(exception){
-        res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+        res.status(exception.httpCode ? exception.httpCode : HTTP_CODE.INTERNAL_SERVER_ERROR);
         res.json(parseErrorInJson(exception));
     }
 }
 
-let getManyAudios = async(req, res) => {
+export const getManyAudios = async(req, res) => {
     try{
-        let reqValidation = requestValidator.validateGetAudioRequest(req);
+        let reqValidation = validateGetAudioRequest(req);
         if(!reqValidation.success){
-            res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
+            res.status(HTTP_CODE.BAD_REQUEST_ERROR);
             res.json({
                 success: false,
                 reason: "Fields validation error !",
@@ -81,29 +94,29 @@ let getManyAudios = async(req, res) => {
                 details: reqValidation.details
             });
         } else {
-            let skip = req.query.skip ? parseInt(req.query.skip, 10) : CONFIG.AUDIO_GET_PARAMS.DEFAULT_SKIP_NUMBER;
-            let limit = req.query.limit ? parseInt(req.query.limit, 10) : CONFIG.AUDIO_GET_PARAMS.DEFAULT_LIMIT_NUMBER;
+            let skip = req.query.skip ? parseInt(req.query.skip, 10) : AUDIO_GET_PARAMS.DEFAULT_SKIP_NUMBER;
+            let limit = req.query.limit ? parseInt(req.query.limit, 10) : AUDIO_GET_PARAMS.DEFAULT_LIMIT_NUMBER;
             let findAudiosResults;
             findAudiosResults = await Audio.findAudiosFromDB(req.query.theme, req.query.author, req.query.keywords, req.query.minDate, req.query.maxDate, skip, limit);
             if(!findAudiosResults.audios){
-                res.status(CONFIG.HTTP_CODE.OK);
+                res.status(HTTP_CODE.OK);
                 res.json([]);
             }else{
-                res.status(CONFIG.HTTP_CODE.OK);
+                res.status(HTTP_CODE.OK);
                 res.json(findAudiosResults.audios);
             }
         }
     }catch(exception){
-        res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+        res.status(exception.httpCode ? exception.httpCode : HTTP_CODE.INTERNAL_SERVER_ERROR);
         res.json(parseErrorInJson(exception));
     }
 }
 
-let getAudioFile = async (req, res) => {
+export const getAudioFile = async (req, res) => {
     try{
         let fileName = req.params.fileName;
         if(!fileName){
-            res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
+            res.status(HTTP_CODE.BAD_REQUEST_ERROR);
             res.json({
                 success: false,
                 reason: "Fields validation error !",
@@ -137,16 +150,16 @@ let getAudioFile = async (req, res) => {
             stream.pipe(res);
         }
     }catch(exception){
-        res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+        res.status(exception.httpCode ? exception.httpCode : HTTP_CODE.INTERNAL_SERVER_ERROR);
         res.json(parseErrorInJson(exception));
     }
 }
 
-let deleteAudio = async (req, res) => {
+export const deleteAudio = async (req, res) => {
     try{
         let findAudioResult = await Audio.findOneAudioFromDBById(req.params.audioId);
         if(!findAudioResult.audio){
-            res.status(CONFIG.HTTP_CODE.PAGE_NOT_FOUND_ERROR);
+            res.status(HTTP_CODE.PAGE_NOT_FOUND_ERROR);
             res.json({
                 sucess: false,
                 reason: "No audio with this id found !",
@@ -156,31 +169,31 @@ let deleteAudio = async (req, res) => {
         }else{
             let deleteResult = await Audio.deleteFromDB(req.params.audioId);
             let deleteAudioFileResult = await removeAudioFileInternal(findAudioResult.audio.uri);
-            res.status(CONFIG.HTTP_CODE.OK);
+            res.status(HTTP_CODE.OK);
             res.json(deleteResult.data);
         }
     }catch(exception){
-        res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+        res.status(exception.httpCode ? exception.httpCode : HTTP_CODE.INTERNAL_SERVER_ERROR);
         res.json(parseErrorInJson(exception));
     }
 }
 
 
-let updateAudio = async (req, res) => {
+export const updateAudio = async (req, res) => {
     try{
-        let reqValidation = requestValidator.validateUpdateAudioRequest(req);
+        let reqValidation = validateUpdateAudioRequest(req);
         if(!reqValidation.success){
-            res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
+            res.status(HTTP_CODE.BAD_REQUEST_ERROR);
             res.json({
                 success: false,
                 reason: "Fields validation error !",
                 message: "Données invalides. Veuillez renseigner correctement tous les champs !",
-                details: reqValidation.error
+                details: reqValidation.details
             });
         } else {
             let findAudioResult = await Audio.findOneAudioFromDBById(req.params.audioId);
             if(!findAudioResult.audio){
-                res.status(CONFIG.HTTP_CODE.PAGE_NOT_FOUND_ERROR);
+                res.status(HTTP_CODE.PAGE_NOT_FOUND_ERROR);
                 res.json({
                     sucess: false,
                     reason: "No audio with this id found !",
@@ -193,45 +206,45 @@ let updateAudio = async (req, res) => {
                 let description = req.body.description ? req.body.description : findAudioResult.audio.description;
                 let keywords = req.body.keywords ? req.body.keywords : findAudioResult.audio.keywords;
                 let date = req.body.date ? req.body.date : findAudioResult.audio.date;
-                let audio = new Audio(findAudioResult.audio.uri, theme, author, description, keywords, date, findAudioResult.audio._id);
+                let audio = new Audio(findAudioResult.audio.uri, theme, author, description, keywords, moment.utc(date, DATE_CONFIG.DEFAULT_FORMAT), findAudioResult.audio._id);
                 let updateResult = await audio.updateToDB();
-                res.status(CONFIG.HTTP_CODE.OK);
+                res.status(HTTP_CODE.OK);
                 res.json(updateResult.data);
             }
         }
     }catch(exception){
-        res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+        res.status(exception.httpCode ? exception.httpCode : HTTP_CODE.INTERNAL_SERVER_ERROR);
         res.json(parseErrorInJson(exception));
     }
 }
 
-let getDistinctThemes = async (req, res) => {
+export const getDistinctThemes = async (req, res) => {
     try{
         let themesResponse = await Audio.getDistinctThemes();
-        res.status(CONFIG.HTTP_CODE.OK);
+        res.status(HTTP_CODE.OK);
         res.json(themesResponse.data);
     }catch(exception){
-        res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+        res.status(exception.httpCode ? exception.httpCode : HTTP_CODE.INTERNAL_SERVER_ERROR);
         res.json(parseErrorInJson(exception));
     }
 }
 
-let getDistinctAuthors = async (req, res) => {
+export const getDistinctAuthors = async (req, res) => {
     try{
         let authorsResponse = await Audio.getDistinctAuthors();
-        res.status(CONFIG.HTTP_CODE.OK);
+        res.status(HTTP_CODE.OK);
         res.json(authorsResponse.data);
     }catch(exception){
-        res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+        res.status(exception.httpCode ? exception.httpCode : HTTP_CODE.INTERNAL_SERVER_ERROR);
         res.json(parseErrorInJson(exception));
     }
 }
 
-let downloadAudioFile = async (req, res) => {
+export const downloadAudioFile = async (req, res) => {
     try{
         const fileName = req.params.fileName;
         if(!fileName){
-            res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
+            res.status(HTTP_CODE.BAD_REQUEST_ERROR);
             res.json({
                 success: false,
                 reason: "Fields validation error !",
@@ -245,12 +258,12 @@ let downloadAudioFile = async (req, res) => {
             fileStream.pipe(res);
         }
     }catch(exception){
-        res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+        res.status(exception.httpCode ? exception.httpCode : HTTP_CODE.INTERNAL_SERVER_ERROR);
         res.json(parseErrorInJson(exception));
     }
 }
 
-let downloadAll = async (req, res) => {
+export const downloadAll = async (req, res) => {
     try{
         const zipStream = await downloadAudioBucket();
         // const fileStream = audioResponse.data;
@@ -260,18 +273,7 @@ let downloadAll = async (req, res) => {
         res.setHeader('Content-Disposition', `attachment; filename=Backup_audios_du_${moment.utc().startOf("second").format("YYYYMMDD_HHmmss")}.zip`);
         zipStream.pipe(res);
     }catch(exception){
-        res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+        res.status(exception.httpCode ? exception.httpCode : HTTP_CODE.INTERNAL_SERVER_ERROR);
         res.json(parseErrorInJson(exception));
     }
 }
-
-exports.postAudio = postAudio;
-exports.getAudio = getAudio;
-exports.getManyAudios = getManyAudios;
-exports.getAudioFile = getAudioFile;
-exports.deleteAudio = deleteAudio;
-exports.updateAudio = updateAudio;
-exports.getDistinctThemes = getDistinctThemes;
-exports.getDistinctAuthors = getDistinctAuthors;
-exports.downloadAudioFile = downloadAudioFile;
-exports.downloadAll = downloadAll;

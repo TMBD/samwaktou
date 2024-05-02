@@ -1,7 +1,9 @@
-let mongoose = require("mongoose");
-const {USER_VALIDATION_CONFIG} = require("../../config/server.config");
+import mongoose from "mongoose";
 
-let UserSchema = mongoose.Schema({
+import { USER_VALIDATION_CONFIG } from "../../config/server.config";
+
+
+const UserSchema = new mongoose.Schema({
     username: {
         type: String,
         required: true,
@@ -32,4 +34,4 @@ let UserSchema = mongoose.Schema({
     }
 });
 
-module.exports = mongoose.model("User", UserSchema); //has to be refered as users in the database
+export default mongoose.model("User", UserSchema); //has to be refered as users in the database

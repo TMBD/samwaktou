@@ -1,9 +1,10 @@
-let _ = require("lodash");
-let moment = require("moment");
-const CONFIG = require("../../../config/server.config");
+import _ from 'lodash';
+import moment from 'moment';
+
+import { AUDIO_GET_PARAMS, AUDIO_VALIDATION_CONFIG } from '../../../config/server.config';
 
 
-const validatePostAudioRequest = (req) => {
+export const validatePostAudioRequest = (req) => {
     let body = req.body;
     if(!body.theme){
         return {
@@ -17,12 +18,12 @@ const validatePostAudioRequest = (req) => {
             details: "theme field has to be string type !"
         };
     }
-    if(body.theme.length <CONFIG.AUDIO_VALIDATION_CONFIG.MIN_THEME_CHAR
-        || body.theme.length>CONFIG.AUDIO_VALIDATION_CONFIG.MAX_THEME_CHAR){
+    if(body.theme.length <AUDIO_VALIDATION_CONFIG.MIN_THEME_CHAR
+        || body.theme.length>AUDIO_VALIDATION_CONFIG.MAX_THEME_CHAR){
         return {
             success: false,
-            details: "The number of theme characters must be between "+CONFIG.AUDIO_VALIDATION_CONFIG.MIN_THEME_CHAR
-            +" and "+CONFIG.AUDIO_VALIDATION_CONFIG.MAX_THEME_CHAR
+            details: "The number of theme characters must be between "+AUDIO_VALIDATION_CONFIG.MIN_THEME_CHAR
+            +" and "+AUDIO_VALIDATION_CONFIG.MAX_THEME_CHAR
         };
     }
 
@@ -34,12 +35,12 @@ const validatePostAudioRequest = (req) => {
                 details: "author field has to be string type !"
             };
         }
-        if(body.author.length <CONFIG.AUDIO_VALIDATION_CONFIG.MIN_AUTHOR_CHAR
-            || body.author.length>CONFIG.AUDIO_VALIDATION_CONFIG.MAX_AUTHOR_CHAR){
+        if(body.author.length <AUDIO_VALIDATION_CONFIG.MIN_AUTHOR_CHAR
+            || body.author.length>AUDIO_VALIDATION_CONFIG.MAX_AUTHOR_CHAR){
             return {
                 success: false,
-                details: "The number of author characters must be between "+CONFIG.AUDIO_VALIDATION_CONFIG.MIN_AUTHOR_CHAR
-                +" and "+CONFIG.AUDIO_VALIDATION_CONFIG.MAX_AUTHOR_CHAR
+                details: "The number of author characters must be between "+AUDIO_VALIDATION_CONFIG.MIN_AUTHOR_CHAR
+                +" and "+AUDIO_VALIDATION_CONFIG.MAX_AUTHOR_CHAR
             };
         }
     }
@@ -57,12 +58,12 @@ const validatePostAudioRequest = (req) => {
             details: "description field has to be string type !"
         };
     }
-    if(body.description.length <CONFIG.AUDIO_VALIDATION_CONFIG.MIN_DESCRIPTION_CHAR 
-        || body.description.length>CONFIG.AUDIO_VALIDATION_CONFIG.MAX_DESCRIPTION_CHAR){
+    if(body.description.length <AUDIO_VALIDATION_CONFIG.MIN_DESCRIPTION_CHAR 
+        || body.description.length>AUDIO_VALIDATION_CONFIG.MAX_DESCRIPTION_CHAR){
         return {
             success: false,
-            details: "The number of description characters must be between "+CONFIG.AUDIO_VALIDATION_CONFIG.MIN_DESCRIPTION_CHAR
-            +" and "+CONFIG.AUDIO_VALIDATION_CONFIG.MAX_DESCRIPTION_CHAR
+            details: "The number of description characters must be between "+AUDIO_VALIDATION_CONFIG.MIN_DESCRIPTION_CHAR
+            +" and "+AUDIO_VALIDATION_CONFIG.MAX_DESCRIPTION_CHAR
         };
     }
 
@@ -113,7 +114,7 @@ const validatePostAudioRequest = (req) => {
 }
 
 
-const validateGetAudioRequest = (req) => {
+export const validateGetAudioRequest = (req) => {
     let body = req.query;
     if(body.theme){
         if(!_.isString(body.theme)){
@@ -159,10 +160,10 @@ const validateGetAudioRequest = (req) => {
                     details: "limit field  should be an integer and greater than 0 !"
                 };
             }
-            if(parseInt(body.limit, 10)>CONFIG.AUDIO_GET_PARAMS.MAX_LIMIT_NUMBER){
+            if(parseInt(body.limit, 10)>AUDIO_GET_PARAMS.MAX_LIMIT_NUMBER){
                 return {
                     success: false,
-                    details: "limit field can't exceed "+CONFIG.AUDIO_GET_PARAMS.MAX_LIMIT_NUMBER+" !"
+                    details: "limit field can't exceed "+AUDIO_GET_PARAMS.MAX_LIMIT_NUMBER+" !"
                 };
             }
         }else{
@@ -195,7 +196,7 @@ const validateGetAudioRequest = (req) => {
 
 
 
-const validateUpdateAudioRequest = (req) => {
+export const validateUpdateAudioRequest = (req) => {
     let body = req.body;
     
     if(body.theme){
@@ -205,12 +206,12 @@ const validateUpdateAudioRequest = (req) => {
                 details: "theme field has to be string type !"
             };
         }
-        if(body.theme.length <CONFIG.AUDIO_VALIDATION_CONFIG.MIN_THEME_CHAR
-            || body.theme.length>CONFIG.AUDIO_VALIDATION_CONFIG.MAX_THEME_CHAR){
+        if(body.theme.length <AUDIO_VALIDATION_CONFIG.MIN_THEME_CHAR
+            || body.theme.length>AUDIO_VALIDATION_CONFIG.MAX_THEME_CHAR){
             return {
                 success: false,
-                details: "The number of theme characters must be between "+CONFIG.AUDIO_VALIDATION_CONFIG.MIN_THEME_CHAR
-                +" and "+CONFIG.AUDIO_VALIDATION_CONFIG.MAX_THEME_CHAR
+                details: "The number of theme characters must be between "+AUDIO_VALIDATION_CONFIG.MIN_THEME_CHAR
+                +" and "+AUDIO_VALIDATION_CONFIG.MAX_THEME_CHAR
             };
         }
     }
@@ -222,12 +223,12 @@ const validateUpdateAudioRequest = (req) => {
                 details: "author field has to be string type !"
             };
         }
-        if(body.author.length <CONFIG.AUDIO_VALIDATION_CONFIG.MIN_AUTHOR_CHAR
-            || body.author.length>CONFIG.AUDIO_VALIDATION_CONFIG.MAX_AUTHOR_CHAR){
+        if(body.author.length < AUDIO_VALIDATION_CONFIG.MIN_AUTHOR_CHAR
+            || body.author.length> AUDIO_VALIDATION_CONFIG.MAX_AUTHOR_CHAR){
             return {
                 success: false,
-                details: "The number of author characters must be between "+CONFIG.AUDIO_VALIDATION_CONFIG.MIN_AUTHOR_CHAR
-                +" and "+CONFIG.AUDIO_VALIDATION_CONFIG.MAX_AUTHOR_CHAR
+                details: "The number of author characters must be between " + AUDIO_VALIDATION_CONFIG.MIN_AUTHOR_CHAR
+                + " and " + AUDIO_VALIDATION_CONFIG.MAX_AUTHOR_CHAR
             };
         }
     }
@@ -240,12 +241,12 @@ const validateUpdateAudioRequest = (req) => {
                 details: "description field has to be string type !"
             };
         }
-        if(body.description.length <CONFIG.AUDIO_VALIDATION_CONFIG.MIN_DESCRIPTION_CHAR 
-            || body.description.length>CONFIG.AUDIO_VALIDATION_CONFIG.MAX_DESCRIPTION_CHAR){
+        if(body.description.length < AUDIO_VALIDATION_CONFIG.MIN_DESCRIPTION_CHAR 
+            || body.description.length > AUDIO_VALIDATION_CONFIG.MAX_DESCRIPTION_CHAR){
             return {
                 success: false,
-                details: "The number of description characters must be between "+CONFIG.AUDIO_VALIDATION_CONFIG.MIN_DESCRIPTION_CHAR
-                +" and "+CONFIG.AUDIO_VALIDATION_CONFIG.MAX_DESCRIPTION_CHAR
+                details: "The number of description characters must be between " + AUDIO_VALIDATION_CONFIG.MIN_DESCRIPTION_CHAR
+                + " and " + AUDIO_VALIDATION_CONFIG.MAX_DESCRIPTION_CHAR
             };
         }
     } 
@@ -283,6 +284,3 @@ const validateUpdateAudioRequest = (req) => {
     }
     
 }
-exports.validatePostAudioRequest = validatePostAudioRequest;
-exports.validateGetAudioRequest = validateGetAudioRequest;
-exports.validateUpdateAudioRequest = validateUpdateAudioRequest;

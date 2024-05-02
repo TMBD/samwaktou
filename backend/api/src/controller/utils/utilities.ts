@@ -1,4 +1,4 @@
-function parseErrorInJson(error){
+export const parseErrorInJson = (error) => {
     return (error instanceof Error) ? 
     {
         // Pull all enumerable properties, supporting properties on custom Errors
@@ -10,5 +10,3 @@ function parseErrorInJson(error){
     }
     :error
 }
-
-module.exports = {parseErrorInJson}

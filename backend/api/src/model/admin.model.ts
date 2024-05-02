@@ -1,11 +1,20 @@
-let _ = require("lodash");
-let adminModel = require("./schema/admin.schema");
-let DB = require("./db-crud");
-const CONFIG = require("../config/server.config");
+import _ from 'lodash';
+
+import adminModel from './schema/admin.schema';
+import DB from './db-crud';
+import {HTTP_CODE} from '../config/server.config';
+import { Moment } from 'moment';
 
 
-class Admin{
-    constructor(surname, name, email, password, date, id, isSuperAdmin){
+export default class Admin{
+    constructor(
+        private surname: string, 
+        private name: string, 
+        private email: string, 
+        private password: string, 
+        private date: Moment, 
+        private id: string, 
+        private isSuperAdmin: boolean){
         this.surname = _.capitalize(surname);
         this.name = _.toUpper(name);
         this.email = _.toLower(email);
@@ -67,8 +76,8 @@ class Admin{
                 success: false,
                 reason: "Couldn't save admin from the database",
                 message: "Une erreur s'est produite lors de l'enregistrement des informations.",
-                details: updateError,
-                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
+                details: saveError,
+                httpCode: HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     }
@@ -86,7 +95,7 @@ class Admin{
                 reason: "Couldn't aupdate admin from the database",
                 message: "Une erreur s'est produite lors de la mise à jour des informations.",
                 details: updateError,
-                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
+                httpCode: HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     }
@@ -105,7 +114,7 @@ class Admin{
                 reason: "Couldn't delete admin from the database",
                 message: "Une erreur s'est produite lors de la suppression des informations.",
                 details: deleteError,
-                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
+                httpCode: HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     }
@@ -123,7 +132,7 @@ class Admin{
                 reason: "Couldn't delete admin from the database",
                 message: "Une erreur s'est produite lors de la suppression des informations.",
                 details: deleteError,
-                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
+                httpCode: HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     }
@@ -142,7 +151,7 @@ class Admin{
                 reason: "Couldn't find admin from the database",
                 message: "Une erreur s'est produite lors de la récupération des informations.",
                 details: deleteError,
-                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
+                httpCode: HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     }
@@ -163,7 +172,7 @@ class Admin{
                 reason: "Couldn't find any admin from the database !",
                 message: "Une erreur s'est produite lors de la récupération des informations.",
                 details: deleteError,
-                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
+                httpCode: HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     }
@@ -200,7 +209,7 @@ class Admin{
                 }
             }
 
-            let data = await DB.findMany(adminModel, queryStruct, "_id surname name email date isSuperAdmin", skipNumber, limitNumber);
+            let data = await DB.findMany(adminModel, queryStruct, "_id surname name email date isSuperAdmin", null, skipNumber, limitNumber);
             if(_.isEmpty(data)){
                 return Promise.resolve({
                     success: true, 
@@ -217,7 +226,7 @@ class Admin{
                 reason: "Couldn't find admins from the database",
                 message: "Une erreur s'est produite lors de la récupération des informations.",
                 details: deleteError,
-                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
+                httpCode: HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     }
@@ -237,5 +246,3 @@ class Admin{
         return null;
     }
 }
-
-module.exports = Admin;

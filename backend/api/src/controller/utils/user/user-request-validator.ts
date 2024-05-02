@@ -1,7 +1,9 @@
-let Joi = require("@hapi/joi");
-const {USER_VALIDATION_CONFIG, USER_GET_PARAMS} = require("../../../config/server.config");
+import Joi from "@hapi/joi";
 
-const validatePostUserRequest = (body) => {
+import { USER_VALIDATION_CONFIG, USER_GET_PARAMS } from "../../../config/server.config";
+
+
+export const validatePostUserRequest = (body) => {
     const schema = Joi.object({
         username: Joi.string()
             .min(USER_VALIDATION_CONFIG.MIN_USERNAME_CHAR)
@@ -18,7 +20,7 @@ const validatePostUserRequest = (body) => {
     return schema.validate(body);
 }
 
-const validateGetUserRequest = (body) => {
+export const validateGetUserRequest = (body) => {
     const schema = Joi.object({
         username: Joi.string(),
         tel: Joi.string(),    
@@ -44,7 +46,7 @@ const validateGetUserRequest = (body) => {
 }
 
 
-const validateUpdateUserRequest = (body) => {
+export const validateUpdateUserRequest = (body) => {
     const schema = Joi.object({
         username: Joi.string()
             .min(USER_VALIDATION_CONFIG.MIN_USERNAME_CHAR)
@@ -60,7 +62,7 @@ const validateUpdateUserRequest = (body) => {
 }
 
 
-const validateLoginUserRequest = (body) => {
+export const validateLoginUserRequest = (body) => {
     const schema = Joi.object({
         username: Joi.string()
             .required(),
@@ -69,8 +71,3 @@ const validateLoginUserRequest = (body) => {
     });
     return schema.validate(body);
 }
-
-exports.validatePostUserRequest = validatePostUserRequest;
-exports.validateGetUserRequest = validateGetUserRequest;
-exports.validateUpdateUserRequest = validateUpdateUserRequest;
-exports.validateLoginUserRequest = validateLoginUserRequest;

@@ -1,7 +1,7 @@
-const { Mongoose } = require("mongoose");
-let connectToDB = require("./db-connection");
+import connectToDB from './db-connection';
 
-const DB = {
+
+export default {
     postToDB: async (collection) => {
         try{
             await connectToDB();
@@ -115,6 +115,3 @@ const DB = {
     },
     
 }
-
-
-module.exports = DB;

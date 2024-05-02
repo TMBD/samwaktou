@@ -1,16 +1,25 @@
-let _ = require("lodash");
-let bcryptejs = require("bcryptjs");
-let jwt = require("jsonwebtoken");
-const CONFIG = require("../config/server.config");
-let requestValidator = require("./utils/admin/admin-request-validator");
-const Admin = require("../model/admin.model");
-let {parseErrorInJson} = require("./utils/utilities");
+import _ from 'lodash';
+import moment from 'moment';
+import bcryptejs from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 
-let postAdmin = async (req, res) => {
+import { HTTP_CODE, ADMIN_GET_PARAMS, DATE_CONFIG } from '../config/server.config';
+import Admin from '../model/admin.model';
+import { parseErrorInJson } from './utils/utilities';
+import {
+    validatePostAdminRequest, 
+    validateGetAdminRequest, 
+    validateUpdateAdminRequest, 
+    validateUpdateAdminPasswordRequest, 
+    validateLoginAdminRequest
+} from './utils/admin/admin-request-validator';
+
+
+export const postAdmin = async (req, res) => {
     try{
-        let reqValidation = requestValidator.validatePostAdminRequest(req.body);
+        let reqValidation = validatePostAdminRequest(req.body);
         if(reqValidation.error){
-            res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
+            res.status(HTTP_CODE.BAD_REQUEST_ERROR);
             res.json({
                 success: false,
                 reason: "Fields validation error !",
@@ -22,7 +31,7 @@ let postAdmin = async (req, res) => {
             try{
                 foundAdmin = await Admin.findOneAdminFromDBByEmail(req.body.email);
             }catch(exception){
-                res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+                res.status(HTTP_CODE.INTERNAL_SERVER_ERROR);
                 res.json({
                     success: false,
                     reason: "An error has occured while trying to verify if an admin with this username exists or not !",
@@ -31,7 +40,7 @@ let postAdmin = async (req, res) => {
                 });
             }
             if(!foundAdmin.admin){
-                res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
+                res.status(HTTP_CODE.BAD_REQUEST_ERROR);
                 res.json({
                     success: false,
                     reason: "A user with this email already exist.",
@@ -41,9 +50,9 @@ let postAdmin = async (req, res) => {
             } else {
                 const salt = await bcryptejs.genSalt(10);
                 const hashedPassword = await bcryptejs.hash(req.body.password, salt);
-                let admin = new Admin(req.body.surname, req.body.name, req.body.email, hashedPassword, req.body.date, undefined, req.body.isSuperAdmin);
+                let admin = new Admin(req.body.surname, req.body.name, req.body.email, hashedPassword, moment.utc(req.body.date, DATE_CONFIG.DEFAULT_FORMAT), undefined, req.body.isSuperAdmin);
                 let result = await admin.saveToDB();
-                res.status(CONFIG.HTTP_CODE.OK);
+                res.status(HTTP_CODE.OK);
                 res.json({
                     _id: result.data._id,
                     surname: result.data.surname,
@@ -55,16 +64,16 @@ let postAdmin = async (req, res) => {
             }
         }
     }catch(exception){
-        res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+        res.status(exception.httpCode ? exception.httpCode : HTTP_CODE.INTERNAL_SERVER_ERROR);
         res.json(parseErrorInJson(exception));
     }
 }
 
 
-let getAdmin = async (req, res) => {
+export const getAdmin = async (req, res) => {
     try{
         if(!req.params.adminId){
-            res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
+            res.status(HTTP_CODE.BAD_REQUEST_ERROR);
             res.json({
                 sucess: false,
                 reason: "No admin id found !",
@@ -74,10 +83,10 @@ let getAdmin = async (req, res) => {
         } else {
             let findAdminResult = await Admin.findOneAdminFromDBById(req.params.adminId);
             if(!findAdminResult.admin){
-                res.status(CONFIG.HTTP_CODE.OK);
+                res.status(HTTP_CODE.OK);
                 res.json({});
             }else{
-                res.status(CONFIG.HTTP_CODE.OK);
+                res.status(HTTP_CODE.OK);
                 res.json({
                     _id: findAdminResult.admin._id,
                     surname: findAdminResult.admin.surname,
@@ -90,16 +99,16 @@ let getAdmin = async (req, res) => {
             
         }
     }catch(exception){
-        res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+        res.status(exception.httpCode ? exception.httpCode : HTTP_CODE.INTERNAL_SERVER_ERROR);
         res.json(parseErrorInJson(exception));
     }
 }
 
-let getManyAdmins = async(req, res) => {
+export const getManyAdmins = async(req, res) => {
     try{
-        let reqValidation = requestValidator.validateGetAdminRequest(req.body);
+        let reqValidation = validateGetAdminRequest(req.body);
         if(reqValidation.error){
-            res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
+            res.status(HTTP_CODE.BAD_REQUEST_ERROR);
             res.json({
                 success: false,
                 reason: "Fields validation error !",
@@ -107,34 +116,34 @@ let getManyAdmins = async(req, res) => {
                 details: reqValidation.error
             });
         } else {
-            let limitAdminToFind = (req.body.limit) ? req.body.limit : CONFIG.ADMIN_GET_PARAMS.DEFAULT_LIMIT_NUMBER;
-            let skipAdminToFind = (req.body.skip) ? req.body.skip : CONFIG.ADMIN_GET_PARAMS.DEFAULT_SKIP_NUMBER;
+            let limitAdminToFind = (req.body.limit) ? req.body.limit : ADMIN_GET_PARAMS.DEFAULT_LIMIT_NUMBER;
+            let skipAdminToFind = (req.body.skip) ? req.body.skip : ADMIN_GET_PARAMS.DEFAULT_SKIP_NUMBER;
             let findAdminsResults = await Admin.getAdmins(req.body.surname, req.body.name, req.body.email, req.body.dateParams, req.body.isSuperAdmin, skipAdminToFind, limitAdminToFind);
             if(!findAdminsResults.admins){
-                res.status(CONFIG.HTTP_CODE.OK);
+                res.status(HTTP_CODE.OK);
                 res.json({});
             }else{
-                res.status(CONFIG.HTTP_CODE.OK);
+                res.status(HTTP_CODE.OK);
                 res.json(findAdminsResults.admins);
             }
         }
     }catch(exception){
-        res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+        res.status(exception.httpCode ? exception.httpCode : HTTP_CODE.INTERNAL_SERVER_ERROR);
         res.json(parseErrorInJson(exception));
     }
 }
 
 
 
-let deleteAdmin = async (req, res) => {
+export const deleteAdmin = async (req, res) => {
     try{
         let findAdminResult = await Admin.findOneAdminFromDBById(req.params.adminId);
         if(!findAdminResult.admin){
             let deleteResult = await Admin.deleteFromDB(req.params.adminId);
-            res.status(CONFIG.HTTP_CODE.OK);
+            res.status(HTTP_CODE.OK);
             res.json(deleteResult.data);
         } else {
-            res.status(CONFIG.HTTP_CODE.PAGE_NOT_FOUND_ERROR);
+            res.status(HTTP_CODE.PAGE_NOT_FOUND_ERROR);
             res.json({
                 sucess: false,
                 reason: "No admin with this id found !",
@@ -143,17 +152,17 @@ let deleteAdmin = async (req, res) => {
             });
         }
     }catch(exception){
-        res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+        res.status(exception.httpCode ? exception.httpCode : HTTP_CODE.INTERNAL_SERVER_ERROR);
         res.json(parseErrorInJson(exception));
     }
 }
 
 
-let updateAdmin = async (req, res) => {
+export const updateAdmin = async (req, res) => {
     try{
-        let reqValidation = requestValidator.validateUpdateAdminRequest(req.body);
+        let reqValidation = validateUpdateAdminRequest(req.body);
         if(reqValidation.error){
-            res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
+            res.status(HTTP_CODE.BAD_REQUEST_ERROR);
             res.json({
                 success: false,
                 reason: "Fields validation error !",
@@ -162,7 +171,7 @@ let updateAdmin = async (req, res) => {
             });
         } else {
             if(req.token?.isSuperAdmin){
-                res.status(CONFIG.HTTP_CODE.ACCESS_DENIED_ERROR);
+                res.status(HTTP_CODE.ACCESS_DENIED_ERROR);
                 res.json({
                     success: false,
                     reason: "Acces denied !",
@@ -174,7 +183,7 @@ let updateAdmin = async (req, res) => {
                 try{
                     findAdminResult = await Admin.findOneAdminFromDBById(req.params.adminId);
                 }catch(exception){
-                    res.status(CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+                    res.status(HTTP_CODE.INTERNAL_SERVER_ERROR);
                     res.json({
                         success: false,
                         reason: "An error has occured while trying to verify if an admin with this id exists or not !",
@@ -183,7 +192,7 @@ let updateAdmin = async (req, res) => {
                     });
                 }
                 if(!findAdminResult.admin){
-                    res.status(CONFIG.HTTP_CODE.PAGE_NOT_FOUND_ERROR);
+                    res.status(HTTP_CODE.PAGE_NOT_FOUND_ERROR);
                     res.json({
                         sucess: false,
                         reason: "No admin with this id found !",
@@ -197,12 +206,12 @@ let updateAdmin = async (req, res) => {
                         let surname = req.body.surname ? req.body.surname : findAdminResult.admin.surname;
                         let name = req.body.name ? req.body.name : findAdminResult.admin.name;
                         let email = req.body.email ? req.body.email : findAdminResult.admin.email;
-                        let admin = new Admin(surname, name, email, findAdminResult.admin.password, findAdminResult.admin.date, findAdminResult.admin._id, isSuperAdmin);
+                        let admin = new Admin(surname, name, email, findAdminResult.admin.password, moment.utc(findAdminResult.admin.date, DATE_CONFIG.DEFAULT_FORMAT), findAdminResult.admin._id, isSuperAdmin);
                         let updateResult = await admin.updateToDB();
-                        res.status(CONFIG.HTTP_CODE.OK);
+                        res.status(HTTP_CODE.OK);
                         res.json(updateResult.data);
                     }else{
-                        res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
+                        res.status(HTTP_CODE.BAD_REQUEST_ERROR);
                         res.json({
                             success: false,
                             reason: "A user with this email already exist.",
@@ -214,16 +223,16 @@ let updateAdmin = async (req, res) => {
             }
         }
     }catch(exception){
-        res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+        res.status(exception.httpCode ? exception.httpCode : HTTP_CODE.INTERNAL_SERVER_ERROR);
         res.json(parseErrorInJson(exception));
     }
 }
 
-let updateAdminPassword = async (req, res) => {
+export const updateAdminPassword = async (req, res) => {
     try{
-        let reqValidation = requestValidator.validateUpdateAdminPasswordRequest(req.body);
+        let reqValidation = validateUpdateAdminPasswordRequest(req.body);
         if(reqValidation.error){
-            res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
+            res.status(HTTP_CODE.BAD_REQUEST_ERROR);
             res.json({
                 success: false,
                 reason: "Fields validation error !",
@@ -232,7 +241,7 @@ let updateAdminPassword = async (req, res) => {
             });
         } else {
             if(req.token?._id !== req.params.adminId){
-                res.status(CONFIG.HTTP_CODE.ACCESS_DENIED_ERROR);
+                res.status(HTTP_CODE.ACCESS_DENIED_ERROR);
                 res.json({
                     success: false,
                     reason: "Acces denied !",
@@ -242,7 +251,7 @@ let updateAdminPassword = async (req, res) => {
             } else {
                 let findAdminResult = await Admin.findOneAdminFromDBById(req.token._id);
                 if(!findAdminResult.admin){
-                    res.status(CONFIG.HTTP_CODE.PAGE_NOT_FOUND_ERROR);
+                    res.status(HTTP_CODE.PAGE_NOT_FOUND_ERROR);
                     res.json({
                         sucess: false,
                         reason: "No admin with this id found !",
@@ -255,12 +264,12 @@ let updateAdminPassword = async (req, res) => {
                     if(validePass){
                         const salt = await bcryptejs.genSalt(10);
                         const hashedPassword = await bcryptejs.hash(req.body.newPassword, salt);
-                        let admin = new Admin(findAdminResult.admin.surname, findAdminResult.admin.name, findAdminResult.admin.email, hashedPassword, findAdminResult.admin.date, findAdminResult.admin._id, findAdminResult.admin.isSuperAdmin);
+                        let admin = new Admin(findAdminResult.admin.surname, findAdminResult.admin.name, findAdminResult.admin.email, hashedPassword, moment.utc(findAdminResult.admin.date, DATE_CONFIG.DEFAULT_FORMAT), findAdminResult.admin._id, findAdminResult.admin.isSuperAdmin);
                         let updateResult = await admin.updateToDB();
-                        res.status(CONFIG.HTTP_CODE.OK);
+                        res.status(HTTP_CODE.OK);
                         res.json(updateResult.data);
                     }else{
-                        res.status(CONFIG.HTTP_CODE.ACCESS_DENIED_ERROR);
+                        res.status(HTTP_CODE.ACCESS_DENIED_ERROR);
                         res.json({
                             sucess: false,
                             reason: "Wrong password !",
@@ -272,16 +281,16 @@ let updateAdminPassword = async (req, res) => {
             }
         }
     }catch(exception){
-        res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+        res.status(exception.httpCode ? exception.httpCode : HTTP_CODE.INTERNAL_SERVER_ERROR);
         res.json(parseErrorInJson(exception));
     }
 }
 
-let loginAdmin = async (req, res) => {
+export const loginAdmin = async (req, res) => {
     try{
-        let reqValidation = requestValidator.validateLoginAdminRequest(req.body);
+        let reqValidation = validateLoginAdminRequest(req.body);
         if(reqValidation.error){
-            res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
+            res.status(HTTP_CODE.BAD_REQUEST_ERROR);
             res.json({
                 success: false,
                 reason: "Fields validation error !",
@@ -291,7 +300,7 @@ let loginAdmin = async (req, res) => {
         } else {
             let findAdminResult = await Admin.findOneAdminFromDBByEmail(req.body.email);
             if(!findAdminResult.admin){
-                res.status(CONFIG.HTTP_CODE.PAGE_NOT_FOUND_ERROR);
+                res.status(HTTP_CODE.PAGE_NOT_FOUND_ERROR);
                 res.json({
                     success: false,
                     reason: "Invalid email or password.",
@@ -302,14 +311,14 @@ let loginAdmin = async (req, res) => {
                 const validePass = await bcryptejs.compare(req.body.password, findAdminResult.admin.password);
                 if(validePass){
                     const token = jwt.sign({_id: findAdminResult.admin._id, isSuperAdmin: findAdminResult.admin.isSuperAdmin}, process.env.ADMIN_TOKEN_SECRET, {expiresIn: "24h"});
-                    res.status(CONFIG.HTTP_CODE.OK);
+                    res.status(HTTP_CODE.OK);
                     res.json({
                         _id: findAdminResult.admin._id,
                         isSuperAdmin: findAdminResult.admin.isSuperAdmin,
                         token: token
                     });
                 }else{
-                    res.status(CONFIG.HTTP_CODE.PAGE_NOT_FOUND_ERROR);
+                    res.status(HTTP_CODE.PAGE_NOT_FOUND_ERROR);
                     res.json({
                         success: false,
                         reason: "Invalid email or password.",
@@ -320,15 +329,7 @@ let loginAdmin = async (req, res) => {
             }
         }
     }catch(exception){
-        res.status(exception.httpCode ? exception.httpCode : CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR);
+        res.status(exception.httpCode ? exception.httpCode : HTTP_CODE.INTERNAL_SERVER_ERROR);
         res.json(parseErrorInJson(exception));
     }
 }
-
-exports.postAdmin = postAdmin;
-exports.getAdmin = getAdmin;
-exports.getManyAdmins = getManyAdmins;
-exports.deleteAdmin = deleteAdmin;
-exports.updateAdmin = updateAdmin;
-exports.updateAdminPassword = updateAdminPassword;
-exports.loginAdmin = loginAdmin;

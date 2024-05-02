@@ -1,7 +1,8 @@
-let Joi = require("@hapi/joi");
-const {ADMIN_VALIDATION_CONFIG, ADMIN_GET_PARAMS} = require("../../../config/server.config");
+import Joi from '@hapi/joi';
 
-const validatePostAdminRequest = (body) => {
+import {ADMIN_VALIDATION_CONFIG, ADMIN_GET_PARAMS} from '../../../config/server.config';
+
+export const validatePostAdminRequest = (body) => {
     const schema = Joi.object({
         surname: Joi.string()
             .min(ADMIN_VALIDATION_CONFIG.MIN_SURNAME_CHAR)
@@ -24,7 +25,7 @@ const validatePostAdminRequest = (body) => {
     return schema.validate(body);
 }
 
-const validateGetAdminRequest = (body) => {
+export const validateGetAdminRequest = (body) => {
     const schema = Joi.object({
         surname: Joi.string(),
         name: Joi.string(),
@@ -45,7 +46,7 @@ const validateGetAdminRequest = (body) => {
 }
 
 
-const validateUpdateAdminRequest = (body) => {
+export const validateUpdateAdminRequest = (body) => {
     const schema = Joi.object({
         surname: Joi.string()
             .min(ADMIN_VALIDATION_CONFIG.MIN_SURNAME_CHAR)
@@ -60,7 +61,7 @@ const validateUpdateAdminRequest = (body) => {
     return schema.validate(body);
 }
 
-const validateUpdateAdminPasswordRequest = (body) => {
+export const validateUpdateAdminPasswordRequest = (body) => {
     const schema = Joi.object({
         password: Joi.string()
             .required(),
@@ -72,7 +73,7 @@ const validateUpdateAdminPasswordRequest = (body) => {
     return schema.validate(body);
 }
 
-const validateLoginAdminRequest = (body) => {
+export const validateLoginAdminRequest = (body) => {
     const schema = Joi.object({
         email: Joi.string()
             .required()
@@ -82,9 +83,3 @@ const validateLoginAdminRequest = (body) => {
     });
     return schema.validate(body);
 }
-
-exports.validatePostAdminRequest = validatePostAdminRequest;
-exports.validateLoginAdminRequest = validateLoginAdminRequest;
-exports.validateGetAdminRequest = validateGetAdminRequest;
-exports.validateUpdateAdminRequest = validateUpdateAdminRequest;
-exports.validateUpdateAdminPasswordRequest = validateUpdateAdminPasswordRequest;

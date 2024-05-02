@@ -1,14 +1,16 @@
-let mongoose = require("mongoose");
-let {parseErrorInJson} = require("./../controller/utils/utilities");
+import mongoose from "mongoose";
 
-const connectToDB = async () => {
+import { parseErrorInJson } from "../controller/utils/utilities";
+
+
+export default async () => {
     await mongoose.connect(process.env.DB_CONNECTION, {
         authSource: "admin",
         user: process.env.MONGODB_USERNAME,
         pass: process.env.MONGODB_PASSWORD,
-        dbName: process.env.MONGODB_DB_NAME,
-        useNewUrlParser: true, 
-        useUnifiedTopology: true
+        dbName: process.env.MONGODB_DB_NAME
+        // useNewUrlParser: true, 
+        // useUnifiedTopology: true
     })
     .catch(error => {
         return Promise.reject(parseErrorInJson(error));
@@ -17,5 +19,3 @@ const connectToDB = async () => {
         return Promise.resolve(result);
     });
 }
-
-module.exports = connectToDB;

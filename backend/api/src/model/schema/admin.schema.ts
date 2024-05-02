@@ -1,7 +1,11 @@
-let mongoose = require("mongoose");
-const {ADMIN_VALIDATION_CONFIG} = require("../../config/server.config");
+// let mongoose = require("mongoose");
+import mongoose from "mongoose";
 
-let AdminSchema = mongoose.Schema({
+// const {ADMIN_VALIDATION_CONFIG} = require("../../config/server.config");
+import { ADMIN_VALIDATION_CONFIG } from "../../config/server.config";
+
+
+const AdminSchema = new mongoose.Schema({
     surname: {
         type: String,
         required: true,
@@ -37,4 +41,4 @@ let AdminSchema = mongoose.Schema({
     }
 });
 
-module.exports = mongoose.model("Admin", AdminSchema); //has to be refered as admins in the database
+export default mongoose.model("Admin", AdminSchema); //has to be refered as admins in the database

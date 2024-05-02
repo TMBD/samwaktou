@@ -1,10 +1,12 @@
-const { PassThrough } = require('stream');
-const CONFIG = require("./../../../config/server.config");
-const archiver = require('archiver');
+import {PassThrough, Readable} from 'stream';
+import archiver from 'archiver';
+import AWS from 'aws-sdk';
 
-let s3;
+import {HTTP_CODE} from './../../../config/server.config';
 
-const AWS = require('aws-sdk');
+
+let s3: AWS.S3;
+
 const credentials = new AWS.Credentials({
     accessKeyId: process.env.S3_ACCESS_KEY,
     secretAccessKey: process.env.S3_SECRET_ACCESS_KEY
@@ -24,7 +26,7 @@ if(process.env.PROFILE === "prod"){
     });
 }
 
-const uploadAudioFileToS3Bucket = async (file, audioFileName) => {
+export const uploadAudioFileToS3Bucket = async (file, audioFileName) => {
 
     return await s3.putObject({
         Bucket: process.env.S3_ACCESS_POINT_ARN,
@@ -44,14 +46,14 @@ const uploadAudioFileToS3Bucket = async (file, audioFileName) => {
                 reason: "Couldn't upload the audio file in s3 bucket",
                 message: "Une erreur s'est produite lors du chargement du fichier audio.",
                 details: error,
-                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
+                httpCode: HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     );
 }
 
-const getAudioFileFromS3Bucket = async (audioFileName, startByte, endByte) => {
-    paramRange = `bytes=${startByte}-${endByte}`;
+export const getAudioFileFromS3Bucket = async (audioFileName, startByte, endByte) => {
+    const paramRange = `bytes=${startByte}-${endByte}`;
     return await s3.getObject({
         Bucket: process.env.S3_ACCESS_POINT_ARN,
         Key: audioFileName,
@@ -70,13 +72,13 @@ const getAudioFileFromS3Bucket = async (audioFileName, startByte, endByte) => {
                 reason: "Couldn't get audio file from s3 bucket",
                 message: "Une erreur s'est produite lors de la récupération du fichier audio.",
                 details: error,
-                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
+                httpCode: HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     );
 }
 
-const getAudioFileMetadataFromS3Bucket = async (audioFileName) => {
+export const getAudioFileMetadataFromS3Bucket = async (audioFileName) => {
     return await s3.headObject({
         Bucket: process.env.S3_ACCESS_POINT_ARN,
         Key: audioFileName,
@@ -94,13 +96,13 @@ const getAudioFileMetadataFromS3Bucket = async (audioFileName) => {
                 reason: "Couldn't get audio file metadata from s3 bucket",
                 message: "Une erreur s'est produite lors de la lecture des informations du fichier audio.",
                 details: error,
-                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
+                httpCode: HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     );
 }
 
-const removeAudioFileFromS3Bucket = async (audioFileName) => {
+export const removeAudioFileFromS3Bucket = async (audioFileName) => {
     return await s3.deleteObject({
         Bucket: process.env.S3_ACCESS_POINT_ARN,
         Key: audioFileName,
@@ -118,13 +120,13 @@ const removeAudioFileFromS3Bucket = async (audioFileName) => {
                 reason: "Couldn't delete audio file from s3 bucket",
                 message: "Une erreur s'est produite lors de la suppression du fichier audio.",
                 details: error,
-                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
+                httpCode: HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     );
 }
 
-const downloadAudioFileFromS3Bucket = async (audioFileName) => {
+export const downloadAudioFileFromS3Bucket = async (audioFileName) => {
     return await s3.getObject({
         Bucket: process.env.S3_ACCESS_POINT_ARN,
         Key: audioFileName,
@@ -144,13 +146,13 @@ const downloadAudioFileFromS3Bucket = async (audioFileName) => {
                 reason: "Couldn't download audio file from s3 bucket",
                 message: "Une erreur s'est produite lors du téléchargement du fichier audio.",
                 details: error,
-                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
+                httpCode: HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     );
 }
 
-const downloadAudioBucketFromS3 = async () => {
+export const downloadAudioBucketFromS3 = async () => {
     // List all objects in the bucket (handle pagination in case the bucket contains more than 1000 objects)
     const objects = await listAllObjects(process.env.S3_ACCESS_POINT_ARN);
 
@@ -169,7 +171,7 @@ const downloadAudioBucketFromS3 = async () => {
         }).promise();
 
         // Add the downloaded file to the zip archive
-        archive.append(data.Body, { name: object.Key });
+        archive.append((data.Body as Buffer|string|Readable), { name: object.Key });
     });
 
     // Wait for all downloads to complete
@@ -180,7 +182,7 @@ const downloadAudioBucketFromS3 = async () => {
     return Promise.resolve(zipStream);
 }
 
-async function listAllObjects(bucketName) {
+export async function listAllObjects(bucketName) {
     const allObjects = [];
     let continuationToken;
 
@@ -190,7 +192,7 @@ async function listAllObjects(bucketName) {
             ContinuationToken: continuationToken,
         };
 
-        const response = await s3.listObjects(params).promise();
+        const response = await s3.listObjectsV2(params).promise();
 
         // Add the objects to the array
         allObjects.push(...response.Contents);
@@ -201,5 +203,3 @@ async function listAllObjects(bucketName) {
 
     return Promise.resolve(allObjects);
 }
-
-module.exports = {uploadAudioFileToS3Bucket, getAudioFileFromS3Bucket, getAudioFileMetadataFromS3Bucket, removeAudioFileFromS3Bucket, downloadAudioFileFromS3Bucket, downloadAudioBucketFromS3};

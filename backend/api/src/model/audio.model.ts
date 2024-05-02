@@ -1,17 +1,26 @@
-let _ = require("lodash");
-let moment = require("moment");
-let audioModel = require("./schema/audio.schema");
-let DB = require("./db-crud");
-const CONFIG = require("../config/server.config");
+import _ from 'lodash';
+import moment, { Moment } from 'moment';
 
-class Audio{
-    constructor(uri, theme, author, description, keywords, date, id){
-        this.uri = uri ? uri : CONFIG.FILE_LOCATION.AUDIO_FILE_LOCATION;
+import audioModel from './schema/audio.schema';
+import DB from './db-crud';
+import { HTTP_CODE, FILE_LOCATION, DATE_CONFIG } from '../config/server.config';
+
+
+export default class Audio{
+    constructor(
+        private uri: string, 
+        private theme: string, 
+        private author: string, 
+        private description: string, 
+        private keywords: string, 
+        private date: Moment, 
+        private id: string){
+        this.uri = uri ? uri : FILE_LOCATION.AUDIO_FILE_LOCATION;
         this.theme = _.toUpper(theme),
         this.author = _.toUpper(author),
         this.description = description;
         this.keywords = keywords;
-        this.date = date ? moment.utc(date, "DD-MM-YYYY") : moment.utc().startOf("day").format("DD-MM-YYYY");
+        this.date = date ? moment.utc(date, DATE_CONFIG.DEFAULT_FORMAT) : moment.utc().startOf("day");
         this.id = id;
     }
 
@@ -28,7 +37,7 @@ class Audio{
     setAuthor(author){this.author = _.toUpper(author);}
     setDescription(description){this.description = description;}
     setKeywords(keywords){this.keywords = keywords;}
-    setDate(date){this.date = moment.utc(date, "DD-MM-YYYY");}
+    setDate(date){this.date = moment.utc(date, DATE_CONFIG.DEFAULT_FORMAT);}
     setId(id){this.id = id;}
 
 
@@ -65,8 +74,8 @@ class Audio{
                 success: false,
                 reason: "Couldn't save the audio to the database",
                 message: "Une erreur s'est produite lors de l'enregistrement des informations.",
-                details: updateError,
-                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
+                details: saveError,
+                httpCode: HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     }
@@ -84,7 +93,7 @@ class Audio{
                 reason: "Couldn't aupdate the audio from the database",
                 message: "Une erreur s'est produite lors de la mise à jour des informations.",
                 details: updateError,
-                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
+                httpCode: HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     }
@@ -102,7 +111,7 @@ class Audio{
                 reason: "Couldn't delete the audio from the database",
                 message: "Une erreur s'est produite lors de la suppression des informations.",
                 details: deleteError,
-                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
+                httpCode: HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     }
@@ -120,7 +129,7 @@ class Audio{
                 reason: "Couldn't delete the audio from the database",
                 message: "Une erreur s'est produite lors de la suppression des informations.",
                 details: deleteError,
-                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
+                httpCode: HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     }
@@ -139,7 +148,7 @@ class Audio{
                 reason: "Couldn't find the audio from the database",
                 message: "Une erreur s'est produite lors de la récupération des informations.",
                 details: deleteError,
-                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
+                httpCode: HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     }
@@ -158,7 +167,7 @@ class Audio{
                 reason: "Couldn't find the audio from the database",
                 message: "Une erreur s'est produite lors de la récupération des informations.",
                 details: deleteError,
-                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
+                httpCode: HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     }
@@ -191,10 +200,10 @@ class Audio{
 
             let dateFilter = {};
             if(minDate){
-                _.assign(dateFilter, { $gte: moment.utc(minDate, "DD-MM-YYYY") });
+                _.assign(dateFilter, { $gte: moment.utc(minDate, DATE_CONFIG.DEFAULT_FORMAT) });
             }
             if(maxDate){
-                _.assign(dateFilter, { $lte: moment.utc(maxDate, "DD-MM-YYYY") });
+                _.assign(dateFilter, { $lte: moment.utc(maxDate, DATE_CONFIG.DEFAULT_FORMAT) });
             }
 
             if(!_.isEmpty(dateFilter)){
@@ -219,7 +228,7 @@ class Audio{
                 reason: "Couldn't find any audio from the database",
                 message: "Une erreur s'est produite lors de la récupération des informations.",
                 details: error,
-                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
+                httpCode: HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     }
@@ -238,7 +247,7 @@ class Audio{
                 reason: "Couldn't find the themes from the database",
                 message: "Une erreur s'est produite lors de la récupération des informations.",
                 details: deleteError,
-                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
+                httpCode: HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     }
@@ -257,7 +266,7 @@ class Audio{
                 reason: "Couldn't find the authors from the database",
                 message: "Une erreur s'est produite lors de la récupération des informations.",
                 details: deleteError,
-                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
+                httpCode: HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     }
@@ -269,5 +278,3 @@ class Audio{
                             .filter(value => !_.isEmpty(value))));
     }
 }
-
-module.exports = Audio;

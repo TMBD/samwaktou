@@ -1,9 +1,18 @@
-let _ = require("lodash");
-let userModel = require("./schema/user.schema");
-let DB = require("./db-crud");
+import { Moment } from 'moment';
+import _ from 'lodash';
 
-class User{
-    constructor(username, tel, email, date, id){
+import userModel from './schema/user.schema';
+import DB from './db-crud';
+import { HTTP_CODE } from '../config/server.config';
+
+
+export default class User{
+    constructor(
+        private username: string, 
+        private tel: string, 
+        private email: string, 
+        private date: Moment, 
+        private id: string){
         this.username = _.toLower(username);
         this.tel = tel;
         this.email = _.toLower(email);
@@ -54,8 +63,8 @@ class User{
                 success: false,
                 reason: "Couldn't save the user from the database",
                 message: "Une erreur s'est produite lors de l'enregistrement des informations.",
-                details: updateError,
-                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
+                details: saveError,
+                httpCode: HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     }
@@ -73,7 +82,7 @@ class User{
                 reason: "Couldn't aupdate user from the database",
                 message: "Une erreur s'est produite lors de la mise à jour des informations.",
                 details: updateError,
-                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
+                httpCode: HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     }
@@ -92,7 +101,7 @@ class User{
                 reason: "Couldn't delete user from the database",
                 message: "Une erreur s'est produite lors de la suppression des informations.",
                 details: deleteError,
-                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
+                httpCode: HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     }
@@ -110,7 +119,7 @@ class User{
                 reason: "Couldn't delete user from the database",
                 message: "Une erreur s'est produite lors de la suppression des informations.",
                 details: deleteError,
-                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
+                httpCode: HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     }
@@ -129,7 +138,7 @@ class User{
                 reason: "Couldn't find user from the database",
                 message: "Une erreur s'est produite lors de la récupération des informations.",
                 details: deleteError,
-                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
+                httpCode: HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     }
@@ -148,7 +157,7 @@ class User{
                 reason: "Couldn't find any user from the database !",
                 message: "Une erreur s'est produite lors de la récupération des informations.",
                 details: deleteError,
-                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
+                httpCode: HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     }
@@ -180,7 +189,7 @@ class User{
                 }
             }
 
-            let data = await DB.findMany(userModel, queryStruct, null, skipNumber, limitNumber);
+            let data = await DB.findMany(userModel, queryStruct, null, null, skipNumber, limitNumber);
             if(_.isEmpty(data)){
                 return Promise.resolve({
                     success: true, 
@@ -197,10 +206,8 @@ class User{
                 reason: "Couldn't find any user from the database",
                 message: "Une erreur s'est produite lors de la récupération des informations.",
                 details: getUserError,
-                httpCode: CONFIG.HTTP_CODE.INTERNAL_SERVER_ERROR
+                httpCode: HTTP_CODE.INTERNAL_SERVER_ERROR
             });
         }
     }
 }
-
-module.exports = User;

@@ -1,8 +1,11 @@
-let express = require("express");
-let router = express.Router();
-let {verifyAdminToken} = require("../controller/utils/verify-token");
-let audioController = require("../controller/audio.controller");
-const CONFIG = require("../config/server.config");
+import express from 'express';
+
+import { verifyAdminToken } from '../controller/utils/verify-token';
+import * as audioController from '../controller/audio.controller';
+import { HTTP_CODE } from '../config/server.config';
+
+
+const router = express.Router();
 
 router.post("/", verifyAdminToken, (req, res) => {
     audioController.postAudio(req, res);
@@ -45,10 +48,10 @@ router.get("/backup/download", verifyAdminToken, (req, res) => {
 });
 
 router.get("/check/healthy", (req, res) => {
-    res.status(CONFIG.HTTP_CODE.OK);
+    res.status(HTTP_CODE.OK);
     res.json({
         message: "The server is up, running and healthy !"
     });
 });
 
-module.exports = router;
+export default router;

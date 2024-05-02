@@ -1,10 +1,12 @@
-const jwt = require("jsonwebtoken");
-const CONFIG = require("../../config/server.config");
+import jwt, { JwtPayload } from "jsonwebtoken";
 
-const verifyAdminToken = (req, res, next) => {
+import { HTTP_CODE } from "../../config/server.config";
+
+
+export const verifyAdminToken = (req, res, next) => {
     const token = req.header("auth-token");
     if(!token){
-        res.status(CONFIG.HTTP_CODE.ACCESS_DENIED_ERROR);
+        res.status(HTTP_CODE.ACCESS_DENIED_ERROR);
         res.json({
             reason: "Access denied !",
             message: "Vous devez vous authentifier.",
@@ -12,14 +14,14 @@ const verifyAdminToken = (req, res, next) => {
         })
     }else{
         try {
-            const verifiedToken = jwt.verify(token, process.env.ADMIN_TOKEN_SECRET);
-            const newToken = jwt.sign({_id: verifiedToken._id, isSuperAdmin: verifiedToken.isSuperAdmin}, process.env.ADMIN_TOKEN_SECRET, {expiresIn: "24h"});
+            const verifiedToken = jwt.verify(token, process.env.ADMIN_TOKEN_SECRET) as JwtPayload;
+            const newToken = jwt.sign({_id: verifiedToken.id, isSuperAdmin: verifiedToken.isSuperAdmin}, process.env.ADMIN_TOKEN_SECRET, {expiresIn: "24h"});
             res.header("auth-token", newToken);
             const verifiedNewToken = jwt.verify(newToken, process.env.ADMIN_TOKEN_SECRET);
             req.token = verifiedNewToken;
             next();
         } catch (veriryTokenError) {
-            res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
+            res.status(HTTP_CODE.BAD_REQUEST_ERROR);
             res.json({
                 reason: "Invalid token !",
                 message: "Veuillez-vous authentifier.",
@@ -30,10 +32,10 @@ const verifyAdminToken = (req, res, next) => {
 }
 
 
-const verifyUserToken = (req, res, next) => {
+export const verifyUserToken = (req, res, next) => {
     const token = req.header("auth-token");
     if(!token){
-        res.status(CONFIG.HTTP_CODE.ACCESS_DENIED_ERROR);
+        res.status(HTTP_CODE.ACCESS_DENIED_ERROR);
         res.json({
             reason: "Access denied !",
             message: "Vous devez vous authentifier.",
@@ -41,14 +43,14 @@ const verifyUserToken = (req, res, next) => {
         })
     }else{
         try {
-            const verifiedToken = jwt.verify(token, process.env.USER_TOKEN_SECRET);
+            const verifiedToken = jwt.verify(token, process.env.USER_TOKEN_SECRET) as JwtPayload;
             const newToken = jwt.sign({_id: verifiedToken._id, username: verifiedToken.username}, process.env.USER_TOKEN_SECRET, {expiresIn: "24h"});
             res.header("auth-token", newToken);
             const verifiedNewToken = jwt.verify(newToken, process.env.USER_TOKEN_SECRET);
             req.token = verifiedNewToken;
             next();
         } catch (veriryTokenError) {
-            res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
+            res.status(HTTP_CODE.BAD_REQUEST_ERROR);
             res.json({
                 reason: "Invalid token !",
                 message: "Veuillez-vous authentifier.",
@@ -59,10 +61,10 @@ const verifyUserToken = (req, res, next) => {
 }
 
 
-const verifyTokenForDeleteUser = (req, res, next) => {
+export const verifyTokenForDeleteUser = (req, res, next) => {
     const token = req.header("auth-token");
     if(!token){
-        res.status(CONFIG.HTTP_CODE.ACCESS_DENIED_ERROR);
+        res.status(HTTP_CODE.ACCESS_DENIED_ERROR);
         res.json({
             reason: "Access denied !",
             message: "Vous devez vous authentifier.",
@@ -70,7 +72,7 @@ const verifyTokenForDeleteUser = (req, res, next) => {
         })
     }else{
         try {
-            const verifiedToken = jwt.verify(token, process.env.USER_TOKEN_SECRET);
+            const verifiedToken = jwt.verify(token, process.env.USER_TOKEN_SECRET) as JwtPayload;
             const newToken = jwt.sign({_id: verifiedToken._id, username: verifiedToken.username}, process.env.USER_TOKEN_SECRET, {expiresIn: "24h"});
             res.header("auth-token", newToken);
             const verifiedNewToken = jwt.verify(newToken, process.env.USER_TOKEN_SECRET);
@@ -79,14 +81,14 @@ const verifyTokenForDeleteUser = (req, res, next) => {
             
         } catch (veriryUserTokenError) {
             try {
-                const verifiedToken = jwt.verify(token, process.env.ADMIN_TOKEN_SECRET);
+                const verifiedToken = jwt.verify(token, process.env.ADMIN_TOKEN_SECRET) as JwtPayload;
                 const newToken = jwt.sign({_id: verifiedToken._id, isSuperAdmin: verifiedToken.isSuperAdmin}, process.env.ADMIN_TOKEN_SECRET, {expiresIn: "24h"});
                 res.header("auth-token", newToken);
                 const verifiedNewToken = jwt.verify(newToken, process.env.ADMIN_TOKEN_SECRET);
                 req.token = verifiedNewToken;
                 req.isAdmin = true;
             } catch (veriryAdminTokenError) {
-                res.status(CONFIG.HTTP_CODE.BAD_REQUEST_ERROR);
+                res.status(HTTP_CODE.BAD_REQUEST_ERROR);
                 res.json({
                     reason: "Invalid token !",
                     message: "Veuillez-vous authentifier.",
@@ -99,8 +101,3 @@ const verifyTokenForDeleteUser = (req, res, next) => {
         }
     }
 }
-
-
-exports.verifyAdminToken = verifyAdminToken;
-exports.verifyUserToken = verifyUserToken;
-exports.verifyTokenForDeleteUser = verifyTokenForDeleteUser;
