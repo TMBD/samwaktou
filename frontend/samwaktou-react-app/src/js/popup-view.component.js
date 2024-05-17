@@ -34,7 +34,7 @@ class PopupView extends React.Component {
                                     authorName : this.props.audioInfosPopup.author,
                                     recordDate : new Date(this.props.audioInfosPopup.date).toLocaleDateString("fr-FR")
                                 }}
-                                elementId = {this.props.audioInfosPopup._id}
+                                elementId = {this.props.audioInfosPopup.id}
                             />
                             <div className="popupAudioAuthorDate"> {audioAuthorAndDate}</div>
                         </div>

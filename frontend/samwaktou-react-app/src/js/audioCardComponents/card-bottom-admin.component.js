@@ -7,7 +7,7 @@ class CardBottomAdmin extends React.Component{
 
     handleDeleteAudioClick = () => {
         if(window.confirm("Voulez-vous supprimer cet audio ?")){
-            this.props.handleDeleteAudio(this.props.audioInfos._id)
+            this.props.handleDeleteAudio(this.props.audioInfos.id)
         }
     }
 

@@ -1,7 +1,9 @@
-import mongoose from "mongoose";
+import mongoose, { Model } from "mongoose";
+
+import { IAnalyticDoc } from "../analytic.model";
 
 
-let AnalyticSchema = new mongoose.Schema({
+const AnalyticSchema = new mongoose.Schema<IAnalyticDoc, Model<IAnalyticDoc>>({
     clientId: {
         type: String,
         required: true
@@ -15,4 +17,4 @@ let AnalyticSchema = new mongoose.Schema({
     },
 });
 
-export default mongoose.model("Analytic", AnalyticSchema); //has to be refered as analytics in the database
+export default mongoose.model<IAnalyticDoc>("Analytic", AnalyticSchema); //has to be refered as analytics in the database

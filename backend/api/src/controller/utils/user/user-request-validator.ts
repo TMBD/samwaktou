@@ -1,9 +1,9 @@
-import Joi from "@hapi/joi";
+import Joi, { ValidationResult } from "@hapi/joi";
 
 import { USER_VALIDATION_CONFIG, USER_GET_PARAMS } from "../../../config/server.config";
 
 
-export const validatePostUserRequest = (body) => {
+export const validatePostUserRequest = (body: unknown): ValidationResult => {
     const schema = Joi.object({
         username: Joi.string()
             .min(USER_VALIDATION_CONFIG.MIN_USERNAME_CHAR)
@@ -20,7 +20,7 @@ export const validatePostUserRequest = (body) => {
     return schema.validate(body);
 }
 
-export const validateGetUserRequest = (body) => {
+export const validateGetUserRequest = (body: unknown): ValidationResult => {
     const schema = Joi.object({
         username: Joi.string(),
         tel: Joi.string(),    
@@ -46,7 +46,7 @@ export const validateGetUserRequest = (body) => {
 }
 
 
-export const validateUpdateUserRequest = (body) => {
+export const validateUpdateUserRequest = (body: unknown): ValidationResult => {
     const schema = Joi.object({
         username: Joi.string()
             .min(USER_VALIDATION_CONFIG.MIN_USERNAME_CHAR)
@@ -62,7 +62,7 @@ export const validateUpdateUserRequest = (body) => {
 }
 
 
-export const validateLoginUserRequest = (body) => {
+export const validateLoginUserRequest = (body: unknown): ValidationResult => {
     const schema = Joi.object({
         username: Joi.string()
             .required(),

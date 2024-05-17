@@ -1,21 +1,27 @@
 import jwt from 'jsonwebtoken';
 import _ from 'lodash';
-import moment from 'moment';
+import moment, { Moment } from 'moment';
+import { DeleteResult } from 'mongodb';
 
 import { DATE_CONFIG, HTTP_CODE, USER_GET_PARAMS } from '../config/server.config';
-import { parseErrorInJson } from './utils/utilities';
-import User from '../model/user.model';
+import { ErrorResponse, parseErrorInJson } from './utils/common';
+import User, { AuthenticatedUserRequest, IUserLight, IUserObject } from '../model/user.model';
 import { 
     validatePostUserRequest, 
     validateGetUserRequest, 
     validateUpdateUserRequest, 
     validateLoginUserRequest 
 } from './utils/user/user-request-validator';
+import { Request, Response } from 'express';
+import { AuthenticatedAdminRequest } from '../model/admin.model';
+import { IUpdateOne } from '../model/db-crud';
 
 
-export const postUser = async (req, res) => {
+export const postUser = async (
+    req: Request<{}, {}, IUserLight>, 
+    res: Response<IUserObject | ErrorResponse>): Promise<void> => {
     try{
-        let reqValidation = validatePostUserRequest(req.body);
+        const reqValidation = validatePostUserRequest(req.body);
         if(reqValidation.error){
             res.status(HTTP_CODE.BAD_REQUEST_ERROR);
             res.json({
@@ -25,10 +31,10 @@ export const postUser = async (req, res) => {
                 details: reqValidation.error
             });
         } else {
-            let foundUser;
+            let foundUser: IUserObject;
             try{ //we use a dedicated try catch because an exception here has to be treated differently
                 foundUser = await User.findOneUserFromDBByUsername(req.body.username);
-            }catch(exception){
+            }catch(exception: any){
                 res.status(HTTP_CODE.INTERNAL_SERVER_ERROR);
                 res.json({
                     success: false,
@@ -37,7 +43,7 @@ export const postUser = async (req, res) => {
                     details: exception
                 });
             }
-            if(foundUser.user){
+            if(foundUser){
                 res.status(HTTP_CODE.BAD_REQUEST_ERROR);
                 res.json({
                     success: false,
@@ -46,48 +52,58 @@ export const postUser = async (req, res) => {
                     details: "Found a user with this username."
                 });
             } else {
-                let email = req.body.email ? req.body.email : null;
-                let user = new User(req.body.username, req.body.tel, email, moment.utc(req.body.date, DATE_CONFIG.DEFAULT_FORMAT), undefined);
-                let result = await user.saveToDB();
+                const email = req.body.email ? req.body.email : null;
+                const user = new User(req.body.username, req.body.tel, email, moment.utc(req.body.date, DATE_CONFIG.DEFAULT_FORMAT), null);
+                const savedUser = await user.saveToDB();
                 res.status(HTTP_CODE.OK);
-                res.json(result.data);
+                res.json(savedUser);
             }
         }
-    }catch(exception){
+    }catch(exception: any){
         res.status(exception.httpCode ? exception.httpCode : HTTP_CODE.INTERNAL_SERVER_ERROR);
         res.json(parseErrorInJson(exception));
     }
 }
 
-export const getUser = async (req, res) => {
+export const getUser = async (
+    req: Request<{userId: string}, {}, {}>, 
+    res: Response<IUserObject | ErrorResponse>): Promise<void> => {
     try{
         if(!req.params.userId){
             res.status(HTTP_CODE.BAD_REQUEST_ERROR);
             res.json({
-                sucess: false,
+                success: false,
                 reason: "No user id found !",
                 message: "Utilisateur introuvable.", 
                 details: "User id is null."
             });
         } else {
-            let findUserResult = await User.findOneUserFromDBById(req.params.userId);
-            if(!findUserResult.user){
+            const foundUser = await User.findOneUserFromDBById(req.params.userId);
+            if(!foundUser){
                 res.status(HTTP_CODE.OK);
-                res.json({});
+                res.json(null);
             }else{
                 res.status(HTTP_CODE.OK);
-                res.json(findUserResult.user);
+                res.json(foundUser);
             }
         }
-    }catch(exception){
+    }catch(exception: any){
         res.status(exception.httpCode ? exception.httpCode : HTTP_CODE.INTERNAL_SERVER_ERROR);
         res.json(parseErrorInJson(exception));
     }
 }
 
-export const getManyUsers = async(req, res) => {
+export const getManyUsers = async (
+    req: Request<{}, {}, {
+        skip?: number, 
+        limit?: number, 
+        username?: string, 
+        tel?: string, 
+        email?: string, 
+        dateParams?: {date: Moment, gte: boolean}}, {}>, 
+    res: Response<IUserObject[] | ErrorResponse>): Promise<void> => {
     try{
-        let reqValidation = validateGetUserRequest(req.body);
+        const reqValidation = validateGetUserRequest(req.body);
         if(reqValidation.error){
             res.status(HTTP_CODE.BAD_REQUEST_ERROR);
             res.json({
@@ -97,26 +113,29 @@ export const getManyUsers = async(req, res) => {
                 details: reqValidation.error
             });
         } else {
-            let limitUserToFind = (req.body.limit) ? req.body.limit : USER_GET_PARAMS.DEFAULT_LIMIT_NUMBER;
-            let skipUserToFind = (req.body.skip) ? req.body.skip : USER_GET_PARAMS.DEFAULT_SKIP_NUMBER;
-            let findUsersResults = await User.getUsers(req.body.username, req.body.tel, req.body.email, req.body.dateParams, skipUserToFind, limitUserToFind);
-            if(!findUsersResults.users){
+            const limitUserToFind = (req.body.limit) ? req.body.limit : USER_GET_PARAMS.DEFAULT_LIMIT_NUMBER;
+            const skipUserToFind = (req.body.skip) ? req.body.skip : USER_GET_PARAMS.DEFAULT_SKIP_NUMBER;
+            const foundUsers = await User.getUsers(req.body.username, req.body.tel, req.body.email, req.body.dateParams, skipUserToFind, limitUserToFind);
+            if(!foundUsers){
                 res.status(HTTP_CODE.OK);
-                res.json({});
+                res.json([]);
             }else{
                 res.status(HTTP_CODE.OK);
-                res.json(findUsersResults.users);
+                res.json(foundUsers);
             }
         }
-    }catch(exception){
+    }catch(exception: any){
         res.status(exception.httpCode ? exception.httpCode : HTTP_CODE.INTERNAL_SERVER_ERROR);
         res.json(parseErrorInJson(exception));
     }
 }
 
-export const deleteUser = async (req, res) => {
+export const deleteUser = async (
+    req: AuthenticatedUserRequest<{userId: string}, {}, {}, {}> & AuthenticatedAdminRequest<{userId: string}, {}, {}, {}>, 
+    res: Response<DeleteResult | ErrorResponse>
+): Promise<void> => {
     try{
-        if(!req.isAdmin && req.token?._id !== req.params.userId){
+        if(!req.authData?.isAdmin && req.authData?.id !== req.params.userId){
             res.status(HTTP_CODE.ACCESS_DENIED_ERROR);
             res.json({
                 success: false,
@@ -125,30 +144,32 @@ export const deleteUser = async (req, res) => {
                 details: "A user is not allowed to delete an account of another user"
             });
         } else {
-            let findUserResult = await User.findOneUserFromDBById(req.params.userId);
-            if(!findUserResult.user){
+            const foundUser = await User.findOneUserFromDBById(req.params.userId);
+            if(!foundUser){
                 res.status(HTTP_CODE.PAGE_NOT_FOUND_ERROR);
                 res.json({
-                    sucess: false,
+                    success: false,
                     reason: "No user with this id found !",
                     message: "Utilisateur introuvable.", 
                     details: "User doesn't exist."
                 });
-            }else{
-                let deleteResult = await User.deleteFromDB(req.params.userId);
+            } else {
+                const deleteResult = await User.deleteFromDB(req.params.userId);
                 res.status(HTTP_CODE.OK);
-                res.json(deleteResult.data);
+                res.json(deleteResult);
             }
         }
-    }catch(exception){
+    }catch(exception: any){
         res.status(exception.httpCode ? exception.httpCode : HTTP_CODE.INTERNAL_SERVER_ERROR);
         res.json(parseErrorInJson(exception));
     }
 }
 
-export const updateUser = async (req, res) => {
+export const updateUser = async (
+    req: AuthenticatedUserRequest<{userId: string}, {}, IUserLight>, 
+    res: Response<IUpdateOne | ErrorResponse>): Promise<void> => {
     try{
-        let reqValidation = validateUpdateUserRequest(req.body);
+        const reqValidation = validateUpdateUserRequest(req.body);
         if(reqValidation.error){
             res.status(HTTP_CODE.BAD_REQUEST_ERROR);
             res.json({
@@ -158,7 +179,7 @@ export const updateUser = async (req, res) => {
                 details: reqValidation.error
             });
         } else {
-            if(req.token?._id !== req.params.userId){
+            if(req.authData?.id && req.authData?.id !== req.params.userId){
                 res.status(HTTP_CODE.ACCESS_DENIED_ERROR);
                 res.json({
                     success: false,
@@ -167,20 +188,22 @@ export const updateUser = async (req, res) => {
                     details: "Not allowed to update another user's data !"
                 });
             } else {
-                let findUserResult = await User.findOneUserFromDBById(req.params.userId);
-                if(!findUserResult.user){
+                const foundUser = await User.findOneUserFromDBById(req.params.userId);
+                if(!foundUser){
                     res.status(HTTP_CODE.PAGE_NOT_FOUND_ERROR);
                     res.json({
-                        sucess: false,
+                        success: false,
                         reason: "No user with this id found !",
                         message: "Utilisateur introuvable.", 
                         details: "No user found for update"
                     });
                 }else{
-                    let findIfUsernameExistResult;
+                    let isUsernameUnique = req.body.username === foundUser.username;
                     try{
-                        findIfUsernameExistResult = await User.findOneUserFromDBByUsername(req.body.username);
-                    }catch(exception){
+                        if(!isUsernameUnique){
+                            isUsernameUnique = !(await User.findOneUserFromDBByUsername(req.body.username));
+                        }
+                    }catch(exception: any){
                         res.status(HTTP_CODE.INTERNAL_SERVER_ERROR);
                         res.json({
                             success: false,
@@ -189,15 +212,15 @@ export const updateUser = async (req, res) => {
                             details: exception
                         });
                     }
-                    if(!findIfUsernameExistResult.user || req.body.username === findUserResult.user.username){
-                        let tel = req.body.tel ? req.body.tel : findUserResult.user.tel;
-                        let email = req.body.email ? req.body.email : findUserResult.user.email;
-                        let user = new User(req.body.username, tel, email, moment.utc(findUserResult.user.date, DATE_CONFIG.DEFAULT_FORMAT), findUserResult.user._id);
-                        let updateResult = await user.updateToDB();
-                        const token = jwt.sign({_id: findUserResult.user._id, username: req.body.username}, process.env.USER_TOKEN_SECRET, {expiresIn: "10h"});
+                    if(isUsernameUnique){
+                        const tel = req.body.tel ? req.body.tel : foundUser.tel;
+                        const email = req.body.email ? req.body.email : foundUser.email;
+                        const user = new User(req.body.username, tel, email, foundUser.date, foundUser.id);
+                        const updateResult = await user.updateToDB();
+                        const token = jwt.sign({id: user.id, username: user.username}, process.env.USER_TOKEN_SECRET, {expiresIn: "24h"});
                         res.header("auth-token", token);
                         res.status(HTTP_CODE.OK);
-                        res.json(updateResult.data);
+                        res.json(updateResult);
                     }else{
                         res.status(HTTP_CODE.BAD_REQUEST_ERROR);
                         res.json({
@@ -210,15 +233,17 @@ export const updateUser = async (req, res) => {
                 }
             }
         }
-    }catch(exception){
+    }catch(exception: any){
         res.status(exception.httpCode ? exception.httpCode : HTTP_CODE.INTERNAL_SERVER_ERROR);
         res.json(parseErrorInJson(exception));
     }
 }
 
-export const loginUser = async (req, res) => {
+export const loginUser = async (
+    req: Request<{}, {}, {username: string, tel: string}>, 
+    res: Response<{id: string, token: string} | ErrorResponse>): Promise<void> => {
     try{
-        let reqValidation = validateLoginUserRequest(req.body);
+        const reqValidation = validateLoginUserRequest(req.body);
         if(reqValidation.error){
             res.status(HTTP_CODE.BAD_REQUEST_ERROR);
             res.json({
@@ -228,9 +253,9 @@ export const loginUser = async (req, res) => {
                 details: reqValidation.error
             });
         } else {
-            let findUserResult = await User.findOneUserFromDBByUsername(req.body.username);
+            const foundUser = await User.findOneUserFromDBByUsername(req.body.username);
             
-            if(!findUserResult.user){
+            if(!foundUser){
                 res.status(HTTP_CODE.PAGE_NOT_FOUND_ERROR);
                 res.json({
                     success: false,
@@ -239,15 +264,12 @@ export const loginUser = async (req, res) => {
                     details: "The username or the phone number doesn't match."
                 });
             }else{
-                const valideUser = req.body.tel === findUserResult.user.tel;
-                if(valideUser){
-                    const token = jwt.sign({_id: findUserResult.user._id, username: findUserResult.user.username}, process.env.USER_TOKEN_SECRET, {expiresIn: "24h"});
-                    res.header("auth-token", token);
+                if(req.body.tel === foundUser.tel){
+                    const token = jwt.sign({id: foundUser.id, username: foundUser.username}, process.env.USER_TOKEN_SECRET, {expiresIn: "24h"});
                     res.status(HTTP_CODE.OK);
                     res.json({
-                        _id: findUserResult.user._id,
-                        username: findUserResult.user.username,
-                        tel: findUserResult.user.tel
+                        id: foundUser.id,
+                        token: token
                     });
                 }else{
                     res.status(HTTP_CODE.PAGE_NOT_FOUND_ERROR);
@@ -260,7 +282,7 @@ export const loginUser = async (req, res) => {
                 }
             }
         }
-    }catch(exception){
+    }catch(exception: any){
         res.status(exception.httpCode ? exception.httpCode : HTTP_CODE.INTERNAL_SERVER_ERROR);
         res.json(parseErrorInJson(exception));
     }

@@ -1,9 +1,10 @@
-import mongoose from "mongoose";
+import mongoose, { Model } from "mongoose";
 
 import { USER_VALIDATION_CONFIG } from "../../config/server.config";
+import { IUserDoc } from "../user.model";
 
 
-const UserSchema = new mongoose.Schema({
+const UserSchema = new mongoose.Schema<IUserDoc, Model<IUserDoc>>({
     username: {
         type: String,
         required: true,
@@ -22,16 +23,10 @@ const UserSchema = new mongoose.Schema({
         min: USER_VALIDATION_CONFIG.MIN_EMAIL_CHAR,
         max: USER_VALIDATION_CONFIG.MAX_EMAIL_CHAR
     },
-    interestKeywords: {
-        type: [String],
-        required: false,
-        max: USER_VALIDATION_CONFIG.MAX_INTERESTKEYWORDS_CHAR,
-        min: USER_VALIDATION_CONFIG.MIN_INTERESTKEYWORDS_CHAR
-    },
     date: {
         type: Date,
         default: Date.now()
     }
 });
 
-export default mongoose.model("User", UserSchema); //has to be refered as users in the database
+export default mongoose.model<IUserDoc>("User", UserSchema); //has to be refered as users in the database

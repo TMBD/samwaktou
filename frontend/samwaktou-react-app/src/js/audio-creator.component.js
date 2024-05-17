@@ -141,7 +141,7 @@ class AudioCreator extends React.Component{
         data.append("keywords", this.state.keywords.trim());
         data.append("date", this.state.date.format('DD-MM-YYYY'));
 
-        fetch(this.API_SERVER_URL+"/audios/"+this.state.audioInfos._id, {
+        fetch(this.API_SERVER_URL+"/audios/"+this.state.audioInfos.id, {
             method: 'PUT',
             headers: {
                 "auth-token": this.props.user.token

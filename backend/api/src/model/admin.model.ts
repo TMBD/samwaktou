@@ -1,59 +1,112 @@
 import _ from 'lodash';
+import moment, { Moment } from 'moment';
+import { DeleteResult } from 'mongodb';
+import { Types } from 'mongoose';
+import { Request } from 'express';
 
-import adminModel from './schema/admin.schema';
-import DB from './db-crud';
+import AdminModel from './schema/admin.schema';
+import DB, { IDocumentId, IUpdateOne } from './db-crud';
 import {HTTP_CODE} from '../config/server.config';
-import { Moment } from 'moment';
 
 
-export default class Admin{
+export interface AuthenticatedAdminRequest<
+    P = any,
+    ResBody = any,
+    ReqBody = any,
+    ReqQuery = any> extends Request<P, ResBody, ReqBody, ReqQuery> {
+    authData?: {
+        isSuperAdmin: boolean;
+        id?: string,
+        isAdmin?: boolean
+    };
+}
+
+interface IAdmin {
+    surname: string,
+    name: string,
+    email: string,
+    password: string,
+    date: Moment,
+    isSuperAdmin: boolean
+}
+
+export interface IAdminObject extends IAdmin {
+    id: string;
+    
+    saveToDB(): Promise<IAdminObject>;
+    updateToDB(): Promise<IUpdateOne>;
+    deleteFromDB(): Promise<DeleteResult>;
+}
+
+export interface IAdminDoc extends IAdmin, IDocumentId {}
+
+export interface IAdminLight {
+    surname: string, 
+    name: string, 
+    email: string, 
+    password: string, 
+    date?: Moment, 
+    isSuperAdmin?: boolean,
+    id?: string
+}
+
+export default class Admin implements IAdminObject {
     constructor(
-        private surname: string, 
-        private name: string, 
-        private email: string, 
-        private password: string, 
-        private date: Moment, 
-        private id: string, 
-        private isSuperAdmin: boolean){
+        public surname: string, 
+        public name: string, 
+        public email: string, 
+        public password: string, 
+        public date: Moment, 
+        public isSuperAdmin: boolean,
+        public id: string){
         this.surname = _.capitalize(surname);
         this.name = _.toUpper(name);
         this.email = _.toLower(email);
-        this.date = date;
-        this.id = id;
         this.password = password;
+        this.date = date;
         this.isSuperAdmin = isSuperAdmin;
+        this.id = id;
     }
 
-    getSurname(){return this.surname;}
-    getName(){return this.name;}
-    getEmail(){return this.email;}
-    getPassword(){return this.password;}
-    getDate(){return this.date;}
-    getId(){return this.id;}
-    getIsSuperAdmin(){return this.isSuperAdmin;}
+    get getSurname(){return this.surname;}
+    get getName(){return this.name;}
+    get getEmail(){return this.email;}
+    get getPassword(){return this.password;}
+    get getDate(){return this.date;}
+    get getIsSuperAdmin(){return this.isSuperAdmin;}
+    get getId(){return this.id;}
     
+    set setSurname(surname: string){this.surname = _.capitalize(surname);}
+    set setName(name: string){this.name = _.toUpper(name);}
+    set setEmail(email: string){this.email = _.toLower(email);}
+    set setPassword(password: string){this.password = password;}
+    set setDate(date: Moment){this.date = date;}
+    set setIsSuperAdmin(isSuperAdmin: boolean){this.isSuperAdmin = isSuperAdmin;}
+    set setId(id: string){this.id = id;}
 
-    setSurname(surname){this.surname = _.capitalize(surname);}
-    setName(name){this.name = _.toUpper(name);}
-    setEmail(email){this.email = _.toLower(email);}
-    setPassword(password){this.password = password;}
-    setDate(date){this.date = date;}
-    setId(id){this.id = id;}
-    setIsSuperAdmin(isSuperAdmin){this.isSuperAdmin = isSuperAdmin;}
+    public static toAdmin(doc: IAdminDoc): IAdminObject{
+        if(!doc) return null;
+        return new Admin(doc.surname, doc.name, doc.email, doc.password, doc.date, doc.isSuperAdmin, doc._id.toString());
+    };
 
+    public static toAdmins(docs: IAdminDoc[]): IAdminObject[]{
+        if(!docs) return null;
+        return docs.map(doc => this.toAdmin(doc));
+    };
 
     getAdminModelStruct(){
-        return new adminModel({
+        return new AdminModel<IAdminDoc>({
             surname: this.surname,
             name: this.name,
             email: this.email,
             password: this.password,
             date: this.date,
-            isSuperAdmin: this.isSuperAdmin
+            isSuperAdmin: this.isSuperAdmin,
+            _id: new Types.ObjectId(this.id)
         });
     }
 
-    getStruct(){
+    getDefaultUpdateObject(){
         return {
             surname: this.surname,
             name: this.name,
@@ -65,12 +118,10 @@ export default class Admin{
         };
     }
 
-    async saveToDB(){
+    async saveToDB(): Promise<IAdminObject> {
         try {
-            let result = await DB.postToDB(this.getAdminModelStruct());
-            this.setId(result.data._id);
-            this.setDate(result.data.date);
-            return Promise.resolve(result);
+            const result = await DB.postToDB<IAdminDoc>(this.getAdminModelStruct());
+            return Promise.resolve(Admin.toAdmin(result.data));
         } catch (saveError) {
             return Promise.reject({
                 success: false,
@@ -82,13 +133,10 @@ export default class Admin{
         }
     }
 
-    async updateToDB(){
+    async updateToDB(): Promise<IUpdateOne> {
         try {
-            let result = await DB.updateOne(adminModel, this.getId(), this.getStruct());
-            return Promise.resolve({
-                success: true, 
-                data: result
-            });
+            const result = await DB.updateOne<IAdminDoc>(AdminModel, this.id, this.getDefaultUpdateObject());
+            return Promise.resolve(result);
         } catch (updateError) {
             return Promise.reject({
                 success: false,
@@ -101,13 +149,10 @@ export default class Admin{
     }
 
 
-    async deleteFromDB(){
+    async deleteFromDB(): Promise<DeleteResult> {
         try {
-            let result = await DB.deleteFromDB(adminModel, this.getId());
-            return Promise.resolve({
-                success: true, 
-                data: result
-            });
+            const result = await DB.deleteFromDB<IAdminDoc>(AdminModel, this.id);
+            return Promise.resolve(result);
         } catch (deleteError) {
             return Promise.reject({
                 success: false,
@@ -119,13 +164,10 @@ export default class Admin{
         }
     }
 
-    static async deleteFromDB(id){
+    static async deleteFromDB(id: string): Promise<DeleteResult>{
         try {
-            let result = await DB.deleteFromDB(adminModel, id);
-            return Promise.resolve({
-                success: true, 
-                data: result
-            });
+            const result = await DB.deleteFromDB<IAdminDoc>(AdminModel, id);
+            return Promise.resolve(result);
         } catch (deleteError) {
             return Promise.reject({
                 success: false,
@@ -137,14 +179,11 @@ export default class Admin{
         }
     }
 
-    static async findOneAdminFromDBById(id){
+    static async findOneAdminFromDBById(id: string): Promise<IAdminObject> {
         try {
-            let data = await DB.findOne(adminModel, {_id: id});
-            let admin = _.isEmpty(data) ? null : data;
-            return Promise.resolve({
-                success: true, 
-                admin: admin
-            });
+            const data = await DB.findOne<IAdminDoc>(AdminModel, {_id: id});
+            const audio = _.isEmpty(data) ? null : data;
+            return Promise.resolve(Admin.toAdmin(audio));
         } catch (deleteError) {
             return Promise.reject({
                 success: false,
@@ -156,16 +195,13 @@ export default class Admin{
         }
     }
 
-    static async findOneAdminFromDBByEmail(email){
+    static async findOneAdminFromDBByEmail(email: string): Promise<IAdminObject>{
         try {
             let data = Admin.getRootAdmin(email);
             
-            if(data === null) data = await DB.findOne(adminModel, {email: email});
-            let admin = _.isEmpty(data) ? null : data;
-            return Promise.resolve({
-                success: true, 
-                admin: admin
-            });
+            if(!data) data = await DB.findOne<IAdminDoc>(AdminModel, {email: email});
+            const admin = _.isEmpty(data) ? null : data;
+            return Promise.resolve(Admin.toAdmin(admin));
         } catch (deleteError) {
             return Promise.reject({
                 success: false, 
@@ -177,11 +213,16 @@ export default class Admin{
         }
     }
 
-    static async getAdmins(surname, name, email, dateParams, isSuperAdmin, skipNumber, limitNumber){
+    static async getAdmins(
+        surname: string, 
+        name: string, 
+        email: string, 
+        dateParams: {date: Moment, gte: boolean}, 
+        isSuperAdmin: boolean, 
+        skipNumber: number, 
+        limitNumber: number): Promise<IAdminObject[]> {
         try {
-
-
-            var queryStruct = {};
+            let queryStruct = {};
 
             if(surname){
                 _.assign(queryStruct, {surname: _.capitalize(surname)});
@@ -209,17 +250,8 @@ export default class Admin{
                 }
             }
 
-            let data = await DB.findMany(adminModel, queryStruct, "_id surname name email date isSuperAdmin", null, skipNumber, limitNumber);
-            if(_.isEmpty(data)){
-                return Promise.resolve({
-                    success: true, 
-                    admins: null
-                });
-            }
-            return Promise.resolve({
-                success: true, 
-                admins: data
-            });
+            const foundAdmins = await DB.findMany<IAdminDoc>(AdminModel, queryStruct, {_id: 1, surname: 1, name: 1, email: 1, date: 1, isSuperAdmin: 1}, null, skipNumber, limitNumber);
+            return Promise.resolve(Admin.toAdmins(foundAdmins));
         } catch (deleteError) {
             return Promise.reject({
                 success: false,
@@ -231,14 +263,14 @@ export default class Admin{
         }
     }
 
-    static getRootAdmin(email){
+    static getRootAdmin(email: string): IAdminDoc{
         if(email == process.env.ROOT_ADMIN_EMAIL){
             return {
-                "_id": process.env.ROOT_ADMIN_ID,
+                "_id": new Types.ObjectId(process.env.ROOT_ADMIN_ID) ,
                 "surname": process.env.ROOT_ADMIN_SURNAME,
                 "name": process.env.ROOT_ADMIN_NAME,
                 "email": process.env.ROOT_ADMIN_EMAIL,
-                "date": process.env.ROOT_ADMIN_DATE,
+                "date": moment.utc(process.env.ROOT_ADMIN_DATE),
                 "password": process.env.ROOT_ADMIN_PASSWORD,
                 "isSuperAdmin": true
             }

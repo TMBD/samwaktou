@@ -426,7 +426,7 @@ class AppBody extends React.Component{
         })
         .then(
             (result) => {
-                this.setState({audios: this.state.audios.filter(audio => audio._id !== elementId)});
+                this.setState({audios: this.state.audios.filter(audio => audio.id !== elementId)});
                 window.alert("Audio supprimé !")
             },
             (error) => {
@@ -548,8 +548,8 @@ class AppBody extends React.Component{
                         this.state.audios.map(
                             element => 
                                 <AudioCard 
-                                    key = {element._id}
-                                    elementId = {element._id}
+                                    key = {element.id}
+                                    elementId = {element.id}
                                     currentPlayingElementId = {this.state.currentPlayingElementId}
                                     theme = {element.theme}
                                     authorName = {element.author}

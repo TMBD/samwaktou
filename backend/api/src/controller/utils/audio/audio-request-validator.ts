@@ -4,7 +4,12 @@ import moment from 'moment';
 import { AUDIO_GET_PARAMS, AUDIO_VALIDATION_CONFIG } from '../../../config/server.config';
 
 
-export const validatePostAudioRequest = (req) => {
+interface IValidationResult {
+    success: boolean,
+    details?: string
+}
+
+export const validatePostAudioRequest = (req: any): IValidationResult => {
     let body = req.body;
     if(!body.theme){
         return {
@@ -114,7 +119,7 @@ export const validatePostAudioRequest = (req) => {
 }
 
 
-export const validateGetAudioRequest = (req) => {
+export const validateGetAudioRequest = (req: any): IValidationResult => {
     let body = req.query;
     if(body.theme){
         if(!_.isString(body.theme)){
@@ -196,7 +201,7 @@ export const validateGetAudioRequest = (req) => {
 
 
 
-export const validateUpdateAudioRequest = (req) => {
+export const validateUpdateAudioRequest = (req: any): IValidationResult => {
     let body = req.body;
     
     if(body.theme){

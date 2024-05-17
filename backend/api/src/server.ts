@@ -23,7 +23,7 @@ server.use(expressFileupload({
 
 //Configure cors and whitelist
 let whitelist = [process.env.APP_HOST, process.env.APP_LOAD_BALANCER_HOST]
-process.env.APP_CORS_EXTRA_WHITLISTS.split(" ").filter(host => host).map(host => whitelist.push(host));
+process.env.APP_CORS_EXTRA_WHITLISTS?.split(" ").filter(host => host).map(host => whitelist.push(host));
 const corsOptions : CorsOptions = {
     origin: function (origin, callback) {
         if(!origin) callback(null, true);

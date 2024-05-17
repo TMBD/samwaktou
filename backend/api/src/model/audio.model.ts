@@ -1,58 +1,99 @@
 import _ from 'lodash';
 import moment, { Moment } from 'moment';
+import { Types } from 'mongoose';
+import { DeleteResult } from 'mongodb';
 
-import audioModel from './schema/audio.schema';
-import DB from './db-crud';
+import AudioModel from './schema/audio.schema';
+import DB, { IDocumentId, IUpdateOne } from './db-crud';
 import { HTTP_CODE, FILE_LOCATION, DATE_CONFIG } from '../config/server.config';
 
 
-export default class Audio{
+interface IAudio {
+    uri: string, 
+    theme: string, 
+    author: string, 
+    description: string, 
+    keywords: string, 
+    date: Moment
+}
+
+export interface IAudioObject extends IAudio {
+    id: string;
+    
+    saveToDB(): Promise<IAudioObject>;
+    updateToDB(): Promise<IUpdateOne>;
+    deleteFromDB(): Promise<DeleteResult>;
+}
+
+export interface IAudioDoc extends IAudio, IDocumentId {}
+
+export interface IAudioLight {
+    uri: string, 
+    theme: string, 
+    author: string, 
+    description: string, 
+    keywords: string, 
+    date?: string,
+    id?: string
+}
+
+export default class Audio implements IAudioObject{
     constructor(
-        private uri: string, 
-        private theme: string, 
-        private author: string, 
-        private description: string, 
-        private keywords: string, 
-        private date: Moment, 
-        private id: string){
+        public uri: string, 
+        public theme: string, 
+        public author: string, 
+        public description: string, 
+        public keywords: string, 
+        public date: Moment, 
+        public id: string){
         this.uri = uri ? uri : FILE_LOCATION.AUDIO_FILE_LOCATION;
-        this.theme = _.toUpper(theme),
-        this.author = _.toUpper(author),
+        this.theme = _.toUpper(theme);
+        this.author = _.toUpper(author);
         this.description = description;
         this.keywords = keywords;
-        this.date = date ? moment.utc(date, DATE_CONFIG.DEFAULT_FORMAT) : moment.utc().startOf("day");
+        this.date = date ? date : moment.utc().startOf("day");
         this.id = id;
     }
 
-    getUri(){return this.uri;}
-    getTheme(){return this.theme;}
-    getAuthor(){return this.author;}
-    getDescription(){return this.description;}
-    getKeywords(){return this.keywords;}
-    getDate(){return this.date;}
-    getId(){return this.id;}
+    get getUri(){return this.uri;}
+    get getTheme(){return this.theme;}
+    get getAuthor(){return this.author;}
+    get getDescription(){return this.description;}
+    get getKeywords(){return this.keywords;}
+    get getDate(){return this.date;}
+    get getId(){return this.id;}
 
-    setUri(uri){this.uri = uri;}
-    setTheme(theme){this.theme = _.toUpper(theme);}
-    setAuthor(author){this.author = _.toUpper(author);}
-    setDescription(description){this.description = description;}
-    setKeywords(keywords){this.keywords = keywords;}
-    setDate(date){this.date = moment.utc(date, DATE_CONFIG.DEFAULT_FORMAT);}
-    setId(id){this.id = id;}
+    set setUri(uri: string){this.uri = uri;}
+    set setTheme(theme: string){this.theme = _.toUpper(theme);}
+    set setAuthor(author: string){this.author = _.toUpper(author);}
+    set setDescription(description: string){this.description = description;}
+    set setKeywords(keywords: string ){this.keywords = keywords;}
+    set setDate(date: Moment){this.date = moment.utc(date, DATE_CONFIG.DEFAULT_FORMAT);}
+    set setId(id: string){this.id = id;}
 
+    public static toAudio(doc: IAudioDoc): IAudioObject | null {
+        if(!doc) return null;
+        return new Audio(doc.uri, doc.theme, doc.author, doc.description, doc.keywords, doc.date, doc._id.toString());
+    };
+
+    public static toAudios(docs: IAudioDoc[]): IAudioObject[]{
+        if(!docs) return [];
+        return docs.map(doc => this.toAudio(doc));
+    };
 
     getAudioModelStruct(){
-        return new audioModel({
+        return new AudioModel<IAudioDoc>({
             uri: this.uri,
             theme: this.theme,
             author: this.author,
             description: this.description,
             keywords: this.keywords,
-            date: this.date
+            date: this.date,
+            _id: new Types.ObjectId(this.id)
         });
     }
 
-    getStruct(){
+    getDefaultUpdateObject(){
         return {
             uri: this.uri,
             theme: this.theme,
@@ -63,12 +104,10 @@ export default class Audio{
         };
     }
 
-    async saveToDB(){
+    async saveToDB(): Promise<IAudioObject> {
         try {
-            let result = await DB.postToDB(this.getAudioModelStruct());
-            this.setId(result.data._id);
-            this.setDate(result.data.date);
-            return Promise.resolve(result);
+            const result = await DB.postToDB<IAudioDoc>(this.getAudioModelStruct());
+            return Promise.resolve(Audio.toAudio(result.data));
         } catch (saveError) {
             return Promise.reject({
                 success: false,
@@ -80,13 +119,10 @@ export default class Audio{
         }
     }
 
-    async updateToDB(){
+    async updateToDB(): Promise<IUpdateOne> {
         try {
-            let result = await DB.updateOne(audioModel, this.getId(), this.getStruct());
-            return Promise.resolve({
-                success: true, 
-                data: result
-            });
+            const result = await DB.updateOne<IAudioDoc>(AudioModel, this.id, this.getDefaultUpdateObject());
+            return Promise.resolve(result);
         } catch (updateError) {
             return Promise.reject({
                 success: false,
@@ -98,13 +134,10 @@ export default class Audio{
         }
     }
 
-    async deleteFromDB(){
+    async deleteFromDB(): Promise<DeleteResult> {
         try {
-            let result = await DB.deleteFromDB(audioModel, this.getId());
-            return Promise.resolve({
-                success: true, 
-                data: result
-            });
+            const result = await DB.deleteFromDB<IAudioDoc>(AudioModel, this.id);
+            return Promise.resolve(result);
         } catch (deleteError) {
             return Promise.reject({
                 success: false,
@@ -116,13 +149,10 @@ export default class Audio{
         }
     }
 
-    static async deleteFromDB(id){
+    static async deleteFromDB(id: string): Promise<DeleteResult>{
         try {
-            let result = await DB.deleteFromDB(audioModel, id);
-            return Promise.resolve({
-                success: true, 
-                data: result
-            });
+            const result = await DB.deleteFromDB<IAudioDoc>(AudioModel, id);
+            return Promise.resolve(result);
         } catch (deleteError) {
             return Promise.reject({
                 success: false, 
@@ -134,14 +164,11 @@ export default class Audio{
         }
     }
 
-    static async findOneAudioFromDBById(id){
+    static async findOneAudioFromDBById(id: string): Promise<IAudioObject> {
         try {
-            let data = await DB.findOne(audioModel, {_id: id});
-            let audio = _.isEmpty(data) ? null : data;
-            return Promise.resolve({
-                success: true, 
-                audio: audio
-            });
+            const data = await DB.findOne<IAudioDoc>(AudioModel, {_id: id});
+            const audio = _.isEmpty(data) ? null : data;
+            return Promise.resolve(Audio.toAudio(audio));
         } catch (deleteError) {
             return Promise.reject({
                 success: false,
@@ -153,14 +180,11 @@ export default class Audio{
         }
     }
 
-    static async findOneAudioFromDBByUri(uri){
+    static async findOneAudioFromDBByUri(uri: string): Promise<IAudioObject> {
         try {
-            let data = await DB.findOne(audioModel, {uri: uri});
+            let data = await DB.findOne<IAudioDoc>(AudioModel, {uri: uri});
             let audio = _.isEmpty(data) ? null : data;
-            return Promise.resolve({
-                success: true, 
-                audio: audio
-            });
+            return Promise.resolve(Audio.toAudio(audio));
         } catch (deleteError) {
             return Promise.reject({
                 success: false, 
@@ -172,7 +196,14 @@ export default class Audio{
         }
     }
 
-    static async findAudiosFromDB(theme, author, keywords, minDate , maxDate, skipNumber, limitNumber){
+    static async findAudiosFromDB(
+        theme: string, 
+        author: string, 
+        keywords: string, 
+        minDate: Moment, 
+        maxDate: Moment, 
+        skipNumber: number, 
+        limitNumber: number): Promise<IAudioObject[]> {
         try {
             let queryStruct = {};
             let sort = {};
@@ -211,17 +242,11 @@ export default class Audio{
             }
 
             _.assign(sort, {date: -1, _id: 1});
-            let data = await DB.findMany(audioModel, queryStruct, null, sort, skipNumber, limitNumber);
+            let data = await DB.findMany<IAudioDoc>(AudioModel, queryStruct, null, sort, skipNumber, limitNumber);
             if(_.isEmpty(data)){
-                return Promise.resolve({
-                    success: true, 
-                    audios: null
-                });
+                data = null
             }
-            return Promise.resolve({
-                success: true, 
-                audios: data
-            });
+            return Promise.resolve(Audio.toAudios(data));
         } catch (error) {
             return Promise.reject({
                 success: false,
@@ -233,14 +258,10 @@ export default class Audio{
         }
     }
 
-    static async getDistinctThemes(){
+    static async getDistinctThemes(): Promise<string[]>{
         try {
-            let themes = await DB.getDistinctValuesForField(audioModel, "theme");
-            themes = Audio.transformAndMakeDistinct(themes)
-            return Promise.resolve({
-                success: true, 
-                data: themes
-            });
+            const themes = (await DB.getDistinctValuesForField<IAudioDoc>(AudioModel, 'theme')) as string[];
+            return Promise.resolve(Audio.transformAndMakeDistinct(themes));
         } catch (deleteError) {
             return Promise.reject({
                 success: false,
@@ -252,14 +273,10 @@ export default class Audio{
         }
     }
 
-    static async getDistinctAuthors(){
+    static async getDistinctAuthors(): Promise<string[]>{
         try {
-            let authors = await DB.getDistinctValuesForField(audioModel, "author");
-            authors = Audio.transformAndMakeDistinct(authors)
-            return Promise.resolve({
-                success: true, 
-                data: authors
-            });
+            const authors = (await DB.getDistinctValuesForField<IAudioDoc>(AudioModel, 'author')) as string[];
+            return Promise.resolve(Audio.transformAndMakeDistinct(authors));
         } catch (deleteError) {
             return Promise.reject({
                 success: false,
@@ -271,7 +288,7 @@ export default class Audio{
         }
     }
 
-    static transformAndMakeDistinct(values){
+    static transformAndMakeDistinct(values: string[]): string[]{
         return _.sortBy(
                     _.uniq(
                         values?.map(value => _.trim(value))

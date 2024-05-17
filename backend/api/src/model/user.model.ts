@@ -1,18 +1,58 @@
 import { Moment } from 'moment';
 import _ from 'lodash';
+import { DeleteResult } from 'mongodb';
+import { Types } from 'mongoose';
+import { Request } from 'express';
 
-import userModel from './schema/user.schema';
-import DB from './db-crud';
+import UserModel from './schema/user.schema';
+import DB, { IDocumentId, IUpdateOne } from './db-crud';
 import { HTTP_CODE } from '../config/server.config';
 
 
-export default class User{
+export interface AuthenticatedUserRequest<
+    P = any,
+    ResBody = any,
+    ReqBody = any,
+    ReqQuery = any> extends Request<P, ResBody, ReqBody, ReqQuery> {
+    authData?: {
+        username: string;
+        id?: string
+    };
+}
+
+
+interface IUser {
+    username: string, 
+    tel: string, 
+    email: string, 
+    date: Moment, 
+}
+
+export interface IUserObject extends IUser {
+    id: string;
+    
+    saveToDB(): Promise<IUserObject>;
+    updateToDB(): Promise<IUpdateOne>;
+    deleteFromDB(): Promise<DeleteResult>;
+}
+
+export interface IUserDoc extends IUser, IDocumentId {}
+
+export interface IUserLight {
+    username: string, 
+    tel: string, 
+    email?: string, 
+    date?: Moment, 
+    id?: string
+}
+
+export default class User implements IUserObject{
     constructor(
-        private username: string, 
-        private tel: string, 
-        private email: string, 
-        private date: Moment, 
-        private id: string){
+        public username: string, 
+        public tel: string, 
+        public email: string, 
+        public date: Moment, 
+        public id: string){
         this.username = _.toLower(username);
         this.tel = tel;
         this.email = _.toLower(email);
@@ -20,30 +60,40 @@ export default class User{
         this.id = id;
     }
 
-    getUsername(){return this.username;}
-    getTel(){return this.tel;}
-    getEmail(){return this.email;}
-    getDate(){return this.date;}
-    getId(){return this.id;}
+    get getUsername(){return this.username;}
+    get getTel(){return this.tel;}
+    get getEmail(){return this.email;}
+    get getDate(){return this.date;}
+    get getId(){return this.id;}
     
 
-    setUsername(username){this.username = _.toLower(username);}
-    setTel(tel){this.tel = tel;}
-    setEmail(email){this.email = _.toLower(email);}
-    setDate(date){this.date = date;}
-    setId(id){this.id = id;}
+    set setUsername(username: string){this.username = _.toLower(username);}
+    set setTel(tel: string){this.tel = tel;}
+    set setEmail(email: string){this.email = _.toLower(email);}
+    set setDate(date: Moment){this.date = date;}
+    set setId(id: string){this.id = id;}
 
+    public static toUser(doc: IUserDoc): IUserObject {
+        if(!doc) return null;
+        return new User(doc.username, doc.tel, doc.email, doc.date, doc._id.toString());
+    };
+
+    public static toUsers(docs: IUserDoc[]): IUserObject[]{
+        if(!docs) return null;
+        return docs.map(doc => this.toUser(doc));
+    };
 
     getUserModelStruct(){
-        return new userModel({
+        return new UserModel<IUserDoc>({
             username: this.username,
             tel: this.tel,
             email: this.email,
-            date: this.date
+            date: this.date,
+            _id: new Types.ObjectId(this.id)
         });
     }
 
-    getStruct(){
+    getDefaultUpdateObject(){
         return {
             username: this.username,
             tel: this.tel,
@@ -52,12 +102,10 @@ export default class User{
         };
     }
 
-    async saveToDB(){
+    async saveToDB(): Promise<IUserObject> {
         try {
-            let result = await DB.postToDB(this.getUserModelStruct());
-            this.setId(result.data._id);
-            this.setDate(result.data.date);
-            return Promise.resolve(result);
+            const result = await DB.postToDB<IUserDoc>(this.getUserModelStruct());
+            return Promise.resolve(User.toUser(result.data));
         } catch (saveError) {
             return Promise.reject({
                 success: false,
@@ -69,13 +117,10 @@ export default class User{
         }
     }
 
-    async updateToDB(){
+    async updateToDB(): Promise<IUpdateOne> {
         try {
-            let result = await DB.updateOne(userModel, this.getId(), this.getStruct());
-            return Promise.resolve({
-                success: true, 
-                data: result
-            });
+            const result = await DB.updateOne<IUserDoc>(UserModel, this.id, this.getDefaultUpdateObject());
+            return Promise.resolve(result);
         } catch (updateError) {
             return Promise.reject({
                 success: false,
@@ -87,14 +132,10 @@ export default class User{
         }
     }
 
-
-    async deleteFromDB(){
+    async deleteFromDB(): Promise<DeleteResult> {
         try {
-            let result = await DB.deleteFromDB(userModel, this.getId());
-            return Promise.resolve({
-                success: true, 
-                data: result
-            });
+            const result = await DB.deleteFromDB<IUserDoc>(UserModel, this.id);
+            return Promise.resolve(result);
         } catch (deleteError) {
             return Promise.reject({
                 success: false,
@@ -106,13 +147,10 @@ export default class User{
         }
     }
 
-    static async deleteFromDB(id){
+    static async deleteFromDB(id: string): Promise<DeleteResult>{
         try {
-            let result = await DB.deleteFromDB(userModel, id);
-            return Promise.resolve({
-                success: true, 
-                data: result
-            });
+            const result = await DB.deleteFromDB<IUserDoc>(UserModel, id);
+            return Promise.resolve(result);
         } catch (deleteError) {
             return Promise.reject({
                 success: false,
@@ -124,14 +162,11 @@ export default class User{
         }
     }
 
-    static async findOneUserFromDBById(id){
+    static async findOneUserFromDBById(id: string): Promise<IUserObject> {
         try {
-            let data = await DB.findOne(userModel, {_id: id});
-            let user = _.isEmpty(data) ? null : data;
-            return Promise.resolve({
-                success: true, 
-                user: user
-            });
+            const data = await DB.findOne<IUserDoc>(UserModel, {_id: id});
+            const audio = _.isEmpty(data) ? null : data;
+            return Promise.resolve(User.toUser(audio));
         } catch (deleteError) {
             return Promise.reject({
                 success: false,
@@ -143,14 +178,11 @@ export default class User{
         }
     }
 
-    static async findOneUserFromDBByUsername(username){
+    static async findOneUserFromDBByUsername(username: string): Promise<IUserObject> {
         try {
-            let data = await DB.findOne(userModel, {username: _.toLower(username)});
-            let user = _.isEmpty(data) ? null : data;
-            return Promise.resolve({
-                success: true, 
-                user: user
-            });
+            let data = await DB.findOne<IUserDoc>(UserModel, {username: username});
+            let audio = _.isEmpty(data) ? null : data;
+            return Promise.resolve(User.toUser(audio));
         } catch (deleteError) {
             return Promise.reject({
                 success: false,
@@ -162,10 +194,16 @@ export default class User{
         }
     }
 
-    static async getUsers(username, tel, email, dateParams, skipNumber, limitNumber){
+    static async getUsers(
+        username: string, 
+        tel: string, 
+        email: string, 
+        dateParams: {date: Moment, gte: boolean}, 
+        skipNumber: number, 
+        limitNumber: number): Promise<IUserObject[]> {
         try {
 
-            var queryStruct = {};
+            let queryStruct = {};
 
             if(username){
                 _.assign(queryStruct, {username: _.toLower(username)});
@@ -189,17 +227,11 @@ export default class User{
                 }
             }
 
-            let data = await DB.findMany(userModel, queryStruct, null, null, skipNumber, limitNumber);
+            let data = await DB.findMany<IUserDoc>(UserModel, queryStruct, null, null, skipNumber, limitNumber);
             if(_.isEmpty(data)){
-                return Promise.resolve({
-                    success: true, 
-                    users: null
-                });
+                data = null;
             }
-            return Promise.resolve({
-                success: true, 
-                users: data
-            });
+            return Promise.resolve(User.toUsers(data));
         } catch (getUserError) {
             return Promise.reject({
                 success: false,
