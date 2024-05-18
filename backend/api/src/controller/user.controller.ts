@@ -1,4 +1,3 @@
-import jwt from 'jsonwebtoken';
 import _ from 'lodash';
 import moment, { Moment } from 'moment';
 import { DeleteResult } from 'mongodb';
@@ -15,6 +14,7 @@ import {
 import { Request, Response } from 'express';
 import { AuthenticatedAdminRequest } from '../model/admin.model';
 import { IUpdateOne } from '../model/db-crud';
+import { UserType, createToken } from './utils/verify-token';
 
 
 export const postUser = async (
@@ -217,7 +217,7 @@ export const updateUser = async (
                         const email = req.body.email ? req.body.email : foundUser.email;
                         const user = new User(req.body.username, tel, email, foundUser.date, foundUser.id);
                         const updateResult = await user.updateToDB();
-                        const token = jwt.sign({id: user.id, username: user.username}, process.env.USER_TOKEN_SECRET, {expiresIn: "24h"});
+                        const token = createToken(UserType.USER, {id: user.id, username: user.username});
                         res.header("auth-token", token);
                         res.status(HTTP_CODE.OK);
                         res.json(updateResult);
@@ -265,7 +265,7 @@ export const loginUser = async (
                 });
             }else{
                 if(req.body.tel === foundUser.tel){
-                    const token = jwt.sign({id: foundUser.id, username: foundUser.username}, process.env.USER_TOKEN_SECRET, {expiresIn: "24h"});
+                    const token = createToken(UserType.USER, {id: foundUser.id, username: foundUser.username});
                     res.status(HTTP_CODE.OK);
                     res.json({
                         id: foundUser.id,

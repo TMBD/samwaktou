@@ -1,7 +1,6 @@
 import _ from 'lodash';
 import moment, { Moment } from 'moment';
 import bcryptejs from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 import { Request, Response } from 'express';
 import { DeleteResult } from 'mongodb';
 
@@ -16,6 +15,7 @@ import {
     validateLoginAdminRequest
 } from './utils/admin/admin-request-validator';
 import { IUpdateOne } from '../model/db-crud';
+import { UserType, createToken } from './utils/verify-token';
 
 
 export const postAdmin = async (
@@ -318,7 +318,7 @@ export const loginAdmin = async (
             }else{
                 const validePass = await bcryptejs.compare(req.body.password, foundAdmin.password);
                 if(validePass){
-                    const token = jwt.sign({id: foundAdmin.id, isSuperAdmin: foundAdmin.isSuperAdmin}, process.env.ADMIN_TOKEN_SECRET, {expiresIn: "24h"});
+                    const token = createToken(UserType.ADMIN, {id: foundAdmin.id, isSuperAdmin: foundAdmin.isSuperAdmin});
                     res.status(HTTP_CODE.OK);
                     res.json({
                         id: foundAdmin.id,

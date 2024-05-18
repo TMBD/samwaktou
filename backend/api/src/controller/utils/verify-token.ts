@@ -24,6 +24,8 @@ export interface IUserJwtPayload extends ExcludeWideProperties<JwtPayload> {
     username: string
 };
 
+export enum UserType {ADMIN, USER};
+
 export const verifyAdminToken = (req: AuthenticatedAdminRequest, res: Response, next: NextFunction): void => {
     const token = req.header("auth-token");
     if(!token){
@@ -36,7 +38,7 @@ export const verifyAdminToken = (req: AuthenticatedAdminRequest, res: Response, 
     }else{
         try {
             const verifiedToken = jwt.verify(token, adminTokenSecret) as IAdminJwtPayload;
-            const newToken = jwt.sign({id: verifiedToken.id, isSuperAdmin: verifiedToken.isSuperAdmin}, adminTokenSecret, {expiresIn: DEFAULT_JWT_DURATION});
+            const newToken = createToken(UserType.ADMIN, {id: verifiedToken.id, isSuperAdmin: verifiedToken.isSuperAdmin});
             res.header("auth-token", newToken);
             req.authData = verifiedToken;
             next();
@@ -64,7 +66,7 @@ export const verifyUserToken = (req: AuthenticatedUserRequest, res: Response, ne
     }else{
         try {
             const verifiedToken = jwt.verify(token, userTokenSecret) as IUserJwtPayload;
-            const newToken = jwt.sign({id: verifiedToken.id, username: verifiedToken.username}, userTokenSecret, {expiresIn: DEFAULT_JWT_DURATION});
+            const newToken = createToken(UserType.USER, {id: verifiedToken.id, username: verifiedToken.username});
             res.header("auth-token", newToken);
             req.authData = verifiedToken;
             next();
@@ -92,14 +94,14 @@ export const verifyTokenForDeleteUser = (req: AuthenticatedAdminRequest | Authen
     }else{
         try {
             const verifiedToken = jwt.verify(token, userTokenSecret) as IUserJwtPayload;
-            const newToken = jwt.sign({id: verifiedToken.id, username: verifiedToken.username}, userTokenSecret, {expiresIn: DEFAULT_JWT_DURATION});
+            const newToken = createToken(UserType.USER, {id: verifiedToken.id, username: verifiedToken.username});
             res.header("auth-token", newToken);
             req.authData = {...verifiedToken, isAdmin: false};
             
         } catch (veriryUserTokenError) {
             try {
                 const verifiedToken = jwt.verify(token, adminTokenSecret) as IAdminJwtPayload;
-                const newToken = jwt.sign({id: verifiedToken.id, isSuperAdmin: verifiedToken.isSuperAdmin}, adminTokenSecret, {expiresIn: DEFAULT_JWT_DURATION});
+                const newToken = createToken(UserType.ADMIN, {id: verifiedToken.id, isSuperAdmin: verifiedToken.isSuperAdmin});
                 res.header("auth-token", newToken);
                 req.authData = {...verifiedToken, isAdmin: true};
             } catch (veriryAdminTokenError) {
@@ -114,5 +116,18 @@ export const verifyTokenForDeleteUser = (req: AuthenticatedAdminRequest | Authen
         } finally{
             next();
         }
+    }
+}
+
+export const createToken = (userType: UserType, payload: IAdminJwtPayload | IUserJwtPayload): string => {
+    switch (userType) {
+        case UserType.ADMIN:
+            const adminPayload = payload as IAdminJwtPayload;
+            return jwt.sign({id: adminPayload.id, isSuperAdmin: adminPayload.isSuperAdmin}, adminTokenSecret, {expiresIn: DEFAULT_JWT_DURATION});
+        case UserType.USER:
+            const userPayload = payload as IUserJwtPayload;
+            return jwt.sign({id: userPayload.id, username: userPayload.username}, userTokenSecret, {expiresIn: DEFAULT_JWT_DURATION});
+        default:
+            throw new Error(`User type ${userType} doesn't exist!`);
     }
 }
