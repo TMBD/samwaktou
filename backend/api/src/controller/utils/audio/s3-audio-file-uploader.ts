@@ -1,32 +1,40 @@
-import {PassThrough, Readable} from 'stream';
+import {PassThrough} from 'stream';
 import archiver from 'archiver';
-import AWS from 'aws-sdk';
-import { NextToken } from 'aws-sdk/clients/acm';
-import { DeleteObjectOutput, GetObjectOutput, GetObjectRequest, HeadObjectOutput, ListObjectsV2Output, Object } from 'aws-sdk/clients/s3';
+import {
+    DeleteObjectCommandOutput,
+    GetObjectCommandInput,
+    HeadObjectCommandOutput,
+    ListObjectsV2CommandOutput,
+    _Object,
+    S3
+} from "@aws-sdk/client-s3";
+import { AwsCredentialIdentity } from '@aws-sdk/types';
 
 import {HTTP_CODE} from './../../../config/server.config';
 
 
-let s3: AWS.S3;
+let s3: S3;
 
 const audiosBucketName = process.env.S3_ACCESS_POINT_ARN!;
 
-const credentials = new AWS.Credentials({
+const credentials : AwsCredentialIdentity = {
     accessKeyId: process.env.S3_ACCESS_KEY!,
     secretAccessKey: process.env.S3_SECRET_ACCESS_KEY!
-});
+};
 
 if(process.env.PROFILE === "prod"){
-    s3 = new AWS.S3({
+    s3 = new S3({
         region: "us-east-2",
-        credentials: credentials
+        credentials: credentials,
     });
 } else if (process.env.PROFILE === "dev"){
-    s3 = new AWS.S3({
+    s3 = new S3({
         region: "us-east-2",
         credentials: credentials,
         endpoint: "http://127.0.0.1:9000",
-        s3ForcePathStyle: true
+
+        // The key s3ForcePathStyle is renamed to forcePathStyle.
+        forcePathStyle: true,
     });
 }
 
@@ -36,10 +44,10 @@ export const uploadAudioFileToS3Bucket = async (data: Buffer, audioFileName: str
         Bucket: audiosBucketName,
         Key: audioFileName,
         Body: data
-    }).promise()
+    })
     .then(
         (_data) => {
-            return Promise.resolve(audioFileName)
+            return Promise.resolve(audioFileName);
         },
         (error) => {
             return Promise.reject({
@@ -56,16 +64,16 @@ export const uploadAudioFileToS3Bucket = async (data: Buffer, audioFileName: str
 export const getAudioFileFromS3Bucket = async (
     audioFileName: string, 
     startByte: number, 
-    endByte: number): Promise<GetObjectOutput> => {
+    endByte: number): Promise<Uint8Array> => {
     const paramRange = `bytes=${startByte}-${endByte}`;
     return await s3.getObject({
         Bucket: audiosBucketName,
         Key: audioFileName,
         Range: paramRange
-    }).promise()
+    })
     .then(
-        (data) => {
-            return Promise.resolve(data)
+        async (data) => {
+            return Promise.resolve(await data.Body.transformToByteArray());
         },
         (error) => {
             return Promise.reject({ 
@@ -79,14 +87,14 @@ export const getAudioFileFromS3Bucket = async (
     );
 }
 
-export const getAudioFileMetadataFromS3Bucket = async (audioFileName: string): Promise<HeadObjectOutput> => {
+export const getAudioFileMetadataFromS3Bucket = async (audioFileName: string): Promise<HeadObjectCommandOutput> => {
     return await s3.headObject({
         Bucket: audiosBucketName,
         Key: audioFileName,
-    }).promise()
+    })
     .then(
         (data) => {
-            return Promise.resolve(data)
+            return Promise.resolve(data);
         },
         (error) => {
             return Promise.reject({ 
@@ -100,14 +108,14 @@ export const getAudioFileMetadataFromS3Bucket = async (audioFileName: string): P
     );
 }
 
-export const removeAudioFileFromS3Bucket = async (audioFileName: string): Promise<DeleteObjectOutput> => {
+export const removeAudioFileFromS3Bucket = async (audioFileName: string): Promise<DeleteObjectCommandOutput> => {
     return await s3.deleteObject({
         Bucket: audiosBucketName,
         Key: audioFileName,
-    }).promise()
+    })
     .then(
         (data) => {
-            return Promise.resolve(data)
+            return Promise.resolve(data);
         },
         (error) => {
             return Promise.reject({ 
@@ -125,12 +133,12 @@ export const downloadAudioFileFromS3Bucket = async (audioFileName: string): Prom
     return await s3.getObject({
         Bucket: audiosBucketName,
         Key: audioFileName,
-    }).promise()
+    })
     .then(
-        (data) => {
+        async (data) => {
             const stream = new PassThrough();
-            stream.end(data.Body);
-            return Promise.resolve(stream)
+            stream.end(await data.Body.transformToByteArray());
+            return Promise.resolve(stream);
         },
         (error) => {
             return Promise.reject({ 
@@ -146,7 +154,7 @@ export const downloadAudioFileFromS3Bucket = async (audioFileName: string): Prom
 
 export const downloadAudioBucketFromS3 = async (): Promise<PassThrough> => {
     // List all objects in the bucket (handle pagination in case the bucket contains more than 1000 objects)
-    const objects: Object[] = await listAllObjects(audiosBucketName);
+    const objects: _Object[] = await listAllObjects(audiosBucketName);
 
     // Create a writable stream for the zip file
     const zipStream = new PassThrough();
@@ -160,10 +168,10 @@ export const downloadAudioBucketFromS3 = async (): Promise<PassThrough> => {
         const data = await s3.getObject({
             Bucket: audiosBucketName,
             Key: object.Key,
-        } as GetObjectRequest).promise();
+        } as GetObjectCommandInput);
 
         // Add the downloaded file to the zip archive
-        archive.append((data.Body as Buffer|string|Readable), { name: object.Key! });
+        archive.append((Buffer.from(await data.Body.transformToByteArray())), { name: object.Key! });
     });
 
     // Wait for all downloads to complete
@@ -174,9 +182,9 @@ export const downloadAudioBucketFromS3 = async (): Promise<PassThrough> => {
     return Promise.resolve(zipStream);
 }
 
-export async function listAllObjects(bucketName: string): Promise<Object[]> {
-    const allObjects: Object[] = [];
-    let continuationToken: NextToken | undefined;
+async function listAllObjects(bucketName: string): Promise<_Object[]> {
+    const allObjects: _Object[] = [];
+    let continuationToken: string | undefined;
 
     do {
         const params = {
@@ -184,7 +192,7 @@ export async function listAllObjects(bucketName: string): Promise<Object[]> {
             ContinuationToken: continuationToken,
         };
 
-        const response: ListObjectsV2Output = await s3.listObjectsV2(params).promise();
+        const response: ListObjectsV2CommandOutput = await s3.listObjectsV2(params);
 
         // Add the objects to the array
         allObjects.push(...response.Contents!);

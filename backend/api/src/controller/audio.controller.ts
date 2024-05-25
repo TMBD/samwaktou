@@ -158,7 +158,7 @@ export const getAudioFile = async (
                     metadata.ContentLength - 1
                 );;
             }
-            const audioResponse = await getAudioFileInternal(fileName, startByte, endByte);
+            const audioByteData = await getAudioFileInternal(fileName, startByte, endByte);
             const chunk = endByte - startByte + 1;
             res.setHeader('Content-Type', 'audio/mpeg');
             res.setHeader('Content-Length', chunk);
@@ -167,7 +167,7 @@ export const getAudioFile = async (
             res.setHeader("Content-Range", `bytes ${startByte}-${endByte}/${metadata.ContentLength}`);
             res.status(206);
             const stream = new PassThrough();
-            stream.end(audioResponse.Body);
+            stream.end(audioByteData);
             stream.pipe(res);
         }
     }catch(exception: any){

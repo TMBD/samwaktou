@@ -1,5 +1,5 @@
-import { DeleteObjectOutput, GetObjectOutput, HeadObjectOutput } from 'aws-sdk/clients/s3';
 import { PassThrough } from 'stream';
+import { DeleteObjectCommandOutput, HeadObjectCommandOutput } from '@aws-sdk/client-s3';
 
 import {
     uploadAudioFileToS3Bucket, 
@@ -18,15 +18,15 @@ export const uploadAudioFileInternal = async (data: Buffer, audioFileName: strin
 export const getAudioFileInternal = async (
     audioFileName: string, 
     startByte: number, 
-    endByte: number): Promise<GetObjectOutput> => {
+    endByte: number): Promise<Uint8Array> => {
     return await getAudioFileFromS3Bucket(audioFileName, startByte, endByte);
 }
 
-export const getAudioFileMetadataInternal = async (audioFileName: string): Promise<HeadObjectOutput> => {
+export const getAudioFileMetadataInternal = async (audioFileName: string): Promise<HeadObjectCommandOutput> => {
     return await getAudioFileMetadataFromS3Bucket(audioFileName);
 }
 
-export const removeAudioFileInternal = async (audioFileName: string): Promise<DeleteObjectOutput> => {
+export const removeAudioFileInternal = async (audioFileName: string): Promise<DeleteObjectCommandOutput> => {
     return await removeAudioFileFromS3Bucket(audioFileName);
 }
 
