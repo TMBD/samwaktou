@@ -7,60 +7,54 @@ import {
 } from "react-router-dom";
 
 
-const UserAppProvider = props => {
+const UserAppProvider = () => {
     let location = useLocation();
     return (
         <AppBody
-            {...props}
-            audioFileIdToPlay={ location?.state?.audioFileIdToPlay }
-            provider = {"UserAppProvider"}
+            audioFileIdToPlay = { location?.state?.audioFileIdToPlay }
+            provider = 'UserAppProvider'
         />
     );
 }
 
-const AdminAppProvider = props => {
+const AdminAppProvider = () => {
     let location = useLocation();
     return (
         <AppBody
-            {...props}
-            user={ location?.state?.user }
-            provider = {"AdminAppProvider"}
+            user = { location?.state?.user }
+            provider = 'AdminAppProvider'
         />
     );
 }
 
-const AdminLoginProvider = props => {
+const AdminLoginProvider = () => {
     return (
-        <Login
-            {...props}
-        />
+        <Login/>
     );
 }
 
-const AudioCreatorProvider = props => {
+const AudioCreatorProvider = () => {
     let location = useLocation();
     return (
         <AudioCreator
-            {...props}
-            audioInfos={ location?.state?.audioInfos }
-            authors={ location?.state?.authors }
-            themes={ location?.state?.themes }
-            user={ location?.state?.user  }
+            audioInfos = { location?.state?.audioInfos }
+            authors = { location?.state?.authors }
+            themes = { location?.state?.themes }
+            user = { location?.state?.user  }
         />
     );
 }
 
-const AudioLinkHandlerProvider = props => {
+const AudioLinkHandlerProvider = () => {
     const [searchParams] = useSearchParams();
     let audioFileIdToPlay = searchParams.get("id")?.trim();
     audioFileIdToPlay = audioFileIdToPlay ? audioFileIdToPlay : null;
     return (
         <AppBody
-            {...props}
             audioFileIdToPlay = {audioFileIdToPlay}
-            provider = {"AudioLinkHandlerProvider"}
+            provider = 'AudioLinkHandlerProvider'
         />
     );
 }
 
-export {UserAppProvider, AdminAppProvider, AdminLoginProvider, AudioCreatorProvider, AudioLinkHandlerProvider};
+export { UserAppProvider, AdminAppProvider, AdminLoginProvider, AudioCreatorProvider, AudioLinkHandlerProvider };

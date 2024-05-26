@@ -22,7 +22,7 @@ class Login extends React.Component{
             showPassword: false,
             loginErrorMessage: ""
         }
-        this.API_SERVER_URL = process.env.REACT_APP_API_SERVER_URL;
+        this.API_SERVER_URL = import.meta.env.VITE_API_SERVER_URL;
     }
 
     handleClickShowPassword = () => {
@@ -144,7 +144,7 @@ class Login extends React.Component{
                     this.state.user?.token?.trim() &&
                     <Navigate 
                     replace={true}
-                    to={process.env.REACT_APP_ADMIN_PATH} state={{user: this.state.user}}  />
+                    to={import.meta.env.VITE_ADMIN_PATH} state={{user: this.state.user}}  />
                 }
             
             </div>)

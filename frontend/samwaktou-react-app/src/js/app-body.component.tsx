@@ -14,8 +14,22 @@ import Tooltip from '@mui/material/Tooltip';
 import fileDownload from 'js-file-download';
 import moment from 'moment';
 
-class AppBody extends React.Component{
-    constructor(props){
+
+type AppBodyProps = {
+    audioFileIdToPlay?: string;
+    user?: {
+        token: string
+    }
+    provider?: 'AdminAppProvider' | 'UserAppProvider' | 'AudioLinkHandlerProvider'
+
+}
+
+const API_SERVER_URL = import.meta.env.VITE_API_SERVER_URL;
+
+console.log(API_SERVER_URL)
+
+class AppBody extends React.Component<AppBodyProps> {
+    constructor(props: AppBodyProps){
         super(props);
         this.state = {
             audioMetadata: {},
@@ -42,7 +56,6 @@ class AppBody extends React.Component{
         this.handleInputSearchChange = this.handleInputSearchChange.bind(this);
         this.handleThemeFilterClick = this.handleThemeFilterClick.bind(this);
         this.handleAudioFileDownload = this.handleAudioFileDownload.bind(this);
-        this.API_SERVER_URL = process.env.REACT_APP_API_SERVER_URL;
     }
 
     audioHandler(
@@ -101,7 +114,7 @@ class AppBody extends React.Component{
     }
 
     sendAnalytics = (eventName) => {
-        fetch(this.API_SERVER_URL+"/analytics", {
+        fetch(API_SERVER_URL+"/analytics", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
@@ -126,7 +139,7 @@ class AppBody extends React.Component{
     }
 
     fetchAudioInfo = (audioId) => {
-        fetch(this.API_SERVER_URL+"/audios/"+audioId, {
+        fetch(API_SERVER_URL+"/audios/"+audioId, {
             method: "GET"
         })
         .then(res => {
@@ -150,7 +163,7 @@ class AppBody extends React.Component{
 
     loadAudios(){
         this.setState({isCurrentlyFetchingAudios: true});
-        fetch(this.API_SERVER_URL+"/audios", {
+        fetch(API_SERVER_URL+"/audios", {
             method: "GET"
         })
         .then(res => {
@@ -179,7 +192,7 @@ class AppBody extends React.Component{
     }
 
     loadAuthors(){
-        fetch(this.API_SERVER_URL+"/audios/extra/author", {
+        fetch(API_SERVER_URL+"/audios/extra/author", {
             method: "GET"
         })
         .then(res => {
@@ -204,7 +217,7 @@ class AppBody extends React.Component{
     }
 
     loadThemes(){
-        fetch(this.API_SERVER_URL+"/audios/extra/theme", {
+        fetch(API_SERVER_URL+"/audios/extra/theme", {
             method: "GET"
         })
         .then(res => {
@@ -263,7 +276,7 @@ class AppBody extends React.Component{
             errorMessage: ""
         });
 
-        fetch(this.API_SERVER_URL+"/audios?"+query, {
+        fetch(API_SERVER_URL+"/audios?"+query, {
             method: 'GET',
             headers: {
                 "Content-Type": "application/json"
@@ -302,7 +315,7 @@ class AppBody extends React.Component{
     getfileName(uri){
         const splitedFileUri = (uri !== null) ? uri.split("/"):"";
         const fileName = splitedFileUri[splitedFileUri.length-1];
-        return this.API_SERVER_URL+"/audios/file/"+fileName;
+        return API_SERVER_URL+"/audios/file/"+fileName;
     }
 
     handleAudioInfoDisplay(element){
@@ -345,7 +358,7 @@ class AppBody extends React.Component{
             this.setState({
                 errorMessage: ""
             });
-            fetch(this.API_SERVER_URL+"/audios?"+query, {
+            fetch(API_SERVER_URL+"/audios?"+query, {
                 method: 'GET',
                 headers: {
                     "Content-Type": "application/json"
@@ -412,7 +425,7 @@ class AppBody extends React.Component{
             window.alert("Vous n'avez pas la permission !");
             return;
         }
-        fetch(this.API_SERVER_URL+"/audios/"+elementId, {
+        fetch(API_SERVER_URL+"/audios/"+elementId, {
             method: 'DELETE',
             headers: {
                 "auth-token": this.props.user.token
@@ -472,7 +485,7 @@ class AppBody extends React.Component{
     handleAudioFileDownload = (audioInfos, callback) => {
         const fileKey = audioInfos.uri.split("/").pop();
         const downloadedFileName = this.buildDownloadFileName(audioInfos);
-        fetch(`${this.API_SERVER_URL}/audios/download/${fileKey}`)
+        fetch(`${API_SERVER_URL}/audios/download/${fileKey}`)
         .then((response) => {
         // Trigger the download by creating a Blob
             return response.blob();
@@ -604,7 +617,7 @@ class AppBody extends React.Component{
                     this.state.shouldNavigateToCreateAudioPage &&
                     <Navigate 
                         replace={false}
-                        to={process.env.REACT_APP_CREATE_AUDIO_PATH}
+                        to={import.meta.env.VITE_CREATE_AUDIO_PATH}
                         state={{authors: this.state.authors, themes: this.state.themes, user: this.props.user, audioInfos: this.state.audioInfosToUpdate}}/>
                 }
             </div>

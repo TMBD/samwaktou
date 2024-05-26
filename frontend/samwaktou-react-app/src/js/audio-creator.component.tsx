@@ -11,9 +11,22 @@ import moment from "moment";
 import { Navigate } from "react-router-dom";
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import IconButton from '@mui/material/IconButton';
+import { AudioInfos } from "./model/audio.model";
 
-class AudioCreator extends React.Component{
-    constructor( props ){
+
+type AudioCreatorProps = {
+    audioInfos: AudioInfos;
+    authors: string[];
+    themes: string[];
+    user: {
+        token: string
+    }
+}
+
+const API_SERVER_URL = import.meta.env.VITE_API_SERVER_URL;
+
+class AudioCreator extends React.Component<AudioCreatorProps, {author: string}> {
+    constructor( props: AudioCreatorProps ){
         super(props);
         this.state = {
             theme: this.props.audioInfos?.theme || "",
@@ -33,7 +46,6 @@ class AudioCreator extends React.Component{
             },
             shouldGoBack: false
         }
-        this.API_SERVER_URL = process.env.REACT_APP_API_SERVER_URL;
     }
 
     cleanFields = () => {
@@ -105,7 +117,7 @@ class AudioCreator extends React.Component{
         data.append("date", this.state.date.format('DD-MM-YYYY'));
         data.append("audio", this.state.audio);
 
-        fetch(this.API_SERVER_URL+"/audios", {
+        fetch(API_SERVER_URL+"/audios", {
             method: 'POST',
             headers: {
                 "auth-token": this.props.user.token
@@ -141,7 +153,7 @@ class AudioCreator extends React.Component{
         data.append("keywords", this.state.keywords.trim());
         data.append("date", this.state.date.format('DD-MM-YYYY'));
 
-        fetch(this.API_SERVER_URL+"/audios/"+this.state.audioInfos.id, {
+        fetch(API_SERVER_URL+"/audios/"+this.state.audioInfos.id, {
             method: 'PUT',
             headers: {
                 "auth-token": this.props.user.token
@@ -213,7 +225,7 @@ class AudioCreator extends React.Component{
                     this.state.shouldGoBack &&
                     <Navigate 
                     replace={true}
-                    to={process.env.REACT_APP_ADMIN_PATH} state={{user: this.props.user}}  />
+                    to={import.meta.env.VITE_ADMIN_PATH} state={{user: this.props.user}}  />
                 }
 
                 <div className="backArrowDiv">

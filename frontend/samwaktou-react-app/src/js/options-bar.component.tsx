@@ -15,7 +15,7 @@ export default function OptionsBar(props){
     const [downloadSuccess, setDownloadSuccess] = useState(true);
 
     const copyAudioLinkToClipboard = (elementId) => {
-        navigator.clipboard.writeText(`${process.env.REACT_APP_APP_URL}${process.env.REACT_APP_AUDIO_LINK_PATH}?id=${elementId}`);
+        navigator.clipboard.writeText(`${import.meta.env.VITE_APP_URL}${import.meta.env.VITE_AUDIO_LINK_PATH}?id=${elementId}`);
         setOpenSimpleSnackBar(true);
     }
 
