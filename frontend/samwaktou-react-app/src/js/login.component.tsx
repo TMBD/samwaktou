@@ -11,25 +11,36 @@ import TextField from '@mui/material/TextField';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { Navigate } from "react-router-dom";
+import { AdminLoginInfos } from "./model/admin.model";
+import { httpPost } from "./common/http-request-handler";
 
-class Login extends React.Component{
-    constructor( props ){
+
+type LoginState = {
+    email: string;
+    password: string;
+    adminLoginInfos: AdminLoginInfos;
+    showPassword: boolean;
+    loginErrorMessage: string;
+}
+
+class Login extends React.Component<{}, LoginState>{
+
+    constructor(props: {}){
         super(props);
         this.state = {
             email: "",
             password: "",
-            user: null,
+            adminLoginInfos: null,
             showPassword: false,
             loginErrorMessage: ""
         }
-        this.API_SERVER_URL = import.meta.env.VITE_API_SERVER_URL;
     }
 
-    handleClickShowPassword = () => {
+    handleClickShowPassword = (): void => {
         this.setState({showPassword: !this.state.showPassword});
     }
 
-    handleSubmitForm = () => {
+    handleSubmitForm = (): void => {
         if(this.state.email?.trim() && this.state.password){
             this.loginUser();
         } else{
@@ -37,63 +48,28 @@ class Login extends React.Component{
         }
     }
 
-    loginUser = () => {
+    loginUser = (): void => {
         this.setState({
             loginErrorMessage: ""
         });
 
-        fetch(this.API_SERVER_URL+"/admins/login", {
-            method: 'POST',
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                email: this.state.email?.trim(),
-                password: this.state.password
-            })
-        })
-        .then(res => {
-            if (!res.ok) {
-                throw new Error(res.status);
-            }
-            return res.json();
-        })
+        const postBody = JSON.stringify({
+            email: this.state.email?.trim(),
+            password: this.state.password
+        });
+
+        httpPost<AdminLoginInfos>('/admins/login', postBody)
         .then(
-            (result) => {
-                this.setState({user: result})
+            (adminLoginInfos: AdminLoginInfos) => {
+                this.setState({adminLoginInfos: adminLoginInfos})
             },
-            (error) => {
-                this.setErrorMessage(error);
+            (error: Error) => {
+                this.setState({
+                    loginErrorMessage: error.message
+                });
             }
         );
     }
-
-    setErrorMessage = (error) => {
-        let errorMessage = "Une erreur s'est produite. Veuillez réessayer plus tard.";
-
-        if (error instanceof TypeError) {
-            errorMessage = "Erreur réseau. S'il vous plait, vérifiez votre connexion internet.";
-        } else if (error instanceof SyntaxError) {
-            errorMessage = "Erreur serveur, données non valides.";
-        } else if (error instanceof Error) {
-            if (error?.message === "404") {
-                errorMessage = "Email ou mot de passe incorrect";
-            } else if (error?.message === "400") {
-                errorMessage = "Email ou mot de passe invalide";
-            } else if (error?.message?.charAt(0) === "4") {
-                errorMessage = "La ressource demandée n'a pas été trouvée.";
-            } else if (error?.message === "503") {
-                errorMessage = "Service temporairement indisponible.";
-            } else if (error?.message?.charAt(0) === "5") {
-                errorMessage = "Erreur interne du serveur.";
-            } else {
-                errorMessage = "Une erreur inattendue s'est produite.";
-            }
-        }
-        this.setState({
-            loginErrorMessage: errorMessage
-        });
-    }    
     
     render(){
         return (
@@ -141,10 +117,10 @@ class Login extends React.Component{
                     size="large"
                     onClick={() => this.handleSubmitForm()}>Se connecter</Button>
                 {
-                    this.state.user?.token?.trim() &&
+                    this.state.adminLoginInfos?.token?.trim() &&
                     <Navigate 
                     replace={true}
-                    to={import.meta.env.VITE_ADMIN_PATH} state={{user: this.state.user}}  />
+                    to={import.meta.env.VITE_ADMIN_PATH} state={{adminLoginInfos: this.state.adminLoginInfos}}  />
                 }
             
             </div>)

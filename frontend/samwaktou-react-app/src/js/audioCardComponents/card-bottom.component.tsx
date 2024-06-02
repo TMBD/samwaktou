@@ -1,22 +1,24 @@
 import React from 'react';
 
-class Bottom extends React.Component{
-    constructor(props){
+
+type BottomProps = {
+    authorName: string;
+    recordDateDisplay: string;
+}
+
+class Bottom extends React.Component<BottomProps>{
+    constructor(props: BottomProps){
         super(props);
-        this.state = {
-            authorName: this.props.authorName,
-            recordDate: this.props.recordDate
-        }
     }
 
     render(){
         return(
             <div className="cardBottomContainer">
                 <div className="cardAuthorContainer">
-                    {this.state.authorName}
+                    {this.props.authorName}
                 </div>
                 <div className="cardDateContainer">
-                    {this.state.recordDate}
+                    {this.props.recordDateDisplay}
                 </div>
             </div>
         );

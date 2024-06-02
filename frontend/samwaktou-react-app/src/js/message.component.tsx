@@ -1,12 +1,7 @@
-function ErrorMessage(props){
-    return <span style={{color: "red", marginTop: "20px", fontStyle: "italic"}} >{props.messageText}</span>
+export const ErrorMessage: React.FC<{messageText: string}> = ({messageText}: {messageText: string}) => {
+    return <span style={{color: "red", marginTop: "20px", fontStyle: "italic"}} >{messageText}</span>
 }
 
-function InfoMessage(props){
-    return <span style={{marginTop: "20px", fontStyle: "italic"}}>{props.messageText}</span>
+export const InfoMessage: React.FC<{messageText: string}> = ({messageText}: {messageText: string}) => {
+    return <span style={{marginTop: "20px", fontStyle: "italic"}}>{messageText}</span>
 }
-
-export {
-    ErrorMessage,
-    InfoMessage
-};

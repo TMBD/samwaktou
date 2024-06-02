@@ -4,9 +4,39 @@ import Bottom from './audioCardComponents/card-bottom.component';
 import Body from "./audioCardComponents/card-body.component";
 import CardBottomAdmin from "./audioCardComponents/card-bottom-admin.component";
 import '../style/audioCards.css';
+import { Moment } from "moment";
+import { AudioInfos } from "./model/audio.model";
+import { AdvanceSearchFormInput } from "./advance-search.component";
+import { AdminLoginInfos } from "./model/admin.model";
 
-class AudioCard extends React.Component{
-    constructor( props ){
+
+type AudioCardProps = {
+    elementId: string;
+    currentPlayingElementId: string;
+    theme: string;
+    authorName: string;
+    audioDescription: string;
+    recordDate: Moment;
+    audioUri: string;
+    audioHandler: (audioInfos: AudioInfos) => void;
+    getDurationDisplay: (duration: number) => string;
+    audioInfos: AudioInfos;
+    handleEditAudio: (audioInfos: AudioInfos) => void;
+    handleDeleteAudio: (elementId: string) => void;
+    handleThemeFilterClick: (advanceSearchValues: AdvanceSearchFormInput) => void;
+    adminLoginInfos: AdminLoginInfos;
+    handleAudioFileDownload: (audioInfos: AudioInfos, callback: (success: boolean) => void) => void;
+}
+
+type AudioCardState = {
+    durationDisplay: string,
+    isAudioLoaded: boolean,
+    shouldDisplayAudioDetails: boolean
+}
+
+class AudioCard extends React.Component<AudioCardProps, AudioCardState>{
+    private audioRef = React.createRef<HTMLAudioElement>();
+    constructor(props: AudioCardProps){
         super(props);
         this.state = {
             durationDisplay: "",
@@ -16,34 +46,27 @@ class AudioCard extends React.Component{
         this.toggleAudioDetailsDisplay = this.toggleAudioDetailsDisplay.bind(this);
     }
 
-    handleAudioMetadata = (audioMetadata) => {
+    handleAudioMetadata = () => {
         this.setState({
-            durationDisplay: this.props.getDurationDisplay(audioMetadata.duration)
+            durationDisplay: this.props.getDurationDisplay(this.audioRef.current.duration)
         });
     }
 
-    handleLoadedAudio = (audioMetadata) => {
-        this.handleAudioMetadata(audioMetadata);
+    handleLoadedAudio = () => {
+        this.handleAudioMetadata();
         this.setState({isAudioLoaded: true});
     }
 
-    handleClickedCardBody = (elementId) => {
+    handleClickedCardBody = (audioInfos: AudioInfos): void => {
         if(this.state.isAudioLoaded){
-            this.props.audioHandler(
-            this.props.audioUri, 
-            this.state.durationDisplay, 
-            this.props.audioDescription, 
-            this.props.authorName, 
-            this.props.theme,
-            this.props.recordDate,
-            this.props.audioInfos,
-            elementId);
+            this.props.audioHandler(audioInfos);
         }
-        
     }
 
-    toggleAudioDetailsDisplay(){
-        this.setState({shouldDisplayAudioDetails: !this.state.shouldDisplayAudioDetails});
+    toggleAudioDetailsDisplay = (): void => {
+        this.setState({
+            shouldDisplayAudioDetails: !this.state.shouldDisplayAudioDetails
+        });
     }
 
     render(){
@@ -71,40 +94,34 @@ class AudioCard extends React.Component{
                     shouldDisplayAudioDetails = {this.state.shouldDisplayAudioDetails}
                     />
 
-                <Body 
-                    audioDescription={this.props.audioDescription}
-                    elementId = {this.props.elementId}
+                <Body
                     handleClickedCardBody = {this.handleClickedCardBody}
                     cursorClassName = {cursorClassName}
                     shouldDisplayAudioDetails = {this.state.shouldDisplayAudioDetails}
                     handleAudioFileDownload = {this.props.handleAudioFileDownload}
-                    audioDownloadInfos = {{
-                        uri : this.props.audioInfos.uri,
-                        theme : this.props.theme,
-                        authorName : this.props.authorName,
-                        recordDate : this.props.recordDate
-                    }}
-                    fullAudioUrl = {this.props.audioUri}
-                    keywords = {this.props.audioInfos.keywords}
+                    audioInfos = {this.props.audioInfos}
                     />
 
-                <Bottom 
+                <Bottom
                     authorName={this.props.authorName} 
-                    recordDate={this.props.recordDate}/>
+                    recordDateDisplay={this.props.recordDate.toDate().toLocaleDateString('fr-FR')}/>
                 
                 {
-                    this.props.user?.token?.trim() && 
+                    this.props.adminLoginInfos?.token?.trim() && 
                     <CardBottomAdmin
                         audioInfos = {this.props.audioInfos}
                         handleEditAudio = {this.props.handleEditAudio}
                         handleDeleteAudio = {this.props.handleDeleteAudio}
                     />
-                } 
+                }
                     
                 <audio 
-                    hidden="hidden"
-                    onLoadedMetadata={event => this.handleLoadedAudio(event.target)}>
-                    <source preload="metadata" type="audio/mpeg" src={this.props.audioUri}/>
+                    ref={this.audioRef}
+                    hidden={true}
+                    preload="metadata"
+                    onLoadedMetadata={ _event => this.handleLoadedAudio()}>
+                    <source type="audio/mpeg" src={this.props.audioUri}/>
+                    Votre navigateur ne prend pas en charge les audios.
                 </audio>
             </div>
         );

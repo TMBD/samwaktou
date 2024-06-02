@@ -6,7 +6,6 @@ import {
     useSearchParams
 } from "react-router-dom";
 
-
 const UserAppProvider = () => {
     let location = useLocation();
     return (
@@ -21,7 +20,7 @@ const AdminAppProvider = () => {
     let location = useLocation();
     return (
         <AppBody
-            user = { location?.state?.user }
+            adminLoginInfos = { location?.state?.adminLoginInfos }
             provider = 'AdminAppProvider'
         />
     );
@@ -37,10 +36,10 @@ const AudioCreatorProvider = () => {
     let location = useLocation();
     return (
         <AudioCreator
-            audioInfos = { location?.state?.audioInfos }
+            serializedAudioInfos = { location?.state?.serializedAudioInfos }
             authors = { location?.state?.authors }
             themes = { location?.state?.themes }
-            user = { location?.state?.user  }
+            adminLoginInfos = { location?.state?.adminLoginInfos  }
         />
     );
 }

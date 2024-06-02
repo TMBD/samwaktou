@@ -1,38 +1,49 @@
 import React from "react";
 import '../style/searchBar.css';
 import '../style/popupView.css'
-import AdvanceSearch from "./advance-search.component";
-import moment from "moment";
+import AdvanceSearch, { AdvanceSearchFormInput } from "./advance-search.component";
 
-class SearchBar extends React.Component{
-    constructor(props){
+
+type SearchBarProps = {
+    handleInputSearchChange: (advanceSearchValues: AdvanceSearchFormInput) => void;
+    authors: string[];
+    themes: string[];
+    searchInput: AdvanceSearchFormInput
+}
+
+type SearchBarState = {
+    shouldDisplayAdvanceSearchView: boolean;
+    advanceSearchValues: AdvanceSearchFormInput;
+    searchInputContent: string;
+}
+
+class SearchBar extends React.Component<SearchBarProps, SearchBarState> {
+    private searchInputRef = React.createRef<HTMLInputElement>();
+
+    constructor(props: SearchBarProps){
         super(props);
-        this.searchInputRef = React.createRef();
-        this.handleSearch = this.handleSearch.bind(this);
         this.handleAdvanceSearch = this.handleAdvanceSearch.bind(this);
         this.state = {
             shouldDisplayAdvanceSearchView: false,
             advanceSearchValues: {},
             searchInputContent: ""
         };
+        this.handleSearch = this.handleSearch.bind(this);
     }
 
-    componentDidUpdate(prevProps){
-
+    componentDidUpdate(prevProps: SearchBarProps): void{
         if(this.props.searchInput && this.props.searchInput !== prevProps.searchInput){
             this.handleAdvanceSearchInputChange(this.props.searchInput);
         }
-
-        return null;
     }
 
-    changeAdvanceSearchPopupStatus = (isVisible) => {
+    changeAdvanceSearchPopupStatus = (isVisible: boolean): void => {
         this.setState({
             shouldDisplayAdvanceSearchView: isVisible
         });
     }
 
-    handleSearch = (searchValues) => {
+    handleSearch = (searchValues: {keywords: string}) => {
         this.setState({
             advanceSearchValues: {
                 ...this.state.advanceSearchValues,
@@ -43,19 +54,19 @@ class SearchBar extends React.Component{
         this.props.handleInputSearchChange(searchValues);
     }
 
-    handleAdvanceSearch = (advanceSearchValues) => {
+    handleAdvanceSearch = (advanceSearchValues: AdvanceSearchFormInput): void => {
         this.changeAdvanceSearchPopupStatus(false);
         this.props.handleInputSearchChange(advanceSearchValues);
         this.handleAdvanceSearchInputChange(advanceSearchValues);
     }
 
-    handleAdvanceSearchInputChange = (advanceSearchValues) => {
+    handleAdvanceSearchInputChange = (advanceSearchValues: AdvanceSearchFormInput) => {
         let input = "";
         if(advanceSearchValues?.keywords) input += "keywords:("+advanceSearchValues.keywords+")";
         if(advanceSearchValues?.author) input += " author:("+advanceSearchValues.author+")";
         if(advanceSearchValues?.theme) input += " theme:("+advanceSearchValues.theme+")";
-        if(advanceSearchValues?.minDate) input += " minDate:("+moment(advanceSearchValues.minDate).format('DD-MM-YYYY')+")";
-        if(advanceSearchValues?.maxDate) input += " maxDate:("+moment(advanceSearchValues.maxDate).format('DD-MM-YYYY')+")";
+        if(advanceSearchValues?.minDate) input += " minDate:("+advanceSearchValues.minDate.format('DD-MM-YYYY')+")";
+        if(advanceSearchValues?.maxDate) input += " maxDate:("+advanceSearchValues.maxDate.format('DD-MM-YYYY')+")";
 
         this.setState({
             searchInputContent: input
@@ -83,7 +94,7 @@ class SearchBar extends React.Component{
                         placeholder = "Rechercher par mots clés"
                         value={this.state.searchInputContent}
                         onChange={() => this.handleSearch({keywords: this.searchInputRef.current.value})}
-                        onFocus={(e) => this.searchInputRef.current.setSelectionRange(0, this.searchInputRef.current.value.length)}/>
+                        onFocus={(_e) => this.searchInputRef.current.setSelectionRange(0, this.searchInputRef.current.value.length)}/>
                         
                     <button title="Recherches avancées"
                         type = "submit" 

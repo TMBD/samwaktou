@@ -5,12 +5,34 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterMoment } from '@mui/x-date-pickers/AdapterMoment'
 import { Button } from "@mui/material";
-import moment from "moment";
+import moment, { Moment } from "moment";
 import '../style/popupView.css'
 import '../style/searchBar.css';
 
-class AdvanceSearch extends React.Component {
-    constructor(props){
+export type AdvanceSearchFormInput = {
+    keywords?: string;
+    author?: string;
+    theme?: string;
+    minDate?: Moment;
+    maxDate?: Moment;
+}
+
+type AdvanceSearchProps = {
+    shouldDisplayAdvanceSearchView: boolean;
+    advanceSearchValues: AdvanceSearchFormInput;
+    authors: string[];
+    themes: string[];
+    handleAdvanceSearch: (advanceSearchValues: AdvanceSearchFormInput) => void;
+    changeAdvanceSearchPopupStatus: (isVisible: boolean) => void;
+}
+
+type AdvanceSearchState = {
+    advanceSearchValues: AdvanceSearchFormInput;
+    errorMessage: string;
+}
+
+class AdvanceSearch extends React.Component<AdvanceSearchProps, AdvanceSearchState> {
+    constructor(props: AdvanceSearchProps){
         super(props);
         this.state = {
             advanceSearchValues: {
@@ -24,7 +46,7 @@ class AdvanceSearch extends React.Component {
         }
     }
 
-    handleMinDateChange = (date) => {
+    handleMinDateChange = (date: Moment): void => {
         this.setState({
             advanceSearchValues:{
                 ...this.state.advanceSearchValues,
@@ -33,7 +55,7 @@ class AdvanceSearch extends React.Component {
         });
     }
 
-    handleMaxDateChange = (date) => {
+    handleMaxDateChange = (date: Moment): void => {
         this.setState({
             advanceSearchValues:{
                 ...this.state.advanceSearchValues,
@@ -42,7 +64,7 @@ class AdvanceSearch extends React.Component {
         });
     }
 
-    handleSubmitForm = () => {
+    handleSubmitForm = (): void => {
         const isMinDateFormatValid = !this.state.advanceSearchValues?.minDate || moment(this.state.advanceSearchValues?.minDate, "DD-MM-YYYY").isValid();
         const isMaxDateFormatValid = !this.state.advanceSearchValues?.maxDate || moment(this.state.advanceSearchValues?.maxDate, "DD-MM-YYYY").isValid();
         const isMinDateBeforeMaxDate = !this.state.advanceSearchValues?.minDate || !this.state.advanceSearchValues?.maxDate || moment(this.state.advanceSearchValues?.minDate).isSameOrBefore(this.state.advanceSearchValues?.maxDate);
@@ -108,7 +130,7 @@ class AdvanceSearch extends React.Component {
                                                 />
                                             )}
                                             value={this.state.advanceSearchValues?.author}
-                                            onChange={(even, value) => this.setState({advanceSearchValues:{...this.state.advanceSearchValues, author: value}})}
+                                            onChange={(_even, value) => this.setState({advanceSearchValues:{...this.state.advanceSearchValues, author: value}})}
                                         />
                                     </div>
                                     <div className="formItemBox">
@@ -128,7 +150,7 @@ class AdvanceSearch extends React.Component {
                                                 />
                                             )}
                                             value={this.state.advanceSearchValues?.theme}
-                                            onChange={(even, value) => this.setState({advanceSearchValues:{...this.state.advanceSearchValues, theme: value}})}
+                                            onChange={(_even, value) => this.setState({advanceSearchValues:{...this.state.advanceSearchValues, theme: value}})}
                                         /> 
                                     </div>
 
@@ -136,7 +158,6 @@ class AdvanceSearch extends React.Component {
                                         <LocalizationProvider dateAdapter={AdapterMoment}>
                                             <DatePicker
                                                 label="Après le "
-                                                id="minDate"
                                                 className="searchFilterComponent"
                                                 format="DD-MM-YYYY"
                                                 slotProps={{
@@ -149,11 +170,10 @@ class AdvanceSearch extends React.Component {
                                                 disableFuture
                                                 maxDate={this.state.advanceSearchValues?.maxDate}
                                                 value={this.state.advanceSearchValues?.minDate}
-                                                onChange={(value) => this.setState({advanceSearchValues:{...this.state.advanceSearchValues, minDate: value}})}
+                                                onChange={(value: Moment) => this.handleMinDateChange(value)}
                                             />
                                             <DatePicker
                                                 label="Avant le "
-                                                id="maxDate"
                                                 className="searchFilterComponent"
                                                 format="DD-MM-YYYY"
                                                 slotProps={{
@@ -166,7 +186,7 @@ class AdvanceSearch extends React.Component {
                                                 disableFuture
                                                 minDate={this.state.advanceSearchValues?.minDate}
                                                 value={this.state.advanceSearchValues?.maxDate}
-                                                onChange={(value) => this.setState({advanceSearchValues:{...this.state.advanceSearchValues, maxDate: value}})}
+                                                onChange={(value: Moment) => this.handleMaxDateChange(value)}
                                             />
                                         </LocalizationProvider>
                                     </div>

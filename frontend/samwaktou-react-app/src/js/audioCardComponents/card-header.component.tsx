@@ -1,7 +1,17 @@
 import React from 'react';
 import Tooltip from '@mui/material/Tooltip';
+import { AdvanceSearchFormInput } from '../advance-search.component';
 
-class Header extends React.Component{
+type HeaderProps = {
+    theme: string;
+    durationDisplay: string;
+    isOnPlay: boolean;
+    shouldDisplayAudioDetails: boolean;
+    toggleAudioDetailsDisplay: () => void;
+    handleThemeFilterClick: (advanceSearchValues: AdvanceSearchFormInput) => void;
+}
+
+class Header extends React.Component<HeaderProps>{
     render(){
         let cardThemeClassName = "";
         let arrowTypeClass = "down";

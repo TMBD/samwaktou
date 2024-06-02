@@ -1,20 +1,47 @@
 import React from "react";
 import Tooltip from '@mui/material/Tooltip';
+import _ from 'lodash';
+import { AudioInfos } from "./model/audio.model";
+import { AdvanceSearchFormInput } from "./advance-search.component";
 
-class AudioPlayerCard extends React.Component{
-    constructor(props){
+type AudioPlayerCardProps = {
+    audioMetadata?: AudioInfos;
+    showAudioPlayerCard?: boolean;
+    audioInfos?: AudioInfos;
+    getDurationDisplay?: (duration: number) => string;
+    handleAudioInfoDisplay?: (element: AudioInfos) => void;
+    handleThemeFilterClick?: (advanceSearchValues: AdvanceSearchFormInput) => void;
+
+}
+
+type AudioPlayerCardState = {
+    audioMetadata?: AudioInfos;
+    playing?: boolean;
+    audioPlayPauseClassName?: 'playAudioDraw' | 'pauseAudioDraw';
+    sliderProgressValue?: number;
+    displayAudioPlayer?: boolean;
+    currentTimeDisplay?: string;
+}
+
+const API_SERVER_URL = import.meta.env.VITE_API_SERVER_URL;
+
+class AudioPlayerCard 
+    extends React.Component<AudioPlayerCardProps, AudioPlayerCardState>{
+    private audioRef = React.createRef<HTMLAudioElement>();
+    private timeSliderRef = React.createRef<HTMLInputElement>();
+    constructor(props: AudioPlayerCardProps){
         super(props);
-        this.audioRef = React.createRef();
-        this.timeSliderRef = React.createRef();
         this.state = {
             audioMetadata: this.props.audioMetadata,
             playing: false,
             audioPlayPauseClassName: "playAudioDraw",
-            sliderProgressValue: 0
+            sliderProgressValue: 0,
+            displayAudioPlayer: false,
+            currentTimeDisplay: ''
         }
     }
 
-    audioHandler = (shouldPlay) => {
+    audioHandler = (shouldPlay: boolean) => {
         if(shouldPlay){
             this.audioRef.current.play();
             this.setState({
@@ -29,11 +56,11 @@ class AudioPlayerCard extends React.Component{
         }
     }
 
-    static getDerivedStateFromProps(props, current_state) {
-        let updatedState = {};
-        if (current_state.audioMetadata.audioUri !== props.audioMetadata.audioUri
-            && props.audioMetadata.audioUri !== null
-            && props.audioMetadata.audioUri !== undefined) {
+    static getDerivedStateFromProps(
+        props: AudioPlayerCardProps, current_state: AudioPlayerCardState) {
+        let updatedState: AudioPlayerCardState = {};
+        if (!!props.audioMetadata.uri &&
+            current_state.audioMetadata.uri !== props.audioMetadata.uri) {
                 updatedState =  {
                     playing: true,
                     audioMetadata: props.audioMetadata
@@ -43,7 +70,8 @@ class AudioPlayerCard extends React.Component{
         if(props.showAudioPlayerCard){
             updatedState.displayAudioPlayer = true;
         }
-        return updatedState === {} ? null : updatedState;
+        //to be double checked
+        return _.isEmpty(updatedState) ? null : updatedState;
     }
 
     handleAudioChange = () => {
@@ -67,7 +95,7 @@ class AudioPlayerCard extends React.Component{
             currentTimeDisplay: this.props.getDurationDisplay(this.audioRef.current.currentTime),
             sliderProgressValue: (100*this.audioRef.current.currentTime) / this.audioRef.current.duration
         });
-        this.timeSliderRef.current.value = (100*this.audioRef.current.currentTime) / this.audioRef.current.duration;
+        this.timeSliderRef.current.value = ''+((100*this.audioRef.current.currentTime) / this.audioRef.current.duration);
     }
 
     handleAudioEnded = () => {
@@ -78,11 +106,17 @@ class AudioPlayerCard extends React.Component{
     }
 
     sliderChangeSeek = () => {
-        if(this.state.audioMetadata.audioUri !== null 
-            && this.state.audioMetadata.audioUri !== undefined){
-            this.audioRef.current.currentTime = (this.timeSliderRef.current.value * this.audioRef.current.duration) / 100;
+        if(this.state.audioMetadata.uri !== null 
+            && this.state.audioMetadata.uri !== undefined){
+            this.audioRef.current.currentTime = (+this.timeSliderRef.current.value * this.audioRef.current.duration) / 100;
         }
-      }
+    }
+
+    getAudioSrc(uri: string): string {
+        const splitedFileUri = (uri !== null) ? uri.split("/"):"";
+        const fileName = splitedFileUri[splitedFileUri.length-1];
+        return API_SERVER_URL+"/audios/file/"+fileName;
+    }
 
     componentDidMount = () => {
         this.audioRef.current.ontimeupdate = this.handleTimelineUpdate;
@@ -109,7 +143,7 @@ class AudioPlayerCard extends React.Component{
 
                     <div className="audioPlayerCard-body">
                         <div className="audioPlayerCard-titleContainer">
-                            {this.props.audioMetadata.audioDescription}
+                            {this.props.audioMetadata.description}
                         </div>
                         
                         <div className="audioPlayerCard-playerContainer">
@@ -127,16 +161,16 @@ class AudioPlayerCard extends React.Component{
                                 onClick={() => this.audioHandler(!this.state.playing)}/>
                             <audio 
                                 ref={this.audioRef}
-                                hidden="hidden"
-                                onLoadedMetadata={event => {
+                                hidden={true}
+                                onLoadedMetadata={_event => {
                                     this.handleAudioChange();
                                     if(!this.state.audioMetadata.durationDisplay){
                                         this.setState({
-                                            audioMetadata: {...this.state.audioMetadata, durationDisplay: this.props.getDurationDisplay(event.target.duration)}
+                                            audioMetadata: {...this.state.audioMetadata, durationDisplay: this.props.getDurationDisplay(this.audioRef.current.duration)}
                                         });
                                     }
                                 }}
-                                src={this.props.audioMetadata.audioUri}/>
+                                src={this.getAudioSrc(this.props.audioMetadata.uri)}/>
                         </div>
                     </div>
                 </div>

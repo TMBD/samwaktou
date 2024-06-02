@@ -1,20 +1,29 @@
-import React from "react";
-import OptionsBar from "../options-bar.component";
-import AudioKeywords from "../audio-keywords.component";
+import React, { ReactElement } from "react";
+import {OptionsBar} from "../options-bar.component";
+import {AudioKeywords} from "../audio-keywords.component";
+import { AudioInfos } from "../model/audio.model";
 
-class Body extends React.Component{
+
+type BodyProps = {
+    handleClickedCardBody: (audioInfos: AudioInfos) => void;
+    cursorClassName: string;
+    shouldDisplayAudioDetails: boolean;
+    handleAudioFileDownload: (audioInfos: AudioInfos, callback: (success: boolean) => void) => void;
+    audioInfos: AudioInfos;
+}
+
+class Body extends React.Component<BodyProps>{
     render(){
         let cardAudioDescriptionStartClass = "cardAudioDescriptionStart";
-        let detailsElements = "";
+        let detailsElements: ReactElement;
         if(this.props.shouldDisplayAudioDetails){
             cardAudioDescriptionStartClass = "";
             detailsElements = 
-            <div> 
-                <AudioKeywords keywords = {this.props.keywords}/>
+            <div>
+                <AudioKeywords keywords = {this.props.audioInfos.keywords}/>
                 <OptionsBar
                     handleAudioFileDownload = {this.props.handleAudioFileDownload}
-                    audioDownloadInfos = {this.props.audioDownloadInfos}
-                    elementId = {this.props.elementId}
+                    audioInfos = {this.props.audioInfos}
                 />
             </div>
         }
@@ -22,8 +31,8 @@ class Body extends React.Component{
             <div className="audioCardBody">
                 <div 
                     className={"cardAudioDescriptionContainer " + cardAudioDescriptionStartClass + " " + this.props.cursorClassName} 
-                    onClick={() => this.props.handleClickedCardBody(this.props.elementId)}>
-                    {this.props.audioDescription}
+                    onClick={() => this.props.handleClickedCardBody(this.props.audioInfos)}>
+                    {this.props.audioInfos.description}
                 </div>
                 {detailsElements}
             </div>

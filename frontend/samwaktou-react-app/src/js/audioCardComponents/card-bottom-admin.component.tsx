@@ -2,8 +2,16 @@ import React from 'react';
 import IconButton from '@mui/material/IconButton';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
+import { AudioInfos } from '../model/audio.model';
 
-class CardBottomAdmin extends React.Component{
+
+type CardBottomAdminProps = {
+    audioInfos: AudioInfos;
+    handleEditAudio: (audioInfos: AudioInfos) => void;
+    handleDeleteAudio: (elementId: string) => void;
+}
+
+class CardBottomAdmin extends React.Component<CardBottomAdminProps>{
 
     handleDeleteAudioClick = () => {
         if(window.confirm("Voulez-vous supprimer cet audio ?")){

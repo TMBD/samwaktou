@@ -7,37 +7,54 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterMoment } from '@mui/x-date-pickers/AdapterMoment'
 import {ErrorMessage, InfoMessage} from './message.component'
-import moment from "moment";
+import moment, { Moment } from "moment";
 import { Navigate } from "react-router-dom";
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import IconButton from '@mui/material/IconButton';
-import { AudioInfos } from "./model/audio.model";
+import { AudioInfos, SerializedAudioInfos, buildAudioInfos } from "./model/audio.model";
+import { AdminLoginInfos } from "./model/admin.model";
+import { httpPost, httpPut } from "./common/http-request-handler";
 
 
 type AudioCreatorProps = {
-    audioInfos: AudioInfos;
+    serializedAudioInfos: SerializedAudioInfos; //we need to used the serialized version because the date type (of Moment) is not compatible with react routing
     authors: string[];
     themes: string[];
-    user: {
-        token: string
-    }
+    adminLoginInfos: AdminLoginInfos;
 }
 
-const API_SERVER_URL = import.meta.env.VITE_API_SERVER_URL;
+type AudioCreatorState = {
+    theme: string;
+    author: string;
+    description: string;
+    keywords: string;
+    date: Moment;
+    audio: File;
+    errorMessageText: string;
+    infoMessageText: string;
+    audioInfos: AudioInfos;
+    authorsOption: {
+        options: string[];
+    };
+    themesOption: {
+        options: string[];
+    };
+    shouldGoBack: boolean;
+}
 
-class AudioCreator extends React.Component<AudioCreatorProps, {author: string}> {
+class AudioCreator extends React.Component<AudioCreatorProps, AudioCreatorState> {
     constructor( props: AudioCreatorProps ){
         super(props);
         this.state = {
-            theme: this.props.audioInfos?.theme || "",
-            author: this.props.audioInfos?.author || "",
-            description: this.props.audioInfos?.description || "",
-            keywords: this.props.audioInfos?.keywords || "",
-            date: this.props.audioInfos?.date ? moment(this.props.audioInfos.date) : null,
+            theme: this.props.serializedAudioInfos?.theme || "",
+            author: this.props.serializedAudioInfos?.author || "",
+            description: this.props.serializedAudioInfos?.description || "",
+            keywords: this.props.serializedAudioInfos?.keywords || "",
+            date: this.props.serializedAudioInfos?.date ? moment(this.props.serializedAudioInfos.date) : null,
             audio: null,
             errorMessageText: null,
             infoMessageText: null,
-            audioInfos: this.props.audioInfos,
+            audioInfos: buildAudioInfos(this.props.serializedAudioInfos),
             authorsOption: {
                 options: this.props.authors || [],
             },
@@ -48,7 +65,7 @@ class AudioCreator extends React.Component<AudioCreatorProps, {author: string}> 
         }
     }
 
-    cleanFields = () => {
+    cleanFields = (): void => {
         this.setState({
             theme: "",
             description: "",
@@ -58,7 +75,7 @@ class AudioCreator extends React.Component<AudioCreatorProps, {author: string}> 
         });
     }
 
-    updateAndCleanFields = () => {
+    updateAndCleanFields = (): void => {
         let authors = this.state.authorsOption.options;
         if(authors.indexOf(this.state.author) === -1) authors.push(this.state.author);
         let themes = this.state.themesOption.options;
@@ -76,7 +93,7 @@ class AudioCreator extends React.Component<AudioCreatorProps, {author: string}> 
         this.cleanFields();
     }
 
-    handleAddAudio = () => {
+    handleAddAudio = (): void => {
         this.setState({errorMessageText: null})
         if(
             !this.state.author?.trim() ||
@@ -91,7 +108,7 @@ class AudioCreator extends React.Component<AudioCreatorProps, {author: string}> 
         this.uploadAudio();
     }
 
-    handleUpdateAudio = () => {
+    handleUpdateAudio = (): void => {
         this.setState({errorMessageText: null})
         if(
             !this.state.author?.trim() ||
@@ -105,7 +122,7 @@ class AudioCreator extends React.Component<AudioCreatorProps, {author: string}> 
         this.updateAudio();
     }
 
-    uploadAudio = () => {
+    uploadAudio = (): void => {
         this.setState({
             errorMessageText: ""
         });
@@ -117,32 +134,22 @@ class AudioCreator extends React.Component<AudioCreatorProps, {author: string}> 
         data.append("date", this.state.date.format('DD-MM-YYYY'));
         data.append("audio", this.state.audio);
 
-        fetch(API_SERVER_URL+"/audios", {
-            method: 'POST',
-            headers: {
-                "auth-token": this.props.user.token
-            },
-            body: data
-        })
-        .then(res => {
-            if (!res.ok) {
-                throw new Error(res.status);
-            }
-            return res.json();
-        })
+        httpPost('/audios', data, this.props.adminLoginInfos.token)
         .then(
-            (result) => {
+            (_saveAudioResult) => {
                 this.updateAndCleanFields();
                 this.setState({infoMessageText: "Audio ajouté avec succès !"});
             },
-            (error) => {
-                this.setErrorMessage(error);
+            (error: Error) => {
+                this.setState({
+                    errorMessageText: error.message
+                });
             }
         );
     }
 
 
-    updateAudio = () => {
+    updateAudio = (): void => {
         this.setState({
             errorMessageText: ""
         });
@@ -153,62 +160,22 @@ class AudioCreator extends React.Component<AudioCreatorProps, {author: string}> 
         data.append("keywords", this.state.keywords.trim());
         data.append("date", this.state.date.format('DD-MM-YYYY'));
 
-        fetch(API_SERVER_URL+"/audios/"+this.state.audioInfos.id, {
-            method: 'PUT',
-            headers: {
-                "auth-token": this.props.user.token
-            },
-            body: data
-        })
-        .then(res => {
-            if (!res.ok) {
-                throw new Error(res.status);
-            }
-            return res.json();
-        })
+        httpPut('/audios/'+this.state.audioInfos.id, data, this.props.adminLoginInfos.token)
         .then(
-            (result) => {
+            (_updateAudioResult) => {
                 this.updateAndCleanFields();
                 this.setState({infoMessageText: "Audio mis à jour avec succès !"});
             },
-            (error) => {
-                this.setErrorMessage(error);
+            (error: Error) => {
+                this.setState({
+                    errorMessageText: error.message
+                });
             }
         );
     }
 
-    setErrorMessage = (error) => {
-        let errorMessage = "Une erreur s'est produite. Veuillez réessayer plus tard.";
-        if (error instanceof TypeError) {
-            errorMessage = "Erreur réseau. S'il vous plait, vérifiez votre connexion internet.";
-        } else if (error instanceof SyntaxError) {
-            errorMessage = "Erreur serveur, données non valides.";
-        } else if (error instanceof Error) {
-            if (error?.message === "404" && this.state.audioInfos) {
-                errorMessage = "Audio introuvable !";
-            } else if (error?.message === "401") {
-                errorMessage = "Accès non autorisé";
-            } else if (error?.message === "400") {
-                errorMessage = "Veuillez renseigner convenablement les champs";
-            } else if (error?.message?.charAt(0) === "4") {
-                errorMessage = "La ressource demandée n'a pas été trouvée.";
-            }else if (error?.message === "500" && this.state.audioInfos) {
-                errorMessage = "Une erreur s'est produite lors de la recherche de l'audio à mettre à jour dans la base de donnée";
-            } else if (error?.message === "500") {
-                errorMessage = "Une erreur s'est produite lors de la sauvegard des informations";
-            } else if (error?.message?.charAt(0) === "5") {
-                errorMessage = "Erreur interne du serveur.";
-            } else {
-                errorMessage = "Une erreur inattendue s'est produite.";
-            }
-        }
-        this.setState({
-            errorMessageText: errorMessage
-        });
-    }    
-
-    isAdminUser(){
-        return this.props.user?.token?.trim();
+    isAdminUser = (): boolean => {
+        return !!this.props.adminLoginInfos?.token?.trim();
     }
 
     render(){
@@ -225,7 +192,7 @@ class AudioCreator extends React.Component<AudioCreatorProps, {author: string}> 
                     this.state.shouldGoBack &&
                     <Navigate 
                     replace={true}
-                    to={import.meta.env.VITE_ADMIN_PATH} state={{user: this.props.user}}  />
+                    to={import.meta.env.VITE_ADMIN_PATH} state={{adminLoginInfos: this.props.adminLoginInfos}}/>
                 }
 
                 <div className="backArrowDiv">
@@ -267,9 +234,9 @@ class AudioCreator extends React.Component<AudioCreatorProps, {author: string}> 
                                 />
                             )}
                             value={this.state.author}
-                            onInputChange={(even, value) => this.setState({author: value.toUpperCase()})}
+                            onInputChange={(_even, value) => this.setState({author: value.toUpperCase()})}
                             
-                            onFocus={(even, value) => this.setState({
+                            onFocus={() => this.setState({
                                 errorMessageText: null, 
                                 infoMessageText: null})}
                         />
@@ -294,9 +261,9 @@ class AudioCreator extends React.Component<AudioCreatorProps, {author: string}> 
                                 />
                             )}
                             value={this.state.theme}
-                            onInputChange={(even, value) => this.setState({theme: value.toUpperCase()})}
+                            onInputChange={(_even, value) => this.setState({theme: value.toUpperCase()})}
                                 
-                            onFocus={(even, value) => this.setState({
+                            onFocus={() => this.setState({
                                 errorMessageText: null, 
                                 infoMessageText: null})}
                         /> 
@@ -315,7 +282,7 @@ class AudioCreator extends React.Component<AudioCreatorProps, {author: string}> 
                             onChange={(even) => this.setState({
                                 description: even.target.value.charAt(0).toUpperCase() + even.target.value.slice(1)})}
 
-                            onFocus={(even, value) => this.setState({
+                            onFocus={() => this.setState({
                                 errorMessageText: null, 
                                 infoMessageText: null})}
                         />
@@ -333,7 +300,7 @@ class AudioCreator extends React.Component<AudioCreatorProps, {author: string}> 
                             onChange={(even) => this.setState({
                                 keywords: even.target.value})}
 
-                            onFocus={(even, value) => this.setState({
+                            onFocus={() => this.setState({
                                 errorMessageText: null, 
                                 infoMessageText: null})}
                         />
@@ -343,7 +310,6 @@ class AudioCreator extends React.Component<AudioCreatorProps, {author: string}> 
                         <LocalizationProvider dateAdapter={AdapterMoment}>
                             <DatePicker
                                 label="Date"
-                                id="audioDateInput"
                                 format="DD-MM-YYYY"
                                 slotProps={{
                                     textField: {
@@ -355,7 +321,7 @@ class AudioCreator extends React.Component<AudioCreatorProps, {author: string}> 
                                 value={this.state.date}
                                 onChange={(value) => this.setState({date: value})}
 
-                                onFocus={(even, value) => this.setState({
+                                onOpen={() => this.setState({
                                     errorMessageText: null, 
                                     infoMessageText: null})}
                             />
@@ -375,7 +341,7 @@ class AudioCreator extends React.Component<AudioCreatorProps, {author: string}> 
                                     onChange={ (even) => { this.setState({
                                         audio: even.target.files[0]})}}
 
-                                    onFocus={(even, value) => this.setState({
+                                    onFocus={() => this.setState({
                                         errorMessageText: null, 
                                         infoMessageText: null})}
                                 />

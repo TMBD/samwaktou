@@ -12,43 +12,72 @@ import { Navigate } from "react-router-dom";
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import Tooltip from '@mui/material/Tooltip';
 import fileDownload from 'js-file-download';
-import moment from 'moment';
+import moment, { Moment } from 'moment';
+import { HttpRespTransformer, httpDelete, httpGet, httpPost } from './common/http-request-handler';
+import { AudioInfos, SerializedAudioInfos, buildAudioInfos, buildAudioInfosArray, buildSerializedAudioInfos } from './model/audio.model';
+import { AdvanceSearchFormInput } from './advance-search.component';
+import { AdminLoginInfos } from './model/admin.model';
 
 
 type AppBodyProps = {
     audioFileIdToPlay?: string;
-    user?: {
-        token: string
-    }
+    adminLoginInfos?: AdminLoginInfos;
     provider?: 'AdminAppProvider' | 'UserAppProvider' | 'AudioLinkHandlerProvider'
+}
 
+type AppBodyState = {
+    audioMetadata: AudioInfos,
+    audios: AudioInfos[],
+    errorMessage: string,
+    warningErrorMessage: string, //This can be used to set error messages that shouldn't block the app but can be shown to the user (with popup notifications)
+    audioInfos: AudioInfos,
+    audioInfosPopup: AudioInfos,
+    shouldDisplayAudioInfos: boolean,
+    currentPlayingElementId: string,
+    authors: string[],
+    themes: string[],
+    searchQuery: string,
+    shouldGetAudioResult: boolean,
+    isCurrentlyFetchingAudios: boolean,
+    audioInfosToUpdate: SerializedAudioInfos,
+    searchInput: AdvanceSearchFormInput,
+    showAudioPlayerCard: boolean,
+    shouldGoBack: boolean,
+    shouldNavigateToCreateAudioPage: boolean,
+    // audioMetadataToUpdate: AudioInfos
+}
+
+enum EventName {
+    PAGE_LOAD,
+    START_LISTENING_AUDIO,
+    AUDIO_DOWNLOADED
 }
 
 const API_SERVER_URL = import.meta.env.VITE_API_SERVER_URL;
 
-console.log(API_SERVER_URL)
-
-class AppBody extends React.Component<AppBodyProps> {
+class AppBody extends React.Component<AppBodyProps, AppBodyState> {
     constructor(props: AppBodyProps){
         super(props);
         this.state = {
-            audioMetadata: {},
+            audioMetadata: null,
             audios: [],
-            errorMessage: "",
-            audioInfos: {},
-            audioInfosPopup: {},
+            errorMessage: '',
+            warningErrorMessage: '', //This can be used to set error messages that shouldn't block the app but can be shown to the user (with popup notifications)
+            audioInfos: null,
+            audioInfosPopup: null,
             shouldDisplayAudioInfos: false,
-            currentPlayingElementId: "",
+            currentPlayingElementId: '',
             authors: [],
             themes: [],
-            searchQuery: "",
+            searchQuery: '',
             shouldGetAudioResult: false,
-            errorObject: null,
             isCurrentlyFetchingAudios: false,
             audioInfosToUpdate: null,
-            searchInput: "",
+            searchInput: null,
             showAudioPlayerCard: false,
-            shouldGoBack: false
+            shouldGoBack: false,
+            shouldNavigateToCreateAudioPage: false,
+            // audioMetadataToUpdate: null
         }
         this.audioHandler = this.audioHandler.bind(this);
         this.handleAudioInfoDisplay = this.handleAudioInfoDisplay.bind(this);
@@ -58,33 +87,18 @@ class AppBody extends React.Component<AppBodyProps> {
         this.handleAudioFileDownload = this.handleAudioFileDownload.bind(this);
     }
 
-    audioHandler(
-        audioUri, 
-        durationDisplay, 
-        audioDescription, 
-        authorName, 
-        theme,
-        recordDate,
-        audioInfos,
-        elementId) {
+    audioHandler(audioInfos: AudioInfos) {
         this.setState({
-          audioMetadata: {
-            audioUri: audioUri,
-            durationDisplay: durationDisplay,
-            audioDescription: audioDescription,
-            authorName: authorName,
-            theme: theme,
-            recordDate: recordDate,
-          },
+          audioMetadata: audioInfos,
           showAudioPlayerCard: true,
           audioInfos: audioInfos,
-          currentPlayingElementId: elementId,
+          currentPlayingElementId: audioInfos.id,
           shouldNavigateToCreateAudioPage: false
         });
-        this.sendAnalytics("START_LISTENING_AUDIO");
-      }
+        this.sendAnalytics(EventName.START_LISTENING_AUDIO);
+    }
 
-      getDurationDisplay = (duration) => {
+      getDurationDisplay = (duration: number): string => {
         let minutes = Math.floor(duration/60);
         let seconds = Math.floor(duration - minutes*60);
         let minutesToDisplay = minutes >= 10 ? minutes : "0"+minutes;
@@ -94,7 +108,7 @@ class AppBody extends React.Component<AppBodyProps> {
 
     componentDidMount(){
         this.setState({
-            errorMessage: ""
+            errorMessage: ''
         });
         if(!this.props.audioFileIdToPlay) this.loadAudios();
         this.loadAuthors();
@@ -103,87 +117,66 @@ class AppBody extends React.Component<AppBodyProps> {
         window.addEventListener('wheel', this.handleWheelMove);
         this.shouldStartAudio();
         this.initLocalStorage();
-        this.sendAnalytics("PAGE_LOAD");
+        this.sendAnalytics(EventName.PAGE_LOAD);
     }
 
     initLocalStorage = () => {
-        const clientId = JSON.parse(localStorage.getItem("clientId"));
+        const clientId: string = JSON.parse(localStorage.getItem("clientId"));
         if(!clientId) {
             localStorage.setItem("clientId", JSON.stringify(crypto.randomUUID()));
         }
     }
 
-    sendAnalytics = (eventName) => {
-        fetch(API_SERVER_URL+"/analytics", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                clientId: JSON.parse(localStorage.getItem("clientId")),
-                date: moment.utc(),
-                eventName: eventName,
-            })
+    sendAnalytics = (eventName: EventName) => {
+        const analyticBody = JSON.stringify({
+            clientId: JSON.parse(localStorage.getItem("clientId")),
+            date: moment.utc(),
+            eventName: eventName,
         });
+
+        httpPost('/analytics', analyticBody);
     }
 
     shouldStartAudio(){
         if(!this.props.audioFileIdToPlay) return;
-
         this.fetchAudioInfo(this.props.audioFileIdToPlay);
-
     }
 
-    formatDate = (date) => {
-        return new Date(date).toLocaleDateString("fr-FR")
+    formatDate = (date: Moment) => {
+        return date.toDate().toLocaleDateString("fr-FR");
     }
 
-    fetchAudioInfo = (audioId) => {
-        fetch(API_SERVER_URL+"/audios/"+audioId, {
-            method: "GET"
-        })
-        .then(res => {
-            if (!res.ok) {
-                throw new Error(res.status);
-            }
-            return res.json();
-        })
+    fetchAudioInfo = (audioId: string) => {
+        httpGet<SerializedAudioInfos>('/audios/'+audioId)
         .then(
-            (result) => {
+            (audio: SerializedAudioInfos) => {
                 this.setState({
-                    audios: [result],
+                    audios: [buildAudioInfos(audio)],
                     shouldGetAudioResult: true
                 });
             },
-            (error) => {
-                this.setErrorMessage(error);
+            (error: Error) => {
+                this.setErrorMessage(error.message);
             }
-        )
+        );
     }
 
     loadAudios(){
         this.setState({isCurrentlyFetchingAudios: true});
-        fetch(API_SERVER_URL+"/audios", {
-            method: "GET"
-        })
-        .then(res => {
-            if (!res.ok) {
-                throw new Error(res.status);
-            }
-            return res.json();
-        })
+
+        httpGet<SerializedAudioInfos[]>('/audios')
         .then(
-            (result) => {
+            (audios: SerializedAudioInfos[]) => {
                 this.setState({
-                    audios: result,
+                    audios: buildAudioInfosArray(audios),
                     shouldGetAudioResult: true
                 });
             },
-            (error) => {
+            (error: Error) => {
                 this.setState({
                     audios: []
                 });
-                this.setErrorMessage(error);
+                this.setErrorMessage(error.message);
             }
         )
         .finally(() =>
@@ -192,56 +185,40 @@ class AppBody extends React.Component<AppBodyProps> {
     }
 
     loadAuthors(){
-        fetch(API_SERVER_URL+"/audios/extra/author", {
-            method: "GET"
-        })
-        .then(res => {
-            if (!res.ok) {
-                throw new Error(res.status);
-            }
-            return res.json();
-        })
+        httpGet<string[]>('/audios/extra/author')
         .then(
-            (result) => {
+            (result: string[]) => {
                 this.setState({
                     authors: result
                 });
             },
-            (error) => {
+            (error: Error) => {
                 this.setState({
                     authors: []
                 });
-                this.setErrorMessage(error);
+                this.setWarningErrorMessage(error.message);
             }
         );
     }
 
     loadThemes(){
-        fetch(API_SERVER_URL+"/audios/extra/theme", {
-            method: "GET"
-        })
-        .then(res => {
-            if (!res.ok) {
-                throw new Error(res.status);
-            }
-            return res.json();
-        })
+        httpGet<string[]>('/audios/extra/theme')
         .then(
-            (result) => {
+            (result: string[]) => {
                 this.setState({
                     themes: result
                 });
             },
-            (error) => {
+            (error: Error) => {
                 this.setState({
                     themes: []
                 });
-                this.setErrorMessage(error);
+                this.setWarningErrorMessage(error.message);
             }
         );
     }
 
-    handleInputSearchChange = (advanceSearchValues) => {
+    handleInputSearchChange = (advanceSearchValues: AdvanceSearchFormInput) => {
         let query = "";
         let shouldSearch = false;
         if(advanceSearchValues?.keywords?.trim()){
@@ -276,56 +253,45 @@ class AppBody extends React.Component<AppBodyProps> {
             errorMessage: ""
         });
 
-        fetch(API_SERVER_URL+"/audios?"+query, {
-            method: 'GET',
-            headers: {
-                "Content-Type": "application/json"
-            },
-        })
-        .then(res => {
-            if (!res.ok) {
-                throw new Error(res.status);
-            }
-            return res.json();
-        })
+        httpGet<SerializedAudioInfos[]>('/audios?'+query)
         .then(
-            (result) => {
+            (audios: SerializedAudioInfos[]) => {
                 this.setState({
-                    audios: result,
+                    audios: buildAudioInfosArray(audios),
                     searchQuery: query,
                     shouldGetAudioResult: true
                 });
             },
-            (error) => {
+            (error: Error) => {
                 this.setState({
                     audios: []
                 });
-                this.setErrorMessage(error);
+                this.setErrorMessage(error.message);
             }
         );
     }
 
-    handleThemeFilterClick = (advanceSearchValues) => {
+    handleThemeFilterClick = (advanceSearchValues: AdvanceSearchFormInput): void => {
         this.setState({
             searchInput: advanceSearchValues
         });
         this.handleInputSearchChange(advanceSearchValues);
     }
 
-    getfileName(uri){
+    getfileName(uri: string): string {
         const splitedFileUri = (uri !== null) ? uri.split("/"):"";
         const fileName = splitedFileUri[splitedFileUri.length-1];
         return API_SERVER_URL+"/audios/file/"+fileName;
     }
 
-    handleAudioInfoDisplay(element){
+    handleAudioInfoDisplay(element: AudioInfos): void{
         this.setState({
             audioInfosPopup: element,
             shouldDisplayAudioInfos: true
         });
     }
 
-    changePopupStatus(visible){
+    changePopupStatus(visible: boolean){
         this.setState({
             shouldDisplayAudioInfos: visible
         });
@@ -338,7 +304,7 @@ class AppBody extends React.Component<AppBodyProps> {
         }
     }
 
-    handleWheelMove = (event) => {
+    handleWheelMove = (event: WheelEvent) => {
         if (event.deltaY > 0) {
             const { clientHeight, scrollHeight } = document.documentElement;
             if (scrollHeight <= clientHeight) {
@@ -355,31 +321,17 @@ class AppBody extends React.Component<AppBodyProps> {
 
             query = (query?.trim()) ? query+"&"+skipQuery:skipQuery;
 
-            this.setState({
-                errorMessage: ""
-            });
-            fetch(API_SERVER_URL+"/audios?"+query, {
-                method: 'GET',
-                headers: {
-                    "Content-Type": "application/json"
-                },
-            })
-            .then(res => {
-                if (!res.ok) {
-                    throw new Error(res.status);
-                }
-                return res.json();
-            })
+            httpGet<SerializedAudioInfos[]>('/audios?'+query)
             .then(
-                (result) => {
-                    if(result.length > 0){
+                (audios: SerializedAudioInfos[]) => {
+                    if(audios?.length > 0){
                         this.setState({
-                            audios: this.state.audios.concat(...result)
+                            audios: this.state.audios.concat(...buildAudioInfosArray(audios))
                         });
                     }
                 },
-                (error) => {
-                    this.setErrorMessage(error);
+                (error: Error) => {
+                    this.setWarningErrorMessage(error.message);
                 }
             )
             .finally(() => {
@@ -388,84 +340,40 @@ class AppBody extends React.Component<AppBodyProps> {
         }
     }
 
-    setErrorMessage = (error) => {
-        let errorMessage = "Une erreur s'est produite. Veuillez réessayer plus tard.";
-
-        if (error instanceof TypeError) {
-            errorMessage = "Erreur réseau. S'il vous plait, vérifiez votre connexion internet.";
-        } else if (error instanceof SyntaxError) {
-            errorMessage = "Erreur serveur, données non valides.";
-        } else if (error instanceof Error) {
-            if (error?.message?.charAt(0) === "4") {
-                errorMessage = "La ressource demandée n'a pas été trouvée.";
-            } else if (error?.message === "503") {
-                errorMessage = "Service temporairement indisponible.";
-            } else if (error?.message?.charAt(0) === "5") {
-                errorMessage = "Erreur interne du serveur.";
-            } else {
-                errorMessage = "Une erreur inattendue s'est produite.";
-            }
-        }
+    setErrorMessage = (message : string) => {
         this.setState({
-            errorMessage: errorMessage,
-            errorObject: error
+            errorMessage: message
         });
     }
 
-    handleEditAudio = (audioInfos) => {
-        if(!this.isAdminUser()){
-            window.alert("Vous n'avez pas la permission !");
-            return;
-        }
-        this.setState({shouldNavigateToCreateAudioPage: true, audioInfosToUpdate: audioInfos});
+    setWarningErrorMessage = (message : string): void => {
+        this.setState({
+            warningErrorMessage: message
+        });
     }
 
-    handleDeleteAudio = (elementId) => {
+    handleEditAudio = (audioInfos: AudioInfos): void => {
         if(!this.isAdminUser()){
             window.alert("Vous n'avez pas la permission !");
             return;
         }
-        fetch(API_SERVER_URL+"/audios/"+elementId, {
-            method: 'DELETE',
-            headers: {
-                "auth-token": this.props.user.token
-            }
-        })
-        .then(res => {
-            if (!res.ok) {
-                throw new Error(res.status);
-            }
-            return res.json();
-        })
+        this.setState({shouldNavigateToCreateAudioPage: true, audioInfosToUpdate: buildSerializedAudioInfos(audioInfos)});
+    }
+
+    handleDeleteAudio = (elementId: string): void => {
+        if(!this.isAdminUser()){
+            window.alert("Vous n'avez pas la permission !");
+            return;
+        }
+
+        httpDelete("/audios/"+elementId, this.props.adminLoginInfos.token)
         .then(
-            (result) => {
+            (_response) => {
                 this.setState({audios: this.state.audios.filter(audio => audio.id !== elementId)});
-                window.alert("Audio supprimé !")
+                window.alert("Audio supprimé !");
             },
-            (error) => {
-                let errorMessage = "Une erreur s'est produite. Veuillez réessayer plus tard.";
-                if (error instanceof TypeError) {
-                    errorMessage = "Erreur réseau. S'il vous plait, vérifiez votre connexion internet.";
-                } else if (error instanceof SyntaxError) {
-                    errorMessage = "Erreur serveur, données non valides.";
-                } else if (error instanceof Error) {
-                    if (error?.message === "404") {
-                        errorMessage = "Audio introuvable !";
-                    } else if (error?.message === "401") {
-                        errorMessage = "Accès non autorisé";
-                    } else if (error?.message?.charAt(0) === "4") {
-                        errorMessage = "La ressource demandée n'a pas été trouvée.";
-                    }else if (error?.message === "500") {
-                        errorMessage = "Une erreur s'est produite lors de la recherche de l'audio à supprimer dans la base de donnée";
-                    } else if (error?.message?.charAt(0) === "5") {
-                        errorMessage = "Erreur interne du serveur.";
-                    } else {
-                        errorMessage = "Une erreur inattendue s'est produite.";
-                    }
-                }
-                this.setState({
-                    errorMessage: errorMessage
-                });
+            (error: Error) => {
+                this.setWarningErrorMessage(error.message);
             }
         );
     }
@@ -475,35 +383,37 @@ class AppBody extends React.Component<AppBodyProps> {
             window.alert("Vous n'avez pas la permission !");
             return;
         }
-        this.setState({shouldNavigateToCreateAudioPage: true, audioMetadataToUpdate: null});
+        this.setState({shouldNavigateToCreateAudioPage: true, audioInfosToUpdate: null});
     }
 
     isAdminUser(){
-        return this.props.user?.token?.trim();
+        return this.props.adminLoginInfos?.token?.trim();
     }
 
-    handleAudioFileDownload = (audioInfos, callback) => {
+    handleAudioFileDownload = (audioInfos: AudioInfos, callback: (success: boolean) => void): void => {
         const fileKey = audioInfos.uri.split("/").pop();
         const downloadedFileName = this.buildDownloadFileName(audioInfos);
-        fetch(`${API_SERVER_URL}/audios/download/${fileKey}`)
-        .then((response) => {
-        // Trigger the download by creating a Blob
+
+        httpGet<Response>(`/audios/download/${fileKey}`, HttpRespTransformer.NONE)
+        .then((response: Response) => {
             return response.blob();
         })
-        .then((blob) => {
-            fileDownload(blob, downloadedFileName);
-            this.sendAnalytics("AUDIO_DOWNLOADED");
-            if (callback) callback(true);
-        })
-        .catch(error => {
-            callback(false);
-        });
+        .then(
+            (data: Blob) => {
+                fileDownload(data, downloadedFileName);
+                this.sendAnalytics(EventName.AUDIO_DOWNLOADED);
+                if (callback) callback(true);
+            },
+            (_error: Error) => {
+                callback(false);
+            }
+        );
     };
 
-    buildDownloadFileName = (audioInfos) => {
+    buildDownloadFileName = (audioInfos: AudioInfos) => {
         return audioInfos.theme.split(" ").join("")
-                +"_"+audioInfos.authorName.split(/\s|\./).join("")
-                +"_"+audioInfos.recordDate.split("/").join("")+".mp3";
+                +"_"+audioInfos.author.split(/\s|\./).join("")
+                +"_"+this.formatDate(audioInfos.date).split("/").join("")+".mp3";
     }
 
     render(){
@@ -541,13 +451,12 @@ class AppBody extends React.Component<AppBodyProps> {
                         searchInput = {this.state.searchInput}
                     />
                 }
-
                 
                 <div className="audioCardContainer"> 
                     {
                         this.state.errorMessage && 
                         <ErrorMessage
-                            messageText = {this.state.errorMessage.toString()}
+                            messageText = {this.state.errorMessage}
                         />
                     }
                     {
@@ -567,7 +476,7 @@ class AppBody extends React.Component<AppBodyProps> {
                                     theme = {element.theme}
                                     authorName = {element.author}
                                     audioDescription = {element.description}
-                                    recordDate = {this.formatDate(element.date)}
+                                    recordDate = {element.date}
                                     audioUri = {this.getfileName(element.uri)}
                                     audioHandler = {this.audioHandler}
                                     getDurationDisplay = {this.getDurationDisplay}
@@ -575,23 +484,26 @@ class AppBody extends React.Component<AppBodyProps> {
                                     handleEditAudio = {this.handleEditAudio}
                                     handleDeleteAudio = {this.handleDeleteAudio}
                                     handleThemeFilterClick = {this.handleThemeFilterClick}
-                                    user = {this.props.user}
+                                    adminLoginInfos = {this.props.adminLoginInfos}
                                     handleAudioFileDownload = {this.handleAudioFileDownload}
                                     />
                     )}
 
-                    <AudioPlayerCard
-                        audioMetadata = {this.state.audioMetadata}
-                        getDurationDisplay = {this.getDurationDisplay}
-                        showAudioPlayerCard = {this.state.showAudioPlayerCard}
-                        audioInfos = {this.state.audioInfos}
-                        handleAudioInfoDisplay = {this.handleAudioInfoDisplay}
-                        handleThemeFilterClick = {this.handleThemeFilterClick}/>
+                    {
+                        !!this.state.audioMetadata &&
+                        <AudioPlayerCard
+                            audioMetadata = {this.state.audioMetadata}
+                            showAudioPlayerCard = {this.state.showAudioPlayerCard}
+                            audioInfos = {this.state.audioInfos}
+                            getDurationDisplay = {this.getDurationDisplay}
+                            handleAudioInfoDisplay = {this.handleAudioInfoDisplay}
+                            handleThemeFilterClick = {this.handleThemeFilterClick}/>
+                    }
 
                     {
                         this.state.shouldDisplayAudioInfos && 
                         <PopupView 
-                            audioInfosPopup = {this.state.audioInfosPopup}
+                            audioInfos = {this.state.audioInfosPopup}
                             shouldDisplayAudioInfos = {this.state.shouldDisplayAudioInfos}
                             changePopupStatus = {this.changePopupStatus}
                             handleAudioFileDownload = {this.handleAudioFileDownload}
@@ -600,12 +512,11 @@ class AppBody extends React.Component<AppBodyProps> {
 
                 </div>
                 {
-                    this.props.user?.token?.trim() && 
+                    this.props.adminLoginInfos?.token?.trim() && 
                     <div className='addAudioIconContainer'>
                         <IconButton
                             size='large'
                             color='primary'
-                            
                             onClick={() => this.navigateToCreateAudioPage()}
                             >
                             <AddCircleOutlineOutlinedIcon />
@@ -618,7 +529,7 @@ class AppBody extends React.Component<AppBodyProps> {
                     <Navigate 
                         replace={false}
                         to={import.meta.env.VITE_CREATE_AUDIO_PATH}
-                        state={{authors: this.state.authors, themes: this.state.themes, user: this.props.user, audioInfos: this.state.audioInfosToUpdate}}/>
+                        state={{authors: this.state.authors, themes: this.state.themes, adminLoginInfos: this.props.adminLoginInfos, serializedAudioInfos: this.state.audioInfosToUpdate}}/>
                 }
             </div>
         );
