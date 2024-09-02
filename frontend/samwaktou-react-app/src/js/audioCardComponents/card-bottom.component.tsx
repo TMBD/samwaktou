@@ -6,23 +6,18 @@ type BottomProps = {
     recordDateDisplay: string;
 }
 
-class Bottom extends React.Component<BottomProps>{
-    constructor(props: BottomProps){
-        super(props);
-    }
-
-    render(){
-        return(
-            <div className="cardBottomContainer">
-                <div className="cardAuthorContainer">
-                    {this.props.authorName}
-                </div>
-                <div className="cardDateContainer">
-                    {this.props.recordDateDisplay}
-                </div>
+const Bottom: React.FC<BottomProps> = (props: BottomProps) => {
+    return(
+        <div className="cardBottomContainer">
+            <div className="cardAuthorContainer">
+                {props.authorName}
             </div>
-        );
-    }
+
+            <div className="cardDateContainer">
+                {props.recordDateDisplay}
+            </div>
+        </div>
+    );
 }
 
 export default Bottom;

@@ -299,8 +299,6 @@ export const downloadAll = async (
     res: Response<Buffer | ErrorResponse>): Promise<void> => {
     try{
         const zipStream = await downloadAudioBucket();
-        // const fileStream = audioResponse.data;
-        // res.attachment(`Audio_backup_${new Date()}.zip`);
         // Set response headers for zip file    
         res.setHeader('Content-Type', 'application/zip');
         res.setHeader('Content-Disposition', `attachment; filename=Backup_audios_du_${moment.utc().startOf("second").format("YYYYMMDD_HHmmss")}.zip`);

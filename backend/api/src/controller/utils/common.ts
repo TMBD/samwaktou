@@ -20,7 +20,6 @@ export const parseErrorInJson = (error: unknown): IParseErrorResult => {
         // Explicitly pull Error's non-enumerable properties
         name: error.name,
         message: error.message,
-        //   stack: error.stack,
     }:{
         error: error,
     }

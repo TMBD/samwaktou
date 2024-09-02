@@ -1,17 +1,14 @@
 import React from "react";
 import Tooltip from '@mui/material/Tooltip';
 import _ from 'lodash';
-import { AudioInfos } from "./model/audio.model";
-import { AdvanceSearchFormInput } from "./advance-search.component";
+import { AudioInfos } from "../model/audio.model";
 
 type AudioPlayerCardProps = {
     audioMetadata?: AudioInfos;
     showAudioPlayerCard?: boolean;
-    audioInfos?: AudioInfos;
     getDurationDisplay?: (duration: number) => string;
     handleAudioInfoDisplay?: (element: AudioInfos) => void;
-    handleThemeFilterClick?: (advanceSearchValues: AdvanceSearchFormInput) => void;
-
+    handleThemeFilterClick?: (theme: string) => void;
 }
 
 type AudioPlayerCardState = {
@@ -131,11 +128,11 @@ class AudioPlayerCard
             <div className={"audioPlayerCardContainer " + (this.state.displayAudioPlayer ? "showElementClassName":"hideElementClassName")}>
                 <div className="audioPlayerCard">
                     <div className="audioPlayerCard-header">
-                        <div className="audioPlayerCard-cardTheme" onClick={() => this.props.handleThemeFilterClick({theme: this.props.audioMetadata.theme})}>
+                        <div className="audioPlayerCard-cardTheme" onClick={() => this.props.handleThemeFilterClick(this.props.audioMetadata.theme)}>
                             {this.props.audioMetadata.theme}
                         </div>
                         <Tooltip title="Voir les détails">
-                            <div className="cardHelp" onClick={() => this.props.handleAudioInfoDisplay(this.props.audioInfos)}>
+                            <div className="cardHelp" onClick={() => this.props.handleAudioInfoDisplay(this.props.audioMetadata)}>
                                 i
                             </div>
                         </Tooltip>

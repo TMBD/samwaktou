@@ -1,4 +1,4 @@
-import React, { ReactElement } from "react";
+import React from "react";
 import {OptionsBar} from "../options-bar.component";
 import {AudioKeywords} from "../audio-keywords.component";
 import { AudioInfos } from "../model/audio.model";
@@ -12,32 +12,28 @@ type BodyProps = {
     audioInfos: AudioInfos;
 }
 
-class Body extends React.Component<BodyProps>{
-    render(){
-        let cardAudioDescriptionStartClass = "cardAudioDescriptionStart";
-        let detailsElements: ReactElement;
-        if(this.props.shouldDisplayAudioDetails){
-            cardAudioDescriptionStartClass = "";
-            detailsElements = 
-            <div>
-                <AudioKeywords keywords = {this.props.audioInfos.keywords}/>
-                <OptionsBar
-                    handleAudioFileDownload = {this.props.handleAudioFileDownload}
-                    audioInfos = {this.props.audioInfos}
-                />
+const Body: React.FC<BodyProps> = (props: BodyProps) => {
+    const cardAudioDescriptionStartClass = props.shouldDisplayAudioDetails ? "" : "cardAudioDescriptionStart";
+
+    return(
+        <div className="audioCardBody">
+            <div 
+                className={`cardAudioDescriptionContainer ${cardAudioDescriptionStartClass} ${props.cursorClassName}`} 
+                onClick={() => props.handleClickedCardBody(props.audioInfos)}>
+                {props.audioInfos.description}
             </div>
-        }
-        return(
-            <div className="audioCardBody">
-                <div 
-                    className={"cardAudioDescriptionContainer " + cardAudioDescriptionStartClass + " " + this.props.cursorClassName} 
-                    onClick={() => this.props.handleClickedCardBody(this.props.audioInfos)}>
-                    {this.props.audioInfos.description}
+            {
+                props.shouldDisplayAudioDetails && 
+                <div>
+                    <AudioKeywords keywords = {props.audioInfos.keywords}/>
+                    <OptionsBar
+                        handleAudioFileDownload = {props.handleAudioFileDownload}
+                        audioInfos = {props.audioInfos}
+                    />
                 </div>
-                {detailsElements}
-            </div>
-        );
-    }
+            }
+        </div>
+    );
 }
 
 export default Body;

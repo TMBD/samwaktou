@@ -1,13 +1,12 @@
 import React from "react";
-import Header from "./audioCardComponents/card-header.component";
-import Bottom from './audioCardComponents/card-bottom.component';
-import Body from "./audioCardComponents/card-body.component";
-import CardBottomAdmin from "./audioCardComponents/card-bottom-admin.component";
-import '../style/audioCards.css';
+import Header from "./card-header.component";
+import Bottom from './card-bottom.component';
+import Body from "./card-body.component";
+import CardBottomAdmin from "./card-bottom-admin.component";
+import '../../style/audioCards.css';
 import { Moment } from "moment";
-import { AudioInfos } from "./model/audio.model";
-import { AdvanceSearchFormInput } from "./advance-search.component";
-import { AdminLoginInfos } from "./model/admin.model";
+import { AudioInfos } from "../model/audio.model";
+import { AdminLoginInfos } from "../model/admin.model";
 
 
 type AudioCardProps = {
@@ -21,9 +20,9 @@ type AudioCardProps = {
     audioHandler: (audioInfos: AudioInfos) => void;
     getDurationDisplay: (duration: number) => string;
     audioInfos: AudioInfos;
-    handleEditAudio: (audioInfos: AudioInfos) => void;
+    handleNavigateToEditAudioPage: (audioInfos: AudioInfos) => void;
     handleDeleteAudio: (elementId: string) => void;
-    handleThemeFilterClick: (advanceSearchValues: AdvanceSearchFormInput) => void;
+    handleThemeFilterClick: (theme: string) => void;
     adminLoginInfos: AdminLoginInfos;
     handleAudioFileDownload: (audioInfos: AudioInfos, callback: (success: boolean) => void) => void;
 }
@@ -110,7 +109,7 @@ class AudioCard extends React.Component<AudioCardProps, AudioCardState>{
                     this.props.adminLoginInfos?.token?.trim() && 
                     <CardBottomAdmin
                         audioInfos = {this.props.audioInfos}
-                        handleEditAudio = {this.props.handleEditAudio}
+                        handleNavigateToEditAudioPage = {this.props.handleNavigateToEditAudioPage}
                         handleDeleteAudio = {this.props.handleDeleteAudio}
                     />
                 }

@@ -111,11 +111,14 @@ class Login extends React.Component<{}, LoginState>{
                         }
                         />
                 </FormControl>
+
                 <Button
                     sx={{textTransform: "none", float: "right", marginTop: "20px", marginBottom: "20px"}} 
                     variant="contained" 
                     size="large"
-                    onClick={() => this.handleSubmitForm()}>Se connecter</Button>
+                    onClick={() => this.handleSubmitForm()}>
+                    Se connecter
+                </Button>
                 {
                     this.state.adminLoginInfos?.token?.trim() &&
                     <Navigate 
@@ -123,7 +126,8 @@ class Login extends React.Component<{}, LoginState>{
                     to={import.meta.env.VITE_ADMIN_PATH} state={{adminLoginInfos: this.state.adminLoginInfos}}  />
                 }
             
-            </div>)
+            </div>
+        );
     }
 }
 

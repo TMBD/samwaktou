@@ -5,10 +5,8 @@ import AdvanceSearch, { AdvanceSearchFormInput } from "./advance-search.componen
 
 
 type SearchBarProps = {
-    handleInputSearchChange: (advanceSearchValues: AdvanceSearchFormInput) => void;
-    authors: string[];
-    themes: string[];
-    searchInput: AdvanceSearchFormInput
+    themeSearchInput: AdvanceSearchFormInput;
+    handleAudioSearchQueryChange: (audioSearchQuery: string) => void;
 }
 
 type SearchBarState = {
@@ -22,7 +20,7 @@ class SearchBar extends React.Component<SearchBarProps, SearchBarState> {
 
     constructor(props: SearchBarProps){
         super(props);
-        this.handleAdvanceSearch = this.handleAdvanceSearch.bind(this);
+        this.advanceSearchHandler = this.advanceSearchHandler.bind(this);
         this.state = {
             shouldDisplayAdvanceSearchView: false,
             advanceSearchValues: {},
@@ -31,13 +29,13 @@ class SearchBar extends React.Component<SearchBarProps, SearchBarState> {
         this.handleSearch = this.handleSearch.bind(this);
     }
 
-    componentDidUpdate(prevProps: SearchBarProps): void{
-        if(this.props.searchInput && this.props.searchInput !== prevProps.searchInput){
-            this.handleAdvanceSearchInputChange(this.props.searchInput);
+    componentDidUpdate(prevProps: Readonly<SearchBarProps>, _: Readonly<SearchBarState>): void {
+        if(!!this.props?.themeSearchInput && this.props.themeSearchInput !== prevProps.themeSearchInput){
+            this.handleAdvanceSearchInputChange(this.props.themeSearchInput);
         }
     }
 
-    changeAdvanceSearchPopupStatus = (isVisible: boolean): void => {
+    changeAdvanceSearchPopupStatusHandler = (isVisible: boolean): void => {
         this.setState({
             shouldDisplayAdvanceSearchView: isVisible
         });
@@ -51,27 +49,65 @@ class SearchBar extends React.Component<SearchBarProps, SearchBarState> {
             },
             searchInputContent: searchValues?.keywords
         });
-        this.props.handleInputSearchChange(searchValues);
+        this.handleInputSearchChange(searchValues);
     }
 
-    handleAdvanceSearch = (advanceSearchValues: AdvanceSearchFormInput): void => {
-        this.changeAdvanceSearchPopupStatus(false);
-        this.props.handleInputSearchChange(advanceSearchValues);
+    handleInputSearchChange = (advanceSearchValues: AdvanceSearchFormInput): void => {
+        let query = "";
+        let shouldSearch = false;
+
+        if(advanceSearchValues?.keywords?.trim().length >= 3){
+            query += "keywords="+advanceSearchValues.keywords.trim();
+            shouldSearch = true; 
+        }else if(advanceSearchValues?.keywords.length === 0){//we should also perform the query when there is no content in the search bar
+            shouldSearch = true;
+        }
+
+        if(advanceSearchValues?.author?.trim()){
+            const authorQuery = "author="+advanceSearchValues.author.trim();
+            query += query ? "&"+authorQuery : authorQuery;
+            shouldSearch = true;
+        }
+
+        if(advanceSearchValues?.theme?.trim()){
+            const themeQuery = "theme="+advanceSearchValues.theme.trim();
+            query += query ? "&"+themeQuery : themeQuery;
+            shouldSearch = true;
+        }
+
+        if(advanceSearchValues?.minDate){
+            const minDateQuery = "minDate="+advanceSearchValues.minDate.format('DD-MM-YYYY');
+            query += query ? "&"+minDateQuery : minDateQuery;
+            shouldSearch = true;
+        }
+
+        if(advanceSearchValues?.maxDate){
+            const maxDateQuery = "maxDate="+advanceSearchValues.maxDate.format('DD-MM-YYYY');
+            query += query ? "&"+maxDateQuery : maxDateQuery;
+            shouldSearch = true;
+        }
+        
+        if(!shouldSearch) return;
+
+        this.props.handleAudioSearchQueryChange(query);
+    }
+
+    advanceSearchHandler = (advanceSearchValues: AdvanceSearchFormInput): void => {
+        this.changeAdvanceSearchPopupStatusHandler(false);
+        this.handleInputSearchChange(advanceSearchValues);
         this.handleAdvanceSearchInputChange(advanceSearchValues);
     }
 
     handleAdvanceSearchInputChange = (advanceSearchValues: AdvanceSearchFormInput) => {
         let input = "";
         if(advanceSearchValues?.keywords) input += "keywords:("+advanceSearchValues.keywords+")";
-        if(advanceSearchValues?.author) input += " author:("+advanceSearchValues.author+")";
-        if(advanceSearchValues?.theme) input += " theme:("+advanceSearchValues.theme+")";
-        if(advanceSearchValues?.minDate) input += " minDate:("+advanceSearchValues.minDate.format('DD-MM-YYYY')+")";
-        if(advanceSearchValues?.maxDate) input += " maxDate:("+advanceSearchValues.maxDate.format('DD-MM-YYYY')+")";
+        if(advanceSearchValues?.author) input += (input ? " " : "") + "author:("+advanceSearchValues.author+")";
+        if(advanceSearchValues?.theme) input += (input ? " " : "") + "theme:("+advanceSearchValues.theme+")";
+        if(advanceSearchValues?.minDate) input += (input ? " " : "") + "minDate:("+advanceSearchValues.minDate.format('DD-MM-YYYY')+")";
+        if(advanceSearchValues?.maxDate) input += (input ? " " : "") + "maxDate:("+advanceSearchValues.maxDate.format('DD-MM-YYYY')+")";
 
         this.setState({
-            searchInputContent: input
-        });
-        this.setState({
+            searchInputContent: input,
             advanceSearchValues: {
                 keywords: advanceSearchValues?.keywords,
                 author: advanceSearchValues?.author,
@@ -96,10 +132,10 @@ class SearchBar extends React.Component<SearchBarProps, SearchBarState> {
                         onChange={() => this.handleSearch({keywords: this.searchInputRef.current.value})}
                         onFocus={(_e) => this.searchInputRef.current.setSelectionRange(0, this.searchInputRef.current.value.length)}/>
                         
-                    <button title="Recherches avancées"
+                    <button title="Recherche avancée"
                         type = "submit" 
                         className = "searchButton"
-                        onClick={() => this.changeAdvanceSearchPopupStatus(true)}>
+                        onClick={() => this.changeAdvanceSearchPopupStatusHandler(true)}>
                         Recherche avancée
                     </button>
                 </div>
@@ -108,11 +144,10 @@ class SearchBar extends React.Component<SearchBarProps, SearchBarState> {
                     this.state.shouldDisplayAdvanceSearchView && 
                     <AdvanceSearch 
                         shouldDisplayAdvanceSearchView = {this.state.shouldDisplayAdvanceSearchView}
-                        changeAdvanceSearchPopupStatus = {this.changeAdvanceSearchPopupStatus}
-                        handleAdvanceSearch = {this.handleAdvanceSearch}
                         advanceSearchValues = {this.state.advanceSearchValues}
-                        authors = {this.props.authors}
-                        themes = {this.props.themes}/>
+                        changeAdvanceSearchPopupStatusHandler = {this.changeAdvanceSearchPopupStatusHandler}
+                        advanceSearchHandler = {this.advanceSearchHandler}
+                    />
                 }
             </div>
         );

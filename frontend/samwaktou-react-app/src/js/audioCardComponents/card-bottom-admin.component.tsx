@@ -7,36 +7,35 @@ import { AudioInfos } from '../model/audio.model';
 
 type CardBottomAdminProps = {
     audioInfos: AudioInfos;
-    handleEditAudio: (audioInfos: AudioInfos) => void;
+    handleNavigateToEditAudioPage: (audioInfos: AudioInfos) => void;
     handleDeleteAudio: (elementId: string) => void;
 }
 
-class CardBottomAdmin extends React.Component<CardBottomAdminProps>{
 
-    handleDeleteAudioClick = () => {
+const CardBottomAdmin: React.FC<CardBottomAdminProps> = (props: CardBottomAdminProps) => {
+    const handleDeleteAudioClick = () => {
         if(window.confirm("Voulez-vous supprimer cet audio ?")){
-            this.props.handleDeleteAudio(this.props.audioInfos.id)
+            props.handleDeleteAudio(props.audioInfos.id)
         }
     }
 
-    render(){
-        return(
-            <div className="cardBottomAdminContainer">
-                <IconButton
-                    size='small'
-                    onClick={() => this.props.handleEditAudio(this.props.audioInfos)}
-                    >
-                    <EditOutlinedIcon />
-                </IconButton>
-                <IconButton
-                    size='small'
-                    onClick={() => this.handleDeleteAudioClick()}
-                    >
-                    <DeleteOutlinedIcon />
-                </IconButton>
-            </div>
-        );
-    }
+    return(
+        <div className="cardBottomAdminContainer">
+            <IconButton
+                size='small'
+                onClick={() => props.handleNavigateToEditAudioPage(props.audioInfos)}
+                >
+                <EditOutlinedIcon />
+            </IconButton>
+            
+            <IconButton
+                size='small'
+                onClick={() => handleDeleteAudioClick()}
+                >
+                <DeleteOutlinedIcon />
+            </IconButton>
+        </div>
+    );
 }
 
 export default CardBottomAdmin;

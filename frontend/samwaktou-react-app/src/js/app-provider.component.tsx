@@ -37,8 +37,6 @@ const AudioCreatorProvider = () => {
     return (
         <AudioCreator
             serializedAudioInfos = { location?.state?.serializedAudioInfos }
-            authors = { location?.state?.authors }
-            themes = { location?.state?.themes }
             adminLoginInfos = { location?.state?.adminLoginInfos  }
         />
     );

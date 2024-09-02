@@ -7,30 +7,25 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterMoment } from '@mui/x-date-pickers/AdapterMoment'
 import {ErrorMessage, InfoMessage} from './message.component'
-import moment, { Moment } from "moment";
+import moment from "moment";
 import { Navigate } from "react-router-dom";
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import IconButton from '@mui/material/IconButton';
 import { AudioInfos, SerializedAudioInfos, buildAudioInfos } from "./model/audio.model";
 import { AdminLoginInfos } from "./model/admin.model";
 import { httpPost, httpPut } from "./common/http-request-handler";
+import { getAuthors, getThemes } from "./common/utils/http-request-utils";
 
 
 type AudioCreatorProps = {
-    serializedAudioInfos: SerializedAudioInfos; //we need to used the serialized version because the date type (of Moment) is not compatible with react routing
-    authors: string[];
-    themes: string[];
+    serializedAudioInfos: SerializedAudioInfos; //we need to use the serialized version because the date type (of Moment) is not compatible with react routing
     adminLoginInfos: AdminLoginInfos;
 }
 
 type AudioCreatorState = {
-    theme: string;
-    author: string;
-    description: string;
-    keywords: string;
-    date: Moment;
     audio: File;
     errorMessageText: string;
+    warningMessage: string;
     infoMessageText: string;
     audioInfos: AudioInfos;
     authorsOption: {
@@ -40,46 +35,85 @@ type AudioCreatorState = {
         options: string[];
     };
     shouldGoBack: boolean;
+    isUpdatingAudio: boolean;
 }
+
 
 class AudioCreator extends React.Component<AudioCreatorProps, AudioCreatorState> {
     constructor( props: AudioCreatorProps ){
         super(props);
         this.state = {
-            theme: this.props.serializedAudioInfos?.theme || "",
-            author: this.props.serializedAudioInfos?.author || "",
-            description: this.props.serializedAudioInfos?.description || "",
-            keywords: this.props.serializedAudioInfos?.keywords || "",
-            date: this.props.serializedAudioInfos?.date ? moment(this.props.serializedAudioInfos.date) : null,
             audio: null,
             errorMessageText: null,
             infoMessageText: null,
+            warningMessage: null,
             audioInfos: buildAudioInfos(this.props.serializedAudioInfos),
             authorsOption: {
-                options: this.props.authors || [],
+                options: [],
             },
             themesOption: {
-                options: this.props.themes || [],
+                options: [],
             },
-            shouldGoBack: false
+            shouldGoBack: false,
+            isUpdatingAudio: !!this.props.serializedAudioInfos
         }
+    }
+
+    componentDidMount(): void {
+        this.loadAudiosAndAuthors();
+    }
+
+    loadAudiosAndAuthors = (): void => {
+        getAuthors().then(
+            (authors: string[]) => {
+                this.setState({
+                    authorsOption: {
+                        options: authors
+                    }
+                });
+            },
+            (error: Error) => {
+                this.setState({
+                    warningMessage: error.message
+                });
+            }
+        );
+
+        getThemes().then(
+            (themes: string[]) => {
+                this.setState({
+                    themesOption: {
+                        options: themes
+                    }
+                });
+            },
+            (error: Error) => {
+                this.setState({
+                    warningMessage: error.message
+                });
+            }
+        );
     }
 
     cleanFields = (): void => {
         this.setState({
-            theme: "",
-            description: "",
-            keywords: "",
             audio: null,
-            audioInfos: null
+            audioInfos: {
+                ...this.state.audioInfos,
+                theme: '',
+                description: '',
+                keywords: ''
+            },
+            isUpdatingAudio: false
         });
     }
 
     updateAndCleanFields = (): void => {
         let authors = this.state.authorsOption.options;
-        if(authors.indexOf(this.state.author) === -1) authors.push(this.state.author);
+        if(authors.indexOf(this.state.audioInfos.author) === -1) authors.push(this.state.audioInfos.author);
+
         let themes = this.state.themesOption.options;
-        if(themes.indexOf(this.state.theme) === -1) themes.push(this.state.theme);
+        if(themes.indexOf(this.state.audioInfos.theme) === -1) themes.push(this.state.audioInfos.theme);
 
         this.setState({
             authorsOption: {
@@ -96,11 +130,11 @@ class AudioCreator extends React.Component<AudioCreatorProps, AudioCreatorState>
     handleAddAudio = (): void => {
         this.setState({errorMessageText: null})
         if(
-            !this.state.author?.trim() ||
-            !this.state.theme?.trim() ||
-            !this.state.description?.trim() ||
-            !this.state.keywords?.trim() ||
-            !this.state.date || !moment(this.state.date, "DD-MM-YYYY").isValid() ||
+            !this.state.audioInfos.author?.trim() ||
+            !this.state.audioInfos.theme?.trim() ||
+            !this.state.audioInfos.description?.trim() ||
+            !this.state.audioInfos.keywords?.trim() ||
+            !this.state.audioInfos.date || !moment(this.state.audioInfos.date, "DD-MM-YYYY").isValid() ||
             !this.state.audio){
             this.setState({errorMessageText: "Veuillez renseigner correctement tous les champs !"})
             return ;
@@ -111,11 +145,11 @@ class AudioCreator extends React.Component<AudioCreatorProps, AudioCreatorState>
     handleUpdateAudio = (): void => {
         this.setState({errorMessageText: null})
         if(
-            !this.state.author?.trim() ||
-            !this.state.theme?.trim() ||
-            !this.state.description?.trim() ||
-            !this.state.keywords?.trim() ||
-            !this.state.date || !moment(this.state.date, "DD-MM-YYYY").isValid()){
+            !this.state.audioInfos.author?.trim() ||
+            !this.state.audioInfos.theme?.trim() ||
+            !this.state.audioInfos.description?.trim() ||
+            !this.state.audioInfos.keywords?.trim() ||
+            !this.state.audioInfos.date || !moment(this.state.audioInfos.date, "DD-MM-YYYY").isValid()){
             this.setState({errorMessageText: "Veuillez renseigner correctement tous les champs !"})
             return ;
         }
@@ -127,11 +161,11 @@ class AudioCreator extends React.Component<AudioCreatorProps, AudioCreatorState>
             errorMessageText: ""
         });
         let data = new FormData();
-        data.append("author", this.state.author.trim());
-        data.append("theme", this.state.theme.trim());
-        data.append("description", this.state.description.trim());
-        data.append("keywords", this.state.keywords.trim());
-        data.append("date", this.state.date.format('DD-MM-YYYY'));
+        data.append("author", this.state.audioInfos.author.trim());
+        data.append("theme", this.state.audioInfos.theme.trim());
+        data.append("description", this.state.audioInfos.description.trim());
+        data.append("keywords", this.state.audioInfos.keywords.trim());
+        data.append("date", this.state.audioInfos.date.format('DD-MM-YYYY'));
         data.append("audio", this.state.audio);
 
         httpPost('/audios', data, this.props.adminLoginInfos.token)
@@ -154,11 +188,11 @@ class AudioCreator extends React.Component<AudioCreatorProps, AudioCreatorState>
             errorMessageText: ""
         });
         let data = new FormData();
-        data.append("author", this.state.author.trim());
-        data.append("theme", this.state.theme.trim());
-        data.append("description", this.state.description.trim());
-        data.append("keywords", this.state.keywords.trim());
-        data.append("date", this.state.date.format('DD-MM-YYYY'));
+        data.append("author", this.state.audioInfos.author.trim());
+        data.append("theme", this.state.audioInfos.theme.trim());
+        data.append("description", this.state.audioInfos.description.trim());
+        data.append("keywords", this.state.audioInfos.keywords.trim());
+        data.append("date", this.state.audioInfos.date.format('DD-MM-YYYY'));
 
         httpPut('/audios/'+this.state.audioInfos.id, data, this.props.adminLoginInfos.token)
         .then(
@@ -233,12 +267,15 @@ class AudioCreator extends React.Component<AudioCreatorProps, AudioCreatorState>
                                     variant="standard"
                                 />
                             )}
-                            value={this.state.author}
-                            onInputChange={(_even, value) => this.setState({author: value.toUpperCase()})}
+                            value={this.state.audioInfos?.author || ''}
+                            onInputChange={(_even, value) => this.setState({
+                                audioInfos: {...this.state.audioInfos, author: value.toUpperCase()}
+                            })}
                             
                             onFocus={() => this.setState({
                                 errorMessageText: null, 
-                                infoMessageText: null})}
+                                infoMessageText: null})
+                            }
                         />
                     </div>
 
@@ -260,8 +297,10 @@ class AudioCreator extends React.Component<AudioCreatorProps, AudioCreatorState>
                                     variant="standard" 
                                 />
                             )}
-                            value={this.state.theme}
-                            onInputChange={(_even, value) => this.setState({theme: value.toUpperCase()})}
+                            value={this.state.audioInfos?.theme || ''}
+                            onInputChange={(_even, value) => this.setState({
+                                audioInfos: {...this.state.audioInfos, theme: value.toUpperCase()}
+                            })}
                                 
                             onFocus={() => this.setState({
                                 errorMessageText: null, 
@@ -278,13 +317,18 @@ class AudioCreator extends React.Component<AudioCreatorProps, AudioCreatorState>
                             fullWidth
                             multiline
                             rows={3}
-                            value={this.state.description}
+                            value={this.state.audioInfos?.description}
                             onChange={(even) => this.setState({
-                                description: even.target.value.charAt(0).toUpperCase() + even.target.value.slice(1)})}
+                                audioInfos: {
+                                    ...this.state.audioInfos, 
+                                    description: even.target.value.charAt(0).toUpperCase() + even.target.value.slice(1)
+                                }
+                            })}
 
                             onFocus={() => this.setState({
                                 errorMessageText: null, 
-                                infoMessageText: null})}
+                                infoMessageText: null})
+                            }
                         />
                     </div>
                     <div className="audioFormItemBox">
@@ -296,13 +340,15 @@ class AudioCreator extends React.Component<AudioCreatorProps, AudioCreatorState>
                             fullWidth
                             multiline
                             rows={3}
-                            value={this.state.keywords}
+                            value={this.state.audioInfos?.keywords}
                             onChange={(even) => this.setState({
-                                keywords: even.target.value})}
+                                audioInfos: {...this.state.audioInfos, keywords: even.target.value}
+                            })}
 
                             onFocus={() => this.setState({
                                 errorMessageText: null, 
-                                infoMessageText: null})}
+                                infoMessageText: null})
+                            }
                         />
                     </div>
 
@@ -318,8 +364,10 @@ class AudioCreator extends React.Component<AudioCreatorProps, AudioCreatorState>
                                     },
                                 }}
                                 disableFuture
-                                value={this.state.date}
-                                onChange={(value) => this.setState({date: value})}
+                                value={this.state.audioInfos?.date}
+                                onChange={(value) => this.setState({
+                                    audioInfos: {...this.state.audioInfos, date: value}
+                                })}
 
                                 onOpen={() => this.setState({
                                     errorMessageText: null, 
@@ -328,7 +376,7 @@ class AudioCreator extends React.Component<AudioCreatorProps, AudioCreatorState>
                         </LocalizationProvider>
                         
                         {
-                            !this.state.audioInfos && 
+                            !this.state.isUpdatingAudio && 
                             <Button
                                 sx={{width: "45%", textTransform: "none", marginTop: "20px", marginBottom: "20px", height: "56px", maxHeight: "56px" }}
                                 variant="outlined"
@@ -338,8 +386,11 @@ class AudioCreator extends React.Component<AudioCreatorProps, AudioCreatorState>
                                     type="file"
                                     hidden
                                     accept="audio/*"
-                                    onChange={ (even) => { this.setState({
-                                        audio: even.target.files[0]})}}
+                                    onChange={ (even) => {
+                                        this.setState({
+                                            audio: even.target.files[0]
+                                        })}
+                                    }
 
                                     onFocus={() => this.setState({
                                         errorMessageText: null, 
@@ -354,8 +405,8 @@ class AudioCreator extends React.Component<AudioCreatorProps, AudioCreatorState>
                             sx={{textTransform: "none", float: "right", marginTop: "20px", marginBottom: "20px"}} 
                             variant="contained" 
                             size="large"
-                            onClick={() => this.state.audioInfos ? this.handleUpdateAudio() : this.handleAddAudio()}>
-                                {this.state.audioInfos ? "Mettre à jour" : "Ajouter"}
+                            onClick={() => this.state.isUpdatingAudio ? this.handleUpdateAudio() : this.handleAddAudio()}>
+                                {this.state.isUpdatingAudio ? "Mettre à jour" : "Ajouter"}
                         </Button>
                     </div>
                 </div>

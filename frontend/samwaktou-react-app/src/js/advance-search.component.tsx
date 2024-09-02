@@ -5,9 +5,10 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterMoment } from '@mui/x-date-pickers/AdapterMoment'
 import { Button } from "@mui/material";
-import moment, { Moment } from "moment";
+import { Moment } from "moment";
 import '../style/popupView.css'
 import '../style/searchBar.css';
+import { getAuthors, getThemes } from "./common/utils/http-request-utils";
 
 export type AdvanceSearchFormInput = {
     keywords?: string;
@@ -20,15 +21,16 @@ export type AdvanceSearchFormInput = {
 type AdvanceSearchProps = {
     shouldDisplayAdvanceSearchView: boolean;
     advanceSearchValues: AdvanceSearchFormInput;
-    authors: string[];
-    themes: string[];
-    handleAdvanceSearch: (advanceSearchValues: AdvanceSearchFormInput) => void;
-    changeAdvanceSearchPopupStatus: (isVisible: boolean) => void;
+    advanceSearchHandler: (advanceSearchValues: AdvanceSearchFormInput) => void;
+    changeAdvanceSearchPopupStatusHandler: (isVisible: boolean) => void;
 }
 
 type AdvanceSearchState = {
     advanceSearchValues: AdvanceSearchFormInput;
+    authorsList: string[];
+    themesList: string[];
     errorMessage: string;
+    warningMessage: string
 }
 
 class AdvanceSearch extends React.Component<AdvanceSearchProps, AdvanceSearchState> {
@@ -42,8 +44,43 @@ class AdvanceSearch extends React.Component<AdvanceSearchProps, AdvanceSearchSta
                 minDate: this.props.advanceSearchValues?.minDate ? this.props.advanceSearchValues.minDate:null,
                 maxDate: this.props.advanceSearchValues?.maxDate ? this.props.advanceSearchValues.maxDate:null
             },
-            errorMessage: ""
+            authorsList: [],
+            themesList: [],
+            errorMessage: "",
+            warningMessage: ""
         }
+    }
+
+    componentDidMount(): void {
+        this.loadAudiosAndAuthors();
+    }
+
+    loadAudiosAndAuthors = (): void => {
+        getAuthors().then(
+            (authors: string[]) => {
+                this.setState({
+                    authorsList: authors
+                });
+            },
+            (error: Error) => {
+                this.setState({
+                    warningMessage: error.message
+                });
+            }
+        );
+
+        getThemes().then(
+            (themes: string[]) => {
+                this.setState({
+                    themesList: themes
+                });
+            },
+            (error: Error) => {
+                this.setState({
+                    warningMessage: error.message
+                });
+            }
+        );
     }
 
     handleMinDateChange = (date: Moment): void => {
@@ -65,25 +102,28 @@ class AdvanceSearch extends React.Component<AdvanceSearchProps, AdvanceSearchSta
     }
 
     handleSubmitForm = (): void => {
-        const isMinDateFormatValid = !this.state.advanceSearchValues?.minDate || moment(this.state.advanceSearchValues?.minDate, "DD-MM-YYYY").isValid();
-        const isMaxDateFormatValid = !this.state.advanceSearchValues?.maxDate || moment(this.state.advanceSearchValues?.maxDate, "DD-MM-YYYY").isValid();
-        const isMinDateBeforeMaxDate = !this.state.advanceSearchValues?.minDate || !this.state.advanceSearchValues?.maxDate || moment(this.state.advanceSearchValues?.minDate).isSameOrBefore(this.state.advanceSearchValues?.maxDate);
+        const isMinDateFormatValid = !this.state.advanceSearchValues?.minDate || this.state.advanceSearchValues?.minDate.isValid();
+        const isMaxDateFormatValid = !this.state.advanceSearchValues?.maxDate || this.state.advanceSearchValues?.maxDate.isValid();
+        const isMinDateBeforeMaxDate = 
+            !this.state.advanceSearchValues?.minDate 
+            || !this.state.advanceSearchValues?.maxDate 
+            || this.state.advanceSearchValues.minDate.isSameOrBefore(this.state.advanceSearchValues.maxDate);
 
         if(!isMinDateFormatValid) this.setState({errorMessage: "Intervale de date initial incorrect"});
         else if(!isMaxDateFormatValid) this.setState({errorMessage: "Intervale de date final incorrect"});
         else if(!isMinDateBeforeMaxDate) this.setState({errorMessage: "Intervale de date incorrect"});
         else {
             this.setState({errorMessage: ""});
-            this.props.handleAdvanceSearch(this.state.advanceSearchValues);
+            this.props.advanceSearchHandler(this.state.advanceSearchValues);
         }
     }
 
     render(){
         const authorsOption = {
-            options: this.props.authors,
+            options: this.state.authorsList,
         };
         const themesOption = {
-            options: this.props.themes,
+            options: this.state.themesList,
         };
 
         const fontStyle={
@@ -95,7 +135,7 @@ class AdvanceSearch extends React.Component<AdvanceSearchProps, AdvanceSearchSta
         return(
             <div className={"custom-model-main " + (this.props.shouldDisplayAdvanceSearchView? "model-open" : "")}>
                 <div className="custom-model-inner">
-                    <div className="close-btn" onClick={() => this.props.changeAdvanceSearchPopupStatus(false)}>×</div>
+                    <div className="close-btn" onClick={() => this.props.changeAdvanceSearchPopupStatusHandler(false)}>×</div>
                     <div className="custom-model-wrap">
                         <div className="pop-up-content-wrap">
                             <div className="advanceSearchContainer">
@@ -206,7 +246,7 @@ class AdvanceSearch extends React.Component<AdvanceSearchProps, AdvanceSearchSta
                         </div>
                     </div>
                 </div>
-                <div className="bg-overlay" onClick={() => this.props.changeAdvanceSearchPopupStatus(false)}></div>
+                <div className="bg-overlay" onClick={() => this.props.changeAdvanceSearchPopupStatusHandler(false)}></div>
             </div>
         );
     }
