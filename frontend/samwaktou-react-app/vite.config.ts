@@ -5,13 +5,14 @@ export default defineConfig({
   plugins: [react()],
   root: '.',
   build: {
-    outDir: 'build',
+    outDir: 'dist',
     rollupOptions: {
-      input: 'public/index.html'
+      input: 'index.html'
     }
   },
   server: {
-    open: true
+    open: true,
+    port: 3000
   },
   // resolve: {
   //   alias: {

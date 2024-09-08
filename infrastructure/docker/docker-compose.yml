@@ -1,39 +1,23 @@
 version: "3.9"
 
 networks:
-  tontou-fatwa-network:
+  samwaktou-network:
 
-volumes:
-  tontou-fatwa-mongo-data:
-  audios-files-volume:
-  
 services:
-  mongodb:
-    image: mongo:latest
-    restart: always
-    ports:
-      - 27017:27017
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: admin
-    volumes:
-      - tontou-fatwa-mongo-data:/data/db
-    networks:
-      - tontou-fatwa-network
-
   tontou-fatwa-backend-api:
+    container_name: backend-api
     image: tontou-fatwa/backend-api:1.0.0.beta
     restart: always
     ports:
       - 8080:8080
-    depends_on:
-      - mongodb
-    volumes:
-      - audios-files-volume:/app/files/audios
+    # depends_on:
+      # - mongodb
+      # - minio
     networks:
-      - tontou-fatwa-network
+      - samwaktou-network
 
   tontou-fatwa-frontend:
+    container_name: frontend
     image: tontou-fatwa/frontend-react:1.0.0.beta
     restart: always
     ports:
@@ -41,4 +25,4 @@ services:
     depends_on:
       - tontou-fatwa-backend-api
     networks:
-      - tontou-fatwa-network
+      - samwaktou-network

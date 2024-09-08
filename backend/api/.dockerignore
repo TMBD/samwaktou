@@ -3,3 +3,4 @@ npm-debug.log
 files/audios/*
 .env.sample
 dist/*
+.dockerignore

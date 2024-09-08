@@ -31,7 +31,7 @@ if(process.env.PROFILE === "prod"){
     s3 = new S3({
         region: "us-east-2",
         credentials: credentials,
-        endpoint: "http://127.0.0.1:9000",
+        endpoint: process.env.S3_HOST!,
 
         // The key s3ForcePathStyle is renamed to forcePathStyle.
         forcePathStyle: true,
