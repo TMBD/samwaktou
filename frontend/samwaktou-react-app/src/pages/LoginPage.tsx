@@ -78,12 +78,14 @@ export function LoginPage() {
         password: values.password,
       });
 
-      /* Persist auth state and redirect. */
+      /* Persist auth state and redirect.
+       * The backend returns { id, role, token } — email is NOT included,
+       * so we carry it forward from the form input. */
       login({
-        id: res.data.id,
-        role: res.data.role,
-        email: res.data.email,
-        token: res.data.token,
+        id: res.id,
+        role: res.role,
+        email: values.email.trim(),
+        token: res.token,
       });
 
       navigate(from, { replace: true });

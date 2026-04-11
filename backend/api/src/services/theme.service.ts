@@ -67,11 +67,12 @@ export class ThemeService {
    * - Duplicate names are rejected with a 409 Conflict.
    * - Reviewer+ roles auto-validate the theme on creation.
    *
-   * @param name      - The theme name (will be upper-cased).
-   * @param adminId   - ID of the admin creating the theme.
-   * @param adminRole - Role of the admin (for auto-validation check).
+   * @param name        - The theme name (will be upper-cased).
+   * @param adminId     - ID of the admin creating the theme.
+   * @param adminRole   - Role of the admin (for auto-validation check).
+   * @param description - Optional description of the theme.
    */
-  async create(name: string, adminId: string, adminRole: AdminRole): Promise<ITheme> {
+  async create(name: string, adminId: string, adminRole: AdminRole, description?: string): Promise<ITheme> {
     const normalised = name.trim().toUpperCase();
 
     // Prevent duplicates.
@@ -85,6 +86,7 @@ export class ThemeService {
 
     return this.themeRepo.create({
       name: normalised,
+      description: description?.trim() ?? null,
       isValidated: isReviewerOrAbove,
       createdBy: adminId,
       validatedBy: isReviewerOrAbove ? adminId : null,
@@ -149,21 +151,31 @@ export class ThemeService {
    * Update a theme's name.
    *
    * @param themeId - ID of the theme to update.
-   * @param name    - New theme name (will be upper-cased).
+   * @param data    - Fields to update (name and/or description).
    */
-  async update(themeId: string, name: string): Promise<ITheme> {
+  async update(themeId: string, data: { name?: string; description?: string }): Promise<ITheme> {
     // Ensure the theme exists.
     await this.findById(themeId);
 
-    const normalised = name.trim().toUpperCase();
+    const updatePayload: Record<string, unknown> = {};
 
-    // Check for duplicate name (different theme with same name).
-    const existing = await this.themeRepo.findByName(normalised);
-    if (existing && existing.id !== themeId) {
-      throw AppError.conflict(`Le thème "${normalised}" existe déjà.`);
+    if (data.name !== undefined) {
+      const normalised = data.name.trim().toUpperCase();
+
+      // Check for duplicate name (different theme with same name).
+      const existing = await this.themeRepo.findByName(normalised);
+      if (existing && existing.id !== themeId) {
+        throw AppError.conflict(`Le thème "${normalised}" existe déjà.`);
+      }
+
+      updatePayload.name = normalised;
     }
 
-    const updated = await this.themeRepo.updateById(themeId, { name: normalised });
+    if (data.description !== undefined) {
+      updatePayload.description = data.description.trim() || null;
+    }
+
+    const updated = await this.themeRepo.updateById(themeId, updatePayload);
     if (!updated) {
       throw AppError.notFound('Thème introuvable après mise à jour.');
     }

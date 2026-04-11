@@ -6,7 +6,7 @@
  * Authentication is handled transparently by the shared `client`.
  */
 
-import { get, getList, post, put, del, buildQuery } from './client';
+import { get, getList, post, put, del, buildQuery, postRaw } from './client';
 import type {
   Admin,
   AdminCreatePayload,
@@ -18,10 +18,14 @@ import type {
 
 /* ── Auth ──────────────────────────────────────────────────────────────── */
 
-/** POST /admin/login — Authenticate an admin. */
+/**
+ * POST /admin/login — Authenticate an admin.
+ *
+ * Uses `postRaw` because the backend returns `{ id, role, token }`
+ * directly — not wrapped in the standard `{ success, data }` envelope.
+ */
 export function login(payload: LoginPayload): Promise<LoginResponse> {
-  // Use the v1 path; the client prepends API_PREFIX automatically.
-  return post<LoginResponse['data']>('/admin/login', payload) as unknown as Promise<LoginResponse>;
+  return postRaw<LoginResponse>('/admin/login', payload);
 }
 
 /* ── CRUD ──────────────────────────────────────────────────────────────── */

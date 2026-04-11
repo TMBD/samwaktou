@@ -24,6 +24,7 @@ function toEntity(doc: ThemeDocument): ITheme {
   return {
     id: doc._id.toString(),
     name: doc.name,
+    description: doc.description ?? null,
     isValidated: doc.isValidated,
     createdBy: doc.createdBy.toString(),
     validatedBy: doc.validatedBy?.toString() ?? null,

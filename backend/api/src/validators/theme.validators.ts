@@ -15,11 +15,19 @@ import { PAGINATION } from '../config/constants.js';
 /** Schema for `POST /themes` — create a new theme. */
 export const createThemeSchema = z.object({
   name: z.string().min(1, 'Le nom du thème est obligatoire.').max(200),
+  description: z.string().max(1000).optional(),
 });
 
 /** Schema for `PUT /themes/:id` — update a theme's name. */
 export const updateThemeSchema = z.object({
   name: z.string().min(1, 'Le nom du thème est obligatoire.').max(200),
+  description: z.string().max(1000).optional(),
+});
+
+/** Schema for `PATCH /themes/:id` — partial update (name and/or description). */
+export const patchThemeSchema = z.object({
+  name: z.string().min(1, 'Le nom du thème est obligatoire.').max(200).optional(),
+  description: z.string().max(1000).optional(),
 });
 
 /* ── Query schemas ───────────────────────────────────────────────────── */

@@ -56,15 +56,17 @@ export interface LoginPayload {
   password: string;
 }
 
-/** Response from POST /admins/login. */
+/**
+ * Response from POST /admin/login.
+ *
+ * The backend returns `{ id, role, token }` directly (no envelope).
+ * The `email` field is NOT included in the response — the caller
+ * should carry it forward from the login form input.
+ */
 export interface LoginResponse {
-  success: boolean;
-  data: {
-    id: string;
-    role: AdminRole;
-    email: string;
-    token: string;
-  };
+  id: string;
+  role: AdminRole;
+  token: string;
 }
 
 /** Decoded user info stored in AuthContext (from the JWT / login response). */

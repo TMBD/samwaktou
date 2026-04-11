@@ -76,7 +76,7 @@ export function DashboardPage() {
   const { user, hasRole } = useAuth();
 
   /* Fetch all tasks (first page, large limit for stats) */
-  const { data: allRes, isLoading: allLoading } = useTasks({ limit: 500 });
+  const { data: allRes, isLoading: allLoading } = useTasks({ limit: 100 });
   const { data: adminsRes, isLoading: adminsLoading } = useAdmins();
 
   const tasks = allRes?.data ?? [];

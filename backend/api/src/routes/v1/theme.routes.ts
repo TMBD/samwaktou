@@ -9,7 +9,8 @@
  * | POST   | /                 | CONTRIBUTOR | Create a new theme             |
  * | GET    | /                 | CONTRIBUTOR | List themes (filtered, paged)  |
  * | GET    | /:themeId         | CONTRIBUTOR | Get single theme               |
- * | PUT    | /:themeId         | REVIEWER    | Update theme name              |
+ * | PUT    | /:themeId         | REVIEWER    | Full update (name required)    |
+ * | PATCH  | /:themeId         | REVIEWER    | Partial update (name/desc)     |
  * | PATCH  | /:themeId/validate| REVIEWER    | Validate an unvalidated theme  |
  * | DELETE | /:themeId         | PUBLISHER   | Delete a theme                 |
  *
@@ -26,6 +27,7 @@ import { validate } from '../../middleware/validate.middleware.js';
 import {
   createThemeSchema,
   updateThemeSchema,
+  patchThemeSchema,
   getThemesQuerySchema,
 } from '../../validators/theme.validators.js';
 import type { ThemeService } from '../../services/theme.service.js';
@@ -57,6 +59,7 @@ export function createThemeRouter(
           req.body.name,
           req.authData!.id,
           req.authData!.role,
+          req.body.description,
         );
 
         await activityLogService.logThemeAction(theme.id, 'THEME_CREATED', req.authData!.id, {
@@ -103,7 +106,7 @@ export function createThemeRouter(
     },
   );
 
-  /* ── PUT /:themeId  — update theme name (Reviewer+) ────────────────── */
+  /* ── PUT /:themeId  — full update (Reviewer+) ───────────────────────── */
   router.put(
     '/:themeId',
     verifyAdminToken,
@@ -111,7 +114,32 @@ export function createThemeRouter(
     validate(updateThemeSchema),
     async (req: AuthenticatedRequest, res, next) => {
       try {
-        const theme = await themeService.update(req.params.themeId, req.body.name);
+        const theme = await themeService.update(req.params.themeId, {
+          name: req.body.name,
+          description: req.body.description,
+        });
+
+        await activityLogService.logThemeAction(theme.id, 'THEME_UPDATED', req.authData!.id, {
+          newName: theme.name,
+        });
+
+        res.json(theme);
+      } catch (err) { next(err); }
+    },
+  );
+
+  /* ── PATCH /:themeId  — partial update (Reviewer+) ──────────────────── */
+  router.patch(
+    '/:themeId',
+    verifyAdminToken,
+    requireRole(AdminRole.REVIEWER),
+    validate(patchThemeSchema),
+    async (req: AuthenticatedRequest, res, next) => {
+      try {
+        const theme = await themeService.update(req.params.themeId, {
+          name: req.body.name,
+          description: req.body.description,
+        });
 
         await activityLogService.logThemeAction(theme.id, 'THEME_UPDATED', req.authData!.id, {
           newName: theme.name,

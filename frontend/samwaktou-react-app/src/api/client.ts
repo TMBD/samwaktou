@@ -197,6 +197,14 @@ export async function post<T>(path: string, body?: unknown): Promise<ApiResponse
   return request<ApiResponse<T>>({ method: 'POST', path, body });
 }
 
+/**
+ * POST request returning the raw JSON (no `ApiResponse` envelope).
+ * Used for endpoints like `/admin/login` that return data directly.
+ */
+export async function postRaw<T>(path: string, body?: unknown): Promise<T> {
+  return request<T>({ method: 'POST', path, body });
+}
+
 /** POST request with FormData (file uploads). */
 export async function postForm<T>(path: string, formData: FormData): Promise<ApiResponse<T>> {
   return request<ApiResponse<T>>({ method: 'POST', path, body: formData, isFormData: true });

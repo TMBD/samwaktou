@@ -15,6 +15,8 @@ export interface ITheme {
   id: string;
   /** Upper-cased theme name (unique). */
   name: string;
+  /** Optional description of the theme. */
+  description: string | null;
   /** Whether the theme has been validated by a Reviewer or above. */
   isValidated: boolean;
   /** Admin ID of the admin who created this theme. */

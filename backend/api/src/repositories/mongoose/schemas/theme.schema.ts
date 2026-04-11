@@ -17,6 +17,7 @@ import mongoose, { type Document, type Model, Schema } from 'mongoose';
 /** Mongoose document shape for the "themes" collection. */
 export interface ThemeDocument extends Document {
   name: string;
+  description: string | null;
   isValidated: boolean;
   createdBy: mongoose.Types.ObjectId;
   validatedBy: mongoose.Types.ObjectId | null;
@@ -36,6 +37,7 @@ const ThemeSchema = new Schema<ThemeDocument>(
       uppercase: true,  // Mongoose auto-transforms to upper-case on save.
       trim: true,
     },
+    description: { type: String, default: null, trim: true },
     isValidated: { type: Boolean, default: false },
     createdBy:   { type: Schema.Types.ObjectId, ref: 'Admin', required: true },
     validatedBy: { type: Schema.Types.ObjectId, ref: 'Admin', default: null },

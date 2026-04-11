@@ -46,7 +46,13 @@ export function validate(schema: ZodSchema, target: ValidationTarget = 'body') {
 
     // Overwrite with the parsed (coerced / default-filled) data so route
     // handlers never work with raw, unvalidated values.
-    (req as unknown as Record<string, unknown>)[target] = result.data;
+    // Note: In Express 5, `req.query` is a read-only getter, so we must
+    // use `Object.defineProperty` to replace it with the validated output.
+    if (target === 'query') {
+      Object.defineProperty(req, 'query', { value: result.data, writable: true, configurable: true });
+    } else {
+      (req as unknown as Record<string, unknown>)[target] = result.data;
+    }
     next();
   };
 }
