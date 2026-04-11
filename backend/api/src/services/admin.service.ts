@@ -6,8 +6,15 @@
  * - CRUD operations on admins (with input normalisation).
  * - Password hashing (bcrypt) and comparison.
  * - JWT creation and verification (jose / HS256).
- * - Root-admin fallback: a hard-coded super-admin from env vars that
+ * - Root-admin fallback: a hard-coded SYSTEM_ADMIN from env vars that
  *   always exists even when the database is empty.
+ *
+ * Phase 1 changes:
+ * - `isSuperAdmin: boolean` replaced by `role: AdminRole` throughout.
+ * - JWT payload now carries `role` instead of `isSuperAdmin`.
+ * - Login return type includes `role` for the client.
+ * - Root admin uses `AdminRole.SYSTEM_ADMIN`.
+ * - Added `isActive` check: inactive admins cannot log in.
  *
  * This class depends on {@link IAdminRepository} (injected via DI) and
  * never accesses the database directly, keeping it testable and portable.
@@ -20,7 +27,7 @@ import type { IAdmin, IAdminCreate } from '../models/interfaces/index.js';
 import type { IAdminRepository } from '../repositories/interfaces/index.js';
 import { AppError } from '../lib/app-error.js';
 import { getEnv } from '../config/env.config.js';
-import { JWT_DURATION } from '../config/constants.js';
+import { AdminRole, JWT_DURATION } from '../config/constants.js';
 
 /** Number of bcrypt salt rounds — 10 is a good balance between security and speed. */
 const BCRYPT_SALT_ROUNDS = 10;
@@ -36,6 +43,7 @@ export class AdminService {
    * - Checks for duplicate email.
    * - Normalises names (capitalise surname, uppercase name, lowercase email).
    * - Hashes the plain-text password before persisting.
+   * - Defaults role to CONTRIBUTOR and isActive to true if not provided.
    *
    * @throws {AppError} 409 if an admin with the same email already exists.
    */
@@ -44,7 +52,7 @@ export class AdminService {
     name: string;
     email: string;
     password: string;
-    isSuperAdmin: boolean;
+    role?: AdminRole;
   }): Promise<IAdmin> {
     const existing = await this.adminRepo.findByEmail(data.email.toLowerCase());
     if (existing) {
@@ -58,8 +66,8 @@ export class AdminService {
       name: data.name.toUpperCase(),
       email: data.email.toLowerCase(),
       password: hashedPassword,
-      date: new Date(),
-      isSuperAdmin: data.isSuperAdmin,
+      role: data.role ?? AdminRole.CONTRIBUTOR,
+      isActive: true,
     };
 
     return this.adminRepo.create(toCreate);
@@ -76,7 +84,8 @@ export class AdminService {
       surname?: string;
       name?: string;
       email?: string;
-      isSuperAdmin?: boolean;
+      role?: AdminRole;
+      isActive?: boolean;
       dateFilter?: { date: Date; gte: boolean } | null;
     },
     skip: number,
@@ -96,7 +105,8 @@ export class AdminService {
       surname?: string;
       name?: string;
       email?: string;
-      isSuperAdmin?: boolean;
+      role?: AdminRole;
+      isActive?: boolean;
     },
   ): Promise<boolean> {
     const admin = await this.adminRepo.findById(id);
@@ -109,7 +119,8 @@ export class AdminService {
     if (data.surname !== undefined) updateData.surname = capitalize(data.surname);
     if (data.name !== undefined) updateData.name = data.name.toUpperCase();
     if (data.email !== undefined) updateData.email = data.email.toLowerCase();
-    if (data.isSuperAdmin !== undefined) updateData.isSuperAdmin = data.isSuperAdmin;
+    if (data.role !== undefined) updateData.role = data.role;
+    if (data.isActive !== undefined) updateData.isActive = data.isActive;
 
     return this.adminRepo.updateById(id, updateData);
   }
@@ -154,12 +165,13 @@ export class AdminService {
    * Authenticate an admin by email + password and return a signed JWT.
    *
    * The root admin (from env vars) is checked **first** so the system
-   * always has a usable super-admin even before any DB records exist.
+   * always has a usable SYSTEM_ADMIN even before any DB records exist.
    *
-   * @returns Object containing the admin's `id`, `isSuperAdmin` flag, and `token`.
+   * @returns Object containing the admin's `id`, `role`, and `token`.
    * @throws {AppError} 404 if the email/password combination is invalid.
+   * @throws {AppError} 403 if the admin account is inactive.
    */
-  async login(email: string, password: string): Promise<{ id: string; isSuperAdmin: boolean; token: string }> {
+  async login(email: string, password: string): Promise<{ id: string; role: AdminRole; token: string }> {
     // Priority: root admin from env → then database lookup.
     const rootAdmin = this.getRootAdmin(email);
     const admin = rootAdmin ?? await this.adminRepo.findByEmail(email.toLowerCase());
@@ -168,13 +180,18 @@ export class AdminService {
       throw AppError.notFound('Email ou mot de passe incorrect.');
     }
 
+    // Inactive accounts cannot authenticate.
+    if (!admin.isActive) {
+      throw AppError.forbidden('Ce compte administrateur est désactivé.');
+    }
+
     const isMatch = await bcrypt.compare(password, admin.password);
     if (!isMatch) {
       throw AppError.notFound('Email ou mot de passe incorrect.');
     }
 
-    const token = await this.createAdminToken(admin.id, admin.isSuperAdmin);
-    return { id: admin.id, isSuperAdmin: admin.isSuperAdmin, token };
+    const token = await this.createAdminToken(admin.id, admin.role);
+    return { id: admin.id, role: admin.role, token };
   }
 
   /* ── JWT helpers ─────────────────────────────────────────────────────── */
@@ -182,14 +199,14 @@ export class AdminService {
   /**
    * Create a signed JWT for an admin session.
    *
-   * Payload: `{ id, isSuperAdmin, isAdmin: true }`.
+   * Payload: `{ id, role, isAdmin: true }`.
    * Algorithm: HS256. Expiry: see {@link JWT_DURATION}.
    */
-  async createAdminToken(id: string, isSuperAdmin: boolean): Promise<string> {
+  async createAdminToken(id: string, role: AdminRole): Promise<string> {
     const env = getEnv();
     const secret = new TextEncoder().encode(env.ADMIN_TOKEN_SECRET);
 
-    return new SignJWT({ id, isSuperAdmin, isAdmin: true })
+    return new SignJWT({ id, role, isAdmin: true })
       .setProtectedHeader({ alg: 'HS256' })
       .setExpirationTime(JWT_DURATION)
       .sign(secret);
@@ -198,16 +215,17 @@ export class AdminService {
   /**
    * Verify and decode an admin JWT.
    *
+   * @returns Decoded payload with `id`, `role`, and `isAdmin` flag.
    * @throws {JOSEError} If the token is expired, malformed, or has a bad signature.
    */
-  async verifyAdminToken(token: string): Promise<{ id: string; isSuperAdmin: boolean; isAdmin: boolean }> {
+  async verifyAdminToken(token: string): Promise<{ id: string; role: AdminRole; isAdmin: boolean }> {
     const env = getEnv();
     const secret = new TextEncoder().encode(env.ADMIN_TOKEN_SECRET);
 
     const { payload } = await jwtVerify(token, secret);
     return {
       id: payload.id as string,
-      isSuperAdmin: payload.isSuperAdmin as boolean,
+      role: payload.role as AdminRole,
       isAdmin: payload.isAdmin as boolean,
     };
   }
@@ -218,7 +236,7 @@ export class AdminService {
    * Return the root admin virtual entity if the email matches `ROOT_ADMIN_EMAIL`.
    *
    * This admin is never stored in the DB — it is built entirely from
-   * environment variables and always has `isSuperAdmin: true`.
+   * environment variables and always has `role: SYSTEM_ADMIN`.
    */
   private getRootAdmin(email: string): IAdmin | null {
     const env = getEnv();
@@ -231,9 +249,11 @@ export class AdminService {
       surname: env.ROOT_ADMIN_SURNAME,
       name: env.ROOT_ADMIN_NAME,
       email: env.ROOT_ADMIN_EMAIL,
-      date: new Date(env.ROOT_ADMIN_DATE),
       password: env.ROOT_ADMIN_PASSWORD,
-      isSuperAdmin: true,
+      role: AdminRole.SYSTEM_ADMIN,
+      isActive: true,
+      createdAt: new Date(env.ROOT_ADMIN_DATE),
+      updatedAt: new Date(env.ROOT_ADMIN_DATE),
     };
   }
 }

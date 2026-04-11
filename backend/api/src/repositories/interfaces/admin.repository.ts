@@ -10,6 +10,7 @@
  * in unit tests without changing any service code.
  */
 
+import type { AdminRole } from '../../config/constants.js';
 import type { IAdmin, IAdminCreate, IAdminUpdate } from '../../models/interfaces/index.js';
 
 export interface IAdminRepository {
@@ -34,8 +35,11 @@ export interface IAdminRepository {
       surname?: string;
       name?: string;
       email?: string;
-      isSuperAdmin?: boolean;
-      /** Optional date comparison: `gte: true` → date ≥ value, `gte: false` → date ≤ value. */
+      /** Filter by RBAC role (replaces the old `isSuperAdmin` boolean filter). */
+      role?: AdminRole;
+      /** Filter by account active status. */
+      isActive?: boolean;
+      /** Optional date comparison on `createdAt`: `gte: true` → createdAt ≥ value. */
       dateFilter?: { date: Date; gte: boolean } | null;
     },
     skip: number,

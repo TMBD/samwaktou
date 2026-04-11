@@ -10,6 +10,10 @@
  *
  * If the token is missing or invalid, a 401 `AppError` is forwarded to the
  * error-handler middleware via `next(err)`.
+ *
+ * Phase 1 changes:
+ * - `authData.isSuperAdmin` replaced by `authData.role: AdminRole`.
+ * - `requireSuperAdmin` replaced by generic `requireRole(...roles)` RBAC guard.
  */
 
 import type { Request, Response, NextFunction } from 'express';
@@ -17,6 +21,7 @@ import type { Request, Response, NextFunction } from 'express';
 import type { AdminService } from '../services/admin.service.js';
 import type { UserService } from '../services/user.service.js';
 import { AppError } from '../lib/app-error.js';
+import { AdminRole, ROLE_HIERARCHY } from '../config/constants.js';
 
 /* ── Augmented request types ──────────────────────────────────────────── */
 
@@ -27,10 +32,10 @@ import { AppError } from '../lib/app-error.js';
  * access `req.authData` (admin routes) or `req.userAuthData` (user routes).
  */
 export interface AuthenticatedRequest extends Request {
-  /** Populated by admin-token middleware. */
+  /** Populated by admin-token middleware — carries the RBAC `role`. */
   authData?: {
     id: string;
-    isSuperAdmin: boolean;
+    role: AdminRole;
     isAdmin: boolean;
   };
   /** Populated by user-token middleware. */
@@ -60,7 +65,7 @@ function extractToken(req: Request): string {
 /**
  * Factory: returns middleware that verifies an **admin** JWT.
  *
- * On success, `req.authData` is set with `{ id, isSuperAdmin, isAdmin }`.
+ * On success, `req.authData` is set with `{ id, role, isAdmin }`.
  */
 export function createVerifyAdminToken(adminService: AdminService) {
   return async (req: AuthenticatedRequest, _res: Response, next: NextFunction): Promise<void> => {
@@ -113,7 +118,7 @@ export function createVerifyUserToken(userService: UserService) {
  * 3. If both fail, return 401.
  *
  * When verified as a user, `req.authData` is also populated (with
- * `isAdmin: false`) for backward compatibility in the route handler.
+ * `isAdmin: false` and `role: CONTRIBUTOR`) for a uniform interface.
  */
 export function createVerifyTokenForDeleteUser(adminService: AdminService, userService: UserService) {
   return async (req: AuthenticatedRequest, _res: Response, next: NextFunction): Promise<void> => {
@@ -135,7 +140,8 @@ export function createVerifyTokenForDeleteUser(adminService: AdminService, userS
         const userPayload = await userService.verifyUserToken(token);
         req.userAuthData = userPayload;
         // Populate authData as well so the route handler has a uniform interface.
-        req.authData = { id: userPayload.id, isSuperAdmin: false, isAdmin: false };
+        // Regular users are treated as the lowest privilege level.
+        req.authData = { id: userPayload.id, role: AdminRole.CONTRIBUTOR, isAdmin: false };
         next();
       } catch {
         next(AppError.unauthorized('Token invalide.'));
@@ -146,18 +152,51 @@ export function createVerifyTokenForDeleteUser(adminService: AdminService, userS
   };
 }
 
-/* ── Authorisation guards ─────────────────────────────────────────────── */
+/* ── RBAC authorisation guard ─────────────────────────────────────────── */
 
 /**
- * Guard middleware: blocks the request unless the authenticated admin
- * has the `isSuperAdmin` flag set to `true`.
+ * Returns middleware that enforces role-based access control.
+ *
+ * It compares the authenticated admin's role level (from `req.authData.role`)
+ * against each of the required roles using {@link ROLE_HIERARCHY}.
+ * Access is granted if the admin's level is **≤** (i.e. equal or more privileged
+ * than) **any** of the specified role levels.
  *
  * Must be placed **after** `createVerifyAdminToken` in the middleware chain.
+ *
+ * @param roles - One or more roles that are sufficient to access the route.
+ *                A lower hierarchy number means higher privilege.
+ *
+ * @example
+ * ```ts
+ * // Only SYSTEM_ADMIN can access:
+ * router.post('/', verifyAdminToken, requireRole(AdminRole.SYSTEM_ADMIN), handler);
+ *
+ * // REVIEWER and above (PUBLISHER, SYSTEM_ADMIN) can access:
+ * router.get('/', verifyAdminToken, requireRole(AdminRole.REVIEWER), handler);
+ * ```
  */
-export function requireSuperAdmin(req: AuthenticatedRequest, _res: Response, next: NextFunction): void {
-  if (!req.authData?.isSuperAdmin) {
-    next(AppError.forbidden('Seuls les super administrateurs ont accès à cette action.'));
-    return;
-  }
-  next();
+export function requireRole(...roles: AdminRole[]) {
+  return (req: AuthenticatedRequest, _res: Response, next: NextFunction): void => {
+    const userRole = req.authData?.role;
+
+    // If authData is missing or role is undefined, the admin is not authenticated.
+    if (!userRole) {
+      next(AppError.unauthorized('Accès refusé. Authentification requise.'));
+      return;
+    }
+
+    const userLevel = ROLE_HIERARCHY[userRole];
+
+    // Grant access if the user's privilege level is equal or higher (lower number)
+    // than at least one of the required roles.
+    const hasAccess = roles.some((requiredRole) => userLevel <= ROLE_HIERARCHY[requiredRole]);
+
+    if (!hasAccess) {
+      next(AppError.forbidden('Vous n\'avez pas les droits nécessaires pour cette action.'));
+      return;
+    }
+
+    next();
+  };
 }

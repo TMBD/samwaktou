@@ -6,6 +6,39 @@
  * and they can safely be used in switch statements and type guards.
  */
 
+/* ── Admin roles ─────────────────────────────────────────────────────── */
+
+/**
+ * Enum of all possible admin roles, ordered from most to least privileged.
+ *
+ * - **SYSTEM_ADMIN** — Full access: user management, publishing, reviewing, contributing.
+ * - **PUBLISHER**    — Can publish/unpublish approved content and create tasks.
+ * - **REVIEWER**     — Can review, approve, or reject contributor work.
+ * - **CONTRIBUTOR**  — Can work on assigned tasks and submit content for review.
+ */
+export enum AdminRole {
+  SYSTEM_ADMIN = 'SYSTEM_ADMIN',
+  PUBLISHER    = 'PUBLISHER',
+  REVIEWER     = 'REVIEWER',
+  CONTRIBUTOR  = 'CONTRIBUTOR',
+}
+
+/**
+ * Numeric hierarchy for role-based access control (RBAC).
+ *
+ * A **lower** number means **higher** privilege.  The `requireRole` middleware
+ * grants access when the authenticated admin's level is ≤ the required level.
+ *
+ * Example: `requireRole(AdminRole.REVIEWER)` allows SYSTEM_ADMIN (0),
+ * PUBLISHER (1), and REVIEWER (2) but blocks CONTRIBUTOR (3).
+ */
+export const ROLE_HIERARCHY: Record<AdminRole, number> = {
+  [AdminRole.SYSTEM_ADMIN]: 0,
+  [AdminRole.PUBLISHER]:    1,
+  [AdminRole.REVIEWER]:     2,
+  [AdminRole.CONTRIBUTOR]:  3,
+} as const;
+
 /* ── HTTP status codes ────────────────────────────────────────────────── */
 
 /** Standard HTTP status codes used throughout the API responses. */

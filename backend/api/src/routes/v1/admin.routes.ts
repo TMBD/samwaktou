@@ -3,27 +3,33 @@
  * @description Express route definitions for admin management (`/api/v1/admins`).
  *
  * All routes (except login) require an admin JWT via `verifyAdminToken`.
- * Create and delete operations additionally require the `isSuperAdmin` flag.
+ * Create, update-other, and delete operations require SYSTEM_ADMIN role.
+ * Listing admins requires at least REVIEWER role.
+ *
+ * Phase 1 changes:
+ * - `requireSuperAdmin` replaced by `requireRole(AdminRole.SYSTEM_ADMIN)`.
+ * - GET list now requires REVIEWER+ (was any admin).
+ * - PUT update uses role-based check instead of `isSuperAdmin`.
  *
  * Route summary:
- * | Method | Path               | Auth          | Description               |
- * |--------|--------------------|---------------|---------------------------|
- * | POST   | /                  | super-admin   | Create admin              |
- * | GET    | /:adminId          | admin         | Get single admin          |
- * | GET    | /                  | admin         | List admins (paginated)   |
- * | DELETE | /:adminId          | super-admin   | Delete admin              |
- * | PUT    | /:adminId          | admin (self)  | Update admin profile      |
- * | PUT    | /password/:adminId | admin         | Change password           |
- * | POST   | /login             | public        | Admin login               |
+ * | Method | Path               | Min Role     | Description               |
+ * |--------|--------------------|--------------|---------------------------|
+ * | POST   | /                  | SYSTEM_ADMIN | Create admin              |
+ * | GET    | /:adminId          | CONTRIBUTOR  | Get single admin          |
+ * | GET    | /                  | REVIEWER     | List admins (paginated)   |
+ * | DELETE | /:adminId          | SYSTEM_ADMIN | Delete admin              |
+ * | PUT    | /:adminId          | SYSTEM_ADMIN | Update admin profile      |
+ * | PUT    | /password/:adminId | self         | Change own password       |
+ * | POST   | /login             | public       | Admin login               |
  */
 
 import { Router } from 'express';
 
 import type { AdminService } from '../../services/admin.service.js';
 import { validate } from '../../middleware/validate.middleware.js';
-import { requireSuperAdmin, type AuthenticatedRequest } from '../../middleware/auth.middleware.js';
+import { requireRole, type AuthenticatedRequest } from '../../middleware/auth.middleware.js';
 import { createAdminSchema, updateAdminSchema, loginAdminSchema, updatePasswordSchema } from '../../validators/admin.validators.js';
-import { PAGINATION } from '../../config/constants.js';
+import { AdminRole, PAGINATION } from '../../config/constants.js';
 
 /**
  * Factory that creates and returns the admin router.
@@ -37,11 +43,11 @@ export function createAdminRouter(
 ): Router {
   const router = Router();
 
-  /* ── POST /  — create admin (super-admin only) ──────────────────────── */
+  /* ── POST /  — create admin (SYSTEM_ADMIN only) ─────────────────────── */
   router.post(
     '/',
     verifyAdminToken,
-    requireSuperAdmin,
+    requireRole(AdminRole.SYSTEM_ADMIN),
     validate(createAdminSchema),
     async (req: AuthenticatedRequest, res, next) => {
       try {
@@ -51,7 +57,7 @@ export function createAdminRouter(
     },
   );
 
-  /* ── GET /:adminId  — get a single admin by ID ─────────────────────── */
+  /* ── GET /:adminId  — get a single admin by ID (any admin) ─────────── */
   router.get(
     '/:adminId',
     verifyAdminToken,
@@ -63,10 +69,11 @@ export function createAdminRouter(
     },
   );
 
-  /* ── GET /  — list admins with optional filters & pagination ────────── */
+  /* ── GET /  — list admins with optional filters & pagination (REVIEWER+) */
   router.get(
     '/',
     verifyAdminToken,
+    requireRole(AdminRole.REVIEWER),
     async (req, res, next) => {
       try {
         const skip = Number(req.query.skip) || PAGINATION.ADMIN_DEFAULT_SKIP;
@@ -86,11 +93,11 @@ export function createAdminRouter(
     },
   );
 
-  /* ── DELETE /:adminId  — delete admin (super-admin only) ────────────── */
+  /* ── DELETE /:adminId  — delete admin (SYSTEM_ADMIN only) ───────────── */
   router.delete(
     '/:adminId',
     verifyAdminToken,
-    requireSuperAdmin,
+    requireRole(AdminRole.SYSTEM_ADMIN),
     async (req, res, next) => {
       try {
         await adminService.deleteById(req.params.adminId);
@@ -99,28 +106,21 @@ export function createAdminRouter(
     },
   );
 
-  /* ── PUT /:adminId  — update admin profile (super-admin or self) ───── */
+  /* ── PUT /:adminId  — update admin profile (SYSTEM_ADMIN only) ──────── */
   router.put(
     '/:adminId',
     verifyAdminToken,
+    requireRole(AdminRole.SYSTEM_ADMIN),
     validate(updateAdminSchema),
     async (req: AuthenticatedRequest, res, next) => {
       try {
-        // Authorisation: only the account owner or a super-admin may update.
-        if (!req.authData?.isSuperAdmin && req.authData?.id !== req.params.adminId) {
-          res.status(403).json({
-            success: false,
-            message: 'Seuls les super administrateurs peuvent modifier les informations d\'un autre administrateur.',
-          });
-          return;
-        }
         await adminService.update(req.params.adminId, req.body);
         res.status(200).json({ success: true });
       } catch (err) { next(err); }
     },
   );
 
-  /* ── PUT /password/:adminId  — change password ─────────────────────── */
+  /* ── PUT /password/:adminId  — change own password ─────────────────── */
   router.put(
     '/password/:adminId',
     verifyAdminToken,

@@ -8,6 +8,7 @@
  * that no Mongoose-specific data leaks outside the repository layer.
  */
 
+import type { AdminRole } from '../../config/constants.js';
 import type { IAdmin, IAdminCreate, IAdminUpdate } from '../../models/interfaces/index.js';
 import type { IAdminRepository } from '../interfaces/index.js';
 import { AdminModel, type AdminDocument } from './schemas/admin.schema.js';
@@ -25,8 +26,10 @@ function toEntity(doc: AdminDocument): IAdmin {
     name: doc.name,
     email: doc.email,
     password: doc.password,
-    date: doc.date,
-    isSuperAdmin: doc.isSuperAdmin,
+    role: doc.role,
+    isActive: doc.isActive,
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
   };
 }
 
@@ -55,7 +58,8 @@ export class MongoAdminRepository implements IAdminRepository {
       surname?: string;
       name?: string;
       email?: string;
-      isSuperAdmin?: boolean;
+      role?: AdminRole;
+      isActive?: boolean;
       dateFilter?: { date: Date; gte: boolean } | null;
     },
     skip: number,
@@ -67,18 +71,19 @@ export class MongoAdminRepository implements IAdminRepository {
     if (filter.surname) query.surname = filter.surname;
     if (filter.name) query.name = filter.name;
     if (filter.email) query.email = filter.email;
-    if (filter.isSuperAdmin !== undefined) query.isSuperAdmin = filter.isSuperAdmin;
+    if (filter.role !== undefined) query.role = filter.role;
+    if (filter.isActive !== undefined) query.isActive = filter.isActive;
 
-    // Date comparison: either "greater or equal" or "less or equal".
+    // Date comparison on `createdAt`: either "greater or equal" or "less or equal".
     if (filter.dateFilter) {
-      query.date = filter.dateFilter.gte
+      query.createdAt = filter.dateFilter.gte
         ? { $gte: filter.dateFilter.date }
         : { $lte: filter.dateFilter.date };
     }
 
-    // Explicitly select fields to avoid returning the hashed password in list queries.
+    // Explicitly select fields — excludes the hashed password from list results.
     const docs = await AdminModel.find(query)
-      .select('_id surname name email date isSuperAdmin')
+      .select('_id surname name email role isActive createdAt updatedAt')
       .skip(skip)
       .limit(limit)
       .lean<AdminDocument[]>();
