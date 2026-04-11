@@ -50,7 +50,7 @@ const NAV_ITEMS: NavItem[] = [
     label: 'Thèmes',
     icon: <IconTags size={20} stroke={1.5} />,
     path: '/admin/themes',
-    minRole: AdminRole.REVIEWER,
+    minRole: AdminRole.CONTRIBUTOR,
   },
   {
     label: 'Administrateurs',
