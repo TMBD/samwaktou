@@ -11,8 +11,7 @@
  * 3. **File upload**   — `express-fileupload` with a size limit.
  * 4. **HTTP logging**  — Pino HTTP logger (auto-logging only in production).
  * 5. **v1 API routes** — mounted via the DI container.
- * 6. **Legacy aliases** — backward-compatible paths without `/api/v1/`.
- * 7. **Error handler** — catches all errors forwarded by `next(err)`.
+ * 6. **Error handler** — catches all errors forwarded by `next(err)`.
  */
 
 import express from 'express';
@@ -83,13 +82,7 @@ export function createApp() {
   app.use('/api/v1/tasks/:taskId/drafts', routers.audioDraftRouter);
   app.use('/api/v1/themes', routers.themeRouter);
 
-  /* ── 6. Backward-compatible aliases (legacy paths) ─────────────────── */
-  app.use('/admin', routers.adminRouter);
-  app.use('/audio', routers.audioRouter);
-  app.use('/user', routers.userRouter);
-  app.use('/analytic', routers.analyticRouter);
-
-  /* ── 7. Centralised error handler (must be registered last) ────────── */
+  /* ── 6. Centralised error handler (must be registered last) ────────── */
   app.use(errorHandler);
 
   return app;

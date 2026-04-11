@@ -738,11 +738,14 @@ backend/api/tests/
 7. Build ThemeManagementPage, AdminManagementPage
 8. Implement React 19 Actions, useOptimistic for status changes
 
-### Phase 4 — Polish & Cleanup
-1. Remove backward-compatible route aliases
-2. Remove `isSuperAdmin` from entire codebase
-3. Write tests (vitest + supertest + mongodb-memory-server)
-4. Final QA, update all documentation
+### Phase 4 — Polish & Cleanup ✅
+1. ✅ Remove backward-compatible route aliases (`/admin`, `/audio`, `/user`, `/analytic`)
+2. ✅ Remove `isSuperAdmin` from entire codebase — deleted legacy `model/`, `controller/`, old `routes/*.router.ts`, and old frontend `src/js/`
+3. ✅ Write tests (vitest + supertest) — 45 tests across 3 suites:
+   - `AdminService` unit tests (19 tests): CRUD, password, login, JWT round-trip
+   - Auth middleware unit tests (8 tests): token verification, RBAC `requireRole`
+   - Admin API integration tests (18 tests): full HTTP pipeline via supertest
+4. ✅ Final QA — zero TypeScript errors on both backend and frontend
 
 ---
 
