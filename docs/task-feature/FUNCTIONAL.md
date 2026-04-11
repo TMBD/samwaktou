@@ -665,4 +665,4 @@ The public-facing features (browsing, searching, listening, downloading, sharing
 
 ---
 
-*This document defines the functional aspects of the collaborative task workflow. For implementation details, see [Task Feature — Technical Documentation](./TASK_FEATURE_TECHNICAL.md).*
+*This document defines the functional aspects of the collaborative task workflow. For implementation details, see [Task Feature — Technical Documentation](./TECHNICAL.md).*
