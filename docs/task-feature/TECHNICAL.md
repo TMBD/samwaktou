@@ -2,26 +2,29 @@
 
 > **Reference**: [Functional Documentation](./FUNCTIONAL.md)
 >
-> This document provides all the technical details needed to implement the collaborative task workflow feature. It covers the target architecture, data models, API design, backend and frontend changes, infrastructure updates, and a migration strategy from the current codebase.
+> This document provides all the technical details needed to implement the collaborative task workflow feature. It covers the target architecture, technology stack upgrades, data models, API design, backend and frontend changes, infrastructure updates, and a migration strategy from the current codebase.
+>
+> **Design goals**: Database-agnostic data access, native ESM modules, latest stable dependencies, maximum use of new framework features, and a clean layered architecture that follows current best practices.
 
 ---
 
 ## Table of Contents
 
 1. [Current Architecture Analysis & Issues](#1-current-architecture-analysis--issues)
-2. [Target Architecture](#2-target-architecture)
-3. [Backend Refactoring](#3-backend-refactoring)
-4. [Data Models & Database Design](#4-data-models--database-design)
-5. [API Design](#5-api-design)
-6. [Authentication & Authorization](#6-authentication--authorization)
-7. [Business Logic & Services](#7-business-logic--services)
-8. [Frontend Architecture](#8-frontend-architecture)
-9. [Infrastructure Changes](#9-infrastructure-changes)
-10. [Migration Strategy](#10-migration-strategy)
-11. [Environment Variables](#11-environment-variables)
-12. [Error Handling Strategy](#12-error-handling-strategy)
-13. [Testing Strategy](#13-testing-strategy)
-14. [Implementation Phases](#14-implementation-phases)
+2. [Technology Stack Upgrade](#2-technology-stack-upgrade)
+3. [Target Architecture](#3-target-architecture)
+4. [Backend Refactoring](#4-backend-refactoring)
+5. [Data Models & Database Design](#5-data-models--database-design)
+6. [API Design](#6-api-design)
+7. [Authentication & Authorization](#7-authentication--authorization)
+8. [Business Logic & Services](#8-business-logic--services)
+9. [Frontend Architecture](#9-frontend-architecture)
+10. [Infrastructure Changes](#10-infrastructure-changes)
+11. [Migration Strategy](#11-migration-strategy)
+12. [Environment Variables](#12-environment-variables)
+13. [Error Handling Strategy](#13-error-handling-strategy)
+14. [Testing Strategy](#14-testing-strategy)
+15. [Implementation Phases](#15-implementation-phases)
 
 ---
 
@@ -31,1802 +34,715 @@
 
 ```
 backend/api/src/
-├── config/
-│   └── server.config.ts          # All constants in one file
+├── config/server.config.ts
 ├── controller/
 │   ├── admin.controller.ts        # Admin CRUD + login (343 lines)
 │   ├── audio.controller.ts        # Audio CRUD + file ops (310 lines)
 │   └── utils/
-│       ├── common.ts              # Error types
-│       ├── verify-token.ts        # JWT middleware
-│       ├── admin/
-│       │   └── admin-request-validator.ts
-│       └── audio/
-│           ├── audio-file-handler.ts
-│           ├── audio-request-validator.ts
-│           └── s3-audio-file-uploader.ts
+│       ├── common.ts, verify-token.ts
+│       ├── admin/admin-request-validator.ts
+│       └── audio/audio-request-validator.ts, audio-file-handler.ts, s3-audio-file-uploader.ts
 ├── model/
-│   ├── admin.model.ts             # Admin class + DB operations (280 lines)
-│   ├── audio.model.ts             # Audio class + DB operations (297 lines)
-│   ├── user.model.ts
-│   ├── analytic.model.ts
-│   ├── db-connection.ts           # Mongoose connection
-│   ├── db-crud.ts                 # Generic CRUD helper
-│   └── schema/
-│       ├── admin.schema.ts
-│       ├── audio.schema.ts
-│       ├── user.schema.ts
-│       └── analytic.schema.ts
-├── routes/
-│   ├── admin.router.ts
-│   ├── audio.router.ts
-│   ├── user.router.ts
-│   └── analytic.router.ts
-└── server.ts                      # Express entry point
+│   ├── admin.model.ts, audio.model.ts, user.model.ts, analytic.model.ts
+│   ├── db-connection.ts, db-crud.ts
+│   └── schema/admin.schema.ts, audio.schema.ts, user.schema.ts, analytic.schema.ts
+├── routes/admin.router.ts, audio.router.ts, user.router.ts, analytic.router.ts
+└── server.ts
 ```
 
-### 1.2 Identified Issues & Refactoring Needs
+### 1.2 Identified Issues
 
-| # | Issue | Location | Impact | Recommendation |
-|---|-------|----------|--------|----------------|
-| 1 | **No layered architecture** — Models contain both data representation AND database operations. Controllers handle validation, business logic, and response formatting all in one place. | `*.model.ts`, `*.controller.ts` | Hard to test, hard to extend | Introduce **Service layer** between controllers and models |
-| 2 | **Authorization mixed into routes** — `isSuperAdmin` checks are inline in router files and controller methods with inconsistent patterns | `admin.router.ts:18`, `admin.controller.ts:178` | Not scalable for 4 roles | Extract to dedicated **RBAC middleware** |
-| 3 | **Binary role system** — Only `isSuperAdmin: boolean` exists. No support for granular roles. | `admin.schema.ts:36-40`, `verify-token.ts:17-20` | Blocks the entire task feature | Replace with `role: enum` field |
-| 4 | **JWT payload too limited** — Only carries `{id, isSuperAdmin}` | `verify-token.ts:17-20` | Cannot carry role info | Extend to `{id, role}` |
-| 5 | **`connectToDB()` called on every DB operation** — Each CRUD method calls `connectToDB()` | `db-crud.ts` (every method) | Redundant overhead, connection should be established once at startup | Connect once at server startup |
-| 6 | **Validation inconsistency** — Audio validators use manual checks, Admin validators use Joi. Two different patterns. | `audio-request-validator.ts` vs `admin-request-validator.ts` | Inconsistent, harder to maintain | Standardize on **one validation library** (Zod recommended) |
-| 7 | **Class-based models with manual mapping** — Audio/Admin classes manually map to/from Mongoose documents with verbose boilerplate | `audio.model.ts`, `admin.model.ts` | Lots of repetitive code | Use Mongoose directly with lean queries + type interfaces |
-| 8 | **Error handling not centralized** — Every controller method has its own try/catch with duplicated error formatting | All controllers | Inconsistent error responses | Add **global error handler middleware** + custom error classes |
-| 9 | **No request logging** — No middleware for request/response logging | `server.ts` | Hard to debug in production | Add structured logging (e.g., `pino` or `winston`) |
-| 10 | **`body-parser` is deprecated** — Using separate `body-parser` package | `server.ts:2`, `package.json:21` | Unnecessary dependency | Use `express.json()` built-in |
-| 11 | **Root admin hardcoded in env** — Special root admin constructed from env vars with a hardcoded `_id` | `admin.model.ts:266-279` | Fragile, not standard | Seed root admin via a migration/seed script instead |
-| 12 | **Frontend uses class components** — React class components (`React.Component`) throughout | All frontend components | Outdated pattern, harder to reuse logic | Migrate to **functional components + hooks** |
-| 13 | **Frontend state passed via route state** — Auth info (`adminLoginInfos`) passed through React Router's `location.state` | `app-provider.component.tsx`, `audio-creator.component.tsx` | Fragile, lost on refresh | Use **React Context** or state management for auth |
-| 14 | **No API versioning** — Routes are directly under `/audios`, `/admins` | `server.ts:47-50` | Breaking changes affect all clients | Add `/api/v1/` prefix |
-| 15 | **`strictNullChecks: false`** — TypeScript null safety disabled | Both `tsconfig.json` files | Potential runtime null errors | Enable `strictNullChecks: true` |
-| 16 | **`moment.js` used everywhere** — Heavy library, maintenance-mode | Backend + Frontend | Bundle size, no new features | Replace with `date-fns` or native `Intl` |
-| 17 | **`@hapi/joi` for validation** — Older, heavier validation library | `admin-request-validator.ts` | Less TypeScript-friendly | Replace with `zod` for better TS integration |
-| 18 | **`deleteAdmin` logic is inverted** — Deletes when admin is NOT found, returns 404 when found | `admin.controller.ts:139-162` | Bug | Fix the logic inversion |
+| # | Issue | Impact | Recommendation |
+|---|-------|--------|----------------|
+| 1 | **No layered architecture** — Models mix data + DB ops. Controllers mix validation + business logic + response. | Hard to test/extend | **Service + Repository layers** |
+| 2 | **DB tightly coupled** — Mongoose calls scattered in models. Changing DB = rewrite everything. | Impossible to swap DB | **DB-agnostic Repository pattern with interfaces** |
+| 3 | **CommonJS modules** — `"module": "CommonJS"` in tsconfig | Cannot use ESM-only packages | Switch to **native ESM** |
+| 4 | **Binary role system** — Only `isSuperAdmin: boolean` | Blocks task feature | Replace with `role: AdminRole` enum |
+| 5 | **JWT payload limited** — `{id, isSuperAdmin}` only | Cannot carry role | Extend to `{id, role, email}` |
+| 6 | **`connectToDB()` per operation** — Every CRUD call reconnects | Redundant overhead | Connect once at startup |
+| 7 | **Validation inconsistency** — Manual checks (audio) vs `@hapi/joi` (admin) | Maintenance burden | Standardize on **Zod 4** |
+| 8 | **No centralized error handling** — try/catch in every controller method | Inconsistent responses | Express 5 native async errors + global handler |
+| 9 | **No logging** — No request/response logging | Hard to debug | **Pino** structured logging |
+| 10 | **`body-parser` deprecated** — Separate package | Unnecessary dep | Use `express.json()` |
+| 11 | **Root admin hardcoded in env** — Constructed from env vars with hardcoded `_id` | Fragile | Seed via migration script |
+| 12 | **Frontend: class components** — `React.Component` everywhere | No hooks, no React 19 features | **Functional components** |
+| 13 | **Frontend: auth via route state** — `location.state` for admin info | Lost on refresh | **React Context + localStorage** |
+| 14 | **No server state management** — Raw fetch, no caching | Poor UX | **TanStack Query 5** |
+| 15 | **No API versioning** — Routes under `/audios`, `/admins` directly | Breaking change risk | `/api/v1/` prefix |
+| 16 | **`strictNullChecks: false`** | Runtime null errors | Enable |
+| 17 | **`moment.js`** — 330KB, maintenance mode | Bundle bloat | **`date-fns` v4** |
+| 18 | **`deleteAdmin` logic inverted** — Bug in controller | Data loss risk | Fix |
+| 19 | **React Router: no data loading** — Not using loaders/actions | Missing pending UI | **React Router 7 data mode** |
+| 20 | **No env validation** — `process.env.X!` non-null assertions | Silent failures | Validate at startup with Zod |
 
 ---
 
-## 2. Target Architecture
+## 2. Technology Stack Upgrade
 
-### 2.1 Backend — Layered Architecture
+### 2.1 Complete Dependency Matrix
+
+| Category | Current | Target | Why |
+|----------|---------|--------|-----|
+| **Runtime** | Node ~18 | **Node.js 22 LTS** | Native ESM, `--watch`, built-in test runner, stable `fetch`, `--env-file` |
+| **Backend** | Express 4.18 | **Express 5.x** | **Native async error handling** — rejected promises auto-forwarded to error middleware, no try/catch needed |
+| **Language** | TypeScript 5.4 | **TypeScript 5.8+** | Better ESM emit, `verbatimModuleSyntax` |
+| **ORM** | Mongoose 7 | **Mongoose 8.x** | Improved TS generics, `HydratedDocument`, better lean typing |
+| **Validation** | `@hapi/joi` + manual | **Zod 4** | 7-15x faster than Zod 3, native TS inference, JSON Schema, Zod Mini (2KB) for frontend |
+| **Logging** | None | **Pino 9** + `pino-http` | Fastest Node.js logger, structured JSON, `pino-pretty` for dev |
+| **Date** | `moment` 2.30 | **`date-fns` v4** | Tree-shakeable, ESM-native, ~10x smaller |
+| **JWT** | `jsonwebtoken` | **`jose`** | ESM-native, Web Crypto API, lighter, Edge-compatible |
+| **React** | 18.3 | **React 19** | `useActionState`, `useOptimistic`, `use()`, Actions, `ref` as prop |
+| **Router** | React Router 6.23 | **React Router 7** | Data mode with `loader`/`action`, `useFetcher`, `useNavigation`, lazy routes |
+| **UI** | MUI 5.15 | **MUI 7** | Pigment CSS (zero-runtime), React 19 support, container queries |
+| **Build** | Vite 5.2 | **Vite 6** | Rolldown bundler, faster builds |
+| **Server State** | None | **TanStack Query 5** | Caching, background refetch, optimistic updates, devtools |
+| **Testing** | None | **Vitest** + `supertest` + `mongodb-memory-server` | ESM-native, Vite-compatible, fast |
+| **Dev runner** | `ts-node-dev` | **`tsx`** | ESM-compatible TS execution, works with `--watch` |
+
+### 2.2 Packages to Remove
+
+`body-parser`, `@hapi/joi`, `moment`, `jsonwebtoken`, `ts-node-dev`, `@types/jsonwebtoken`, `lodash` (full — replace with `lodash-es` or native), `web-vitals`.
+
+### 2.3 Packages to Add
+
+**Backend**: `zod` v4, `pino`, `pino-http`, `pino-pretty` (dev), `jose`, `date-fns`, `tsx` (dev), `vitest` (dev), `supertest` (dev), `mongodb-memory-server` (dev).
+
+**Frontend**: `@tanstack/react-query` v5, `@tanstack/react-query-devtools` (dev), `zod/mini`, `date-fns`, `vitest` (dev).
+
+### 2.4 Key Features We Must Leverage
+
+**Express 5 — Native async errors** (no more try/catch in routes):
+```typescript
+// Rejected promises auto-forwarded to error handler
+router.get('/:id', async (req, res) => {
+  const result = await service.findById(req.params.id); // Throws → error handler
+  res.json({ success: true, data: result });
+});
+```
+
+**React 19 — `useActionState` + `useOptimistic`**:
+```tsx
+const [state, submitAction, isPending] = useActionState(async (_prev, formData) => {
+  const error = await updateDraft(formData);
+  return error ? { error } : { success: true };
+}, null);
+
+const [optimisticStatus, setOptimisticStatus] = useOptimistic(task.status);
+```
+
+**React Router 7 — Data mode loaders**:
+```typescript
+{ path: 'tasks', Component: TaskListPage, loader: ({ request }) => fetchTasks(new URL(request.url).searchParams) }
+// Component: const { tasks } = useLoaderData(); const nav = useNavigation(); // pending state
+```
+
+**TanStack Query 5 — Caching + auto-refetch**:
+```typescript
+const { data, isLoading } = useQuery({ queryKey: ['tasks', filters], queryFn: () => api.getTasks(filters), staleTime: 30_000 });
+```
+
+**`jose` — ESM-native JWT**:
+```typescript
+import { SignJWT, jwtVerify } from 'jose';
+const token = await new SignJWT({ id, role, email }).setProtectedHeader({ alg: 'HS256' }).setExpirationTime('24h').sign(secret);
+```
+
+---
+
+## 3. Target Architecture
+
+### 3.1 Backend — Layered Architecture with Dependency Inversion
 
 ```
 backend/api/src/
 ├── config/
-│   ├── server.config.ts           # Server, pagination, file size constants
-│   ├── database.config.ts         # DB connection config
-│   └── s3.config.ts               # S3 client config
-│
+│   ├── env.config.ts              # Zod-validated env vars (fail fast)
+│   ├── server.config.ts           # Constants
+│   ├── database.config.ts         # DB connection factory
+│   ├── logger.config.ts           # Pino setup
+│   └── s3.config.ts               # S3 client
 ├── middleware/
-│   ├── auth.middleware.ts          # JWT verification
-│   ├── rbac.middleware.ts          # Role-based access control
-│   ├── error-handler.middleware.ts # Global error handler
-│   ├── request-logger.middleware.ts# Request/response logging
-│   └── validate.middleware.ts      # Generic Zod validation middleware
-│
-├── routes/
-│   └── v1/
-│       ├── index.ts               # Aggregates all v1 routes
-│       ├── audio.routes.ts
-│       ├── admin.routes.ts
-│       ├── user.routes.ts
-│       ├── task.routes.ts          # NEW
-│       ├── theme.routes.ts         # NEW
-│       └── analytic.routes.ts
-│
+│   ├── auth.middleware.ts          # JWT (jose)
+│   ├── rbac.middleware.ts          # Role checks
+│   ├── error-handler.middleware.ts # Global handler
+│   ├── request-logger.middleware.ts# pino-http
+│   └── validate.middleware.ts      # Zod 4
+├── routes/v1/
+│   ├── index.ts
+│   ├── audio.routes.ts, admin.routes.ts, task.routes.ts, theme.routes.ts, analytic.routes.ts
 ├── controllers/
-│   ├── audio.controller.ts        # Thin — delegates to service
-│   ├── admin.controller.ts
-│   ├── task.controller.ts         # NEW
-│   ├── theme.controller.ts        # NEW
-│   └── analytic.controller.ts
-│
-├── services/                       # NEW — Business logic layer
-│   ├── audio.service.ts
-│   ├── admin.service.ts
-│   ├── task.service.ts            # NEW — Task workflow engine
-│   ├── theme.service.ts           # NEW — Theme management
-│   ├── auth.service.ts            # NEW — Login, token creation
-│   └── storage.service.ts         # NEW — S3 abstraction
-│
-├── repositories/                   # NEW — Data access layer
-│   ├── base.repository.ts         # Generic CRUD (replaces db-crud.ts)
-│   ├── audio.repository.ts
-│   ├── admin.repository.ts
-│   ├── task.repository.ts         # NEW
-│   ├── audio-draft.repository.ts  # NEW
-│   ├── theme.repository.ts        # NEW
-│   └── activity-log.repository.ts # NEW
-│
-├── models/                         # Mongoose schemas + TS interfaces
-│   ├── audio.model.ts
-│   ├── admin.model.ts             # Updated: role field
-│   ├── task.model.ts              # NEW
-│   ├── audio-draft.model.ts       # NEW
-│   ├── theme.model.ts             # NEW
-│   ├── activity-log.model.ts      # NEW
-│   └── user.model.ts
-│
-├── validators/                     # NEW — Zod schemas
-│   ├── audio.validator.ts
-│   ├── admin.validator.ts
-│   ├── task.validator.ts          # NEW
-│   ├── theme.validator.ts         # NEW
-│   └── common.validator.ts
-│
-├── errors/                         # NEW — Custom error classes
-│   ├── app-error.ts
-│   ├── not-found.error.ts
-│   ├── validation.error.ts
-│   ├── authorization.error.ts
-│   └── conflict.error.ts
-│
-├── types/                          # NEW — Shared TypeScript types
-│   ├── enums.ts                   # TaskStatus, AudioDraftStatus, AdminRole
-│   ├── request.types.ts           # Extended Request types
-│   └── response.types.ts          # Standardized API responses
-│
-├── utils/
-│   └── helpers.ts                 # Pure utility functions
-│
-└── server.ts                      # Express setup + middleware chain
+│   ├── audio.controller.ts, admin.controller.ts, task.controller.ts, theme.controller.ts
+├── services/                       # Business logic
+│   ├── audio.service.ts, admin.service.ts, auth.service.ts
+│   ├── task.service.ts, theme.service.ts, storage.service.ts
+├── repositories/
+│   ├── interfaces/                 # ← Pure TS interfaces (NO Mongoose dependency)
+│   │   ├── base.repository.interface.ts
+│   │   ├── admin.repository.interface.ts, audio.repository.interface.ts
+│   │   ├── task.repository.interface.ts, audio-draft.repository.interface.ts
+│   │   ├── theme.repository.interface.ts, activity-log.repository.interface.ts
+│   └── mongoose/                   # ← Mongoose implementations
+│       ├── base.repository.ts
+│       ├── admin.repository.ts, audio.repository.ts
+│       ├── task.repository.ts, audio-draft.repository.ts
+│       ├── theme.repository.ts, activity-log.repository.ts
+├── models/
+│   ├── interfaces/                 # ← Pure TS interfaces (NO Mongoose dependency)
+│   │   ├── admin.interface.ts, audio.interface.ts, task.interface.ts
+│   │   ├── audio-draft.interface.ts, theme.interface.ts, activity-log.interface.ts
+│   └── mongoose/                   # ← Mongoose schemas
+│       ├── admin.schema.ts, audio.schema.ts, task.schema.ts
+│       ├── audio-draft.schema.ts, theme.schema.ts, activity-log.schema.ts
+├── validators/                     # Zod 4 schemas
+├── errors/                         # Custom error classes
+├── types/enums.ts, request.types.ts, response.types.ts
+├── container.ts                    # Dependency injection composition root
+└── server.ts                       # Express 5 setup
 ```
 
-### 2.2 Data Flow
+### 3.2 Database-Agnostic Repository Pattern
+
+Repository interfaces define pure TS contracts with **zero ORM dependency**:
+
+```typescript
+// repositories/interfaces/base.repository.interface.ts
+export interface PaginatedResult<T> {
+  data: T[];  total: number;  skip: number;  limit: number;  hasMore: boolean;
+}
+
+export interface IBaseRepository<T, CreateDto, UpdateDto> {
+  create(data: CreateDto): Promise<T>;
+  findById(id: string): Promise<T | null>;
+  findMany(filter: Partial<T>, options?: PaginationOptions): Promise<PaginatedResult<T>>;
+  updateById(id: string, data: UpdateDto): Promise<T | null>;
+  deleteById(id: string): Promise<boolean>;
+  countDocuments(filter: Partial<T>): Promise<number>;
+}
+```
+
+Mongoose implementations live in `repositories/mongoose/`. **To swap to PostgreSQL/Prisma**: create `repositories/prisma/`, implement same interfaces, change `container.ts`. No service/controller changes.
+
+### 3.3 Composition Root (Manual DI)
+
+```typescript
+// container.ts — swap DB implementations here
+import { MongooseTaskRepository } from './repositories/mongoose/task.repository.js';
+// ...
+const taskRepo = new MongooseTaskRepository();
+const taskService = new TaskService(taskRepo, audioDraftRepo, themeService, storageService, audioRepo, activityLogRepo);
+export const taskController = new TaskController(taskService);
+```
+
+### 3.4 Data Flow
 
 ```
-Request
-  → Request Logger Middleware
-  → Auth Middleware (JWT verify, attach user to req)
-  → RBAC Middleware (check role permissions)
-  → Validation Middleware (Zod schema)
-  → Controller (parse req, call service, format response)
-  → Service (business logic, orchestration, call repositories)
-  → Repository (data access, Mongoose queries)
-  → MongoDB
-
-Error at any layer
-  → Global Error Handler Middleware
-  → Standardized error response
+Request → pino-http logger → Auth (jose) → RBAC → Zod validation
+  → Controller → Service → Repository Interface → Mongoose Impl → MongoDB
+Error anywhere → Express 5 auto-forwards → Global error handler → JSON response
 ```
 
-### 2.3 Frontend — Target Structure
+### 3.5 Frontend Target Structure
 
 ```
 frontend/samwaktou-react-app/src/
-├── main.tsx                        # Entry point with RouterProvider
-├── App.tsx                         # NEW — Root layout with auth context
-│
-├── api/                            # NEW — API client layer
-│   ├── client.ts                  # Axios/fetch wrapper with interceptors
-│   ├── audio.api.ts
-│   ├── admin.api.ts
-│   ├── task.api.ts                # NEW
-│   └── theme.api.ts               # NEW
-│
-├── contexts/                       # NEW — React Context providers
-│   ├── AuthContext.tsx             # Auth state, login/logout, token refresh
-│   └── NotificationContext.tsx    # Toast/snackbar notifications
-│
-├── hooks/                          # NEW — Custom hooks
-│   ├── useAuth.ts
-│   ├── useTasks.ts
-│   ├── useAudioDrafts.ts
-│   └── usePagination.ts
-│
-├── pages/                          # NEW — Page-level components
-│   ├── public/
-│   │   ├── HomePage.tsx
-│   │   └── AudioLinkPage.tsx
-│   ├── auth/
-│   │   └── LoginPage.tsx
-│   └── admin/
-│       ├── DashboardPage.tsx      # NEW — Admin landing
-│       ├── TaskListPage.tsx       # NEW — Backlog, my tasks, review queue
-│       ├── TaskDetailPage.tsx     # NEW — Task view + audio draft list
-│       ├── AudioDraftWorkPage.tsx # NEW — Edit audio draft metadata
-│       ├── TaskCreatePage.tsx     # NEW — Create task with file upload
-│       ├── AudioCreatePage.tsx    # Existing audio creation (direct path)
-│       ├── ThemeManagementPage.tsx # NEW
-│       └── AdminManagementPage.tsx
-│
-├── components/                     # NEW — Reusable UI components
-│   ├── layout/
-│   │   ├── AdminLayout.tsx        # Sidebar + topbar + content area
-│   │   ├── Sidebar.tsx
-│   │   └── TopBar.tsx
-│   ├── task/
-│   │   ├── TaskCard.tsx
-│   │   ├── TaskStatusBadge.tsx
-│   │   ├── TaskProgressBar.tsx
-│   │   └── TaskFilters.tsx
-│   ├── audio-draft/
-│   │   ├── AudioDraftCard.tsx
-│   │   ├── AudioDraftForm.tsx
-│   │   ├── AudioDraftStatusBadge.tsx
-│   │   └── NewThemeBadge.tsx
-│   ├── common/
-│   │   ├── DataTable.tsx
-│   │   ├── SearchBar.tsx
-│   │   ├── ConfirmDialog.tsx
-│   │   ├── LoadingSpinner.tsx
-│   │   └── EmptyState.tsx
-│   └── audio/                     # Existing refactored
-│       ├── AudioCard.tsx
-│       └── AudioPlayer.tsx
-│
-├── types/                          # Shared TS types (mirrors backend enums)
-│   ├── task.types.ts
-│   ├── admin.types.ts
-│   ├── audio.types.ts
-│   └── api.types.ts
-│
-├── utils/
-│   ├── date.utils.ts              # date-fns helpers
-│   └── format.utils.ts
-│
-└── styles/                         # Global styles / theme
-    └── theme.ts                   # MUI theme customization
+├── main.tsx                    # RR7 data mode + QueryClient + AuthProvider
+├── api/client.ts, task.api.ts, admin.api.ts, theme.api.ts, audio.api.ts
+├── contexts/AuthContext.tsx, NotificationContext.tsx
+├── hooks/useAuth.ts, useTasks.ts, useAudioDrafts.ts, useThemes.ts
+├── pages/
+│   ├── public/HomePage.tsx, AudioLinkPage.tsx
+│   ├── auth/LoginPage.tsx
+│   └── admin/DashboardPage.tsx, TaskListPage.tsx, TaskDetailPage.tsx,
+│          AudioDraftWorkPage.tsx, TaskCreatePage.tsx, AudioCreatePage.tsx,
+│          ThemeManagementPage.tsx, AdminManagementPage.tsx
+├── components/
+│   ├── layout/AdminLayout.tsx, Sidebar.tsx, TopBar.tsx
+│   ├── task/TaskCard.tsx, TaskStatusBadge.tsx, TaskProgressBar.tsx, TaskFilters.tsx
+│   ├── audio-draft/AudioDraftCard.tsx, AudioDraftForm.tsx, NewThemeBadge.tsx
+│   ├── common/DataTable.tsx, SearchBar.tsx, ConfirmDialog.tsx, LoadingSpinner.tsx
+│   └── audio/AudioCard.tsx, AudioPlayer.tsx
+├── types/task.types.ts, admin.types.ts, audio.types.ts, api.types.ts
+├── utils/date.utils.ts, format.utils.ts
+└── styles/theme.ts             # MUI 7 theme
 ```
 
 ---
 
-## 3. Backend Refactoring
+## 4. Backend Refactoring
 
-### 3.1 Replace `body-parser` with Built-in Express
+### 4.1 Native ESM
 
-**Current** (`server.ts:18`):
-```typescript
-import bodyParser from 'body-parser';
-server.use(bodyParser.json());
-```
+- `package.json`: `"type": "module"`
+- `tsconfig.json`: `"module": "NodeNext"`, `"moduleResolution": "NodeNext"`, `"target": "ES2022"`, `"verbatimModuleSyntax": true`, `"strictNullChecks": true`
+- All imports use `.js` extension: `import { TaskService } from './services/task.service.js';`
 
-**Target**:
-```typescript
-server.use(express.json());
-```
-
-Remove `body-parser` from `package.json`.
-
-### 3.2 Database Connection — Connect Once at Startup
-
-**Current** (`db-crud.ts`): `connectToDB()` is called before every single DB operation.
-
-**Target**: Connect once when the server starts, fail fast if connection fails.
+### 4.2 Environment Validation (Zod 4)
 
 ```typescript
-// src/config/database.config.ts
-import mongoose from 'mongoose';
-
-export const connectToDatabase = async (): Promise<void> => {
-  await mongoose.connect(process.env.DB_CONNECTION!, {
-    authSource: 'admin',
-    user: process.env.MONGODB_USERNAME,
-    pass: process.env.MONGODB_PASSWORD,
-    dbName: process.env.MONGODB_DB_NAME,
-  });
-  console.log('Connected to MongoDB');
-};
-```
-
-```typescript
-// src/server.ts
-import { connectToDatabase } from './config/database.config';
-
-const startServer = async () => {
-  await connectToDatabase();
-  // ... middleware setup ...
-  server.listen(SERVEUR_CONFIG.PORT);
-};
-
-startServer().catch(err => {
-  console.error('Failed to start server:', err);
-  process.exit(1);
-});
-```
-
-### 3.3 Repository Pattern — Replace `db-crud.ts`
-
-**Current**: A global `DB` object with generic methods that call `connectToDB()` on every operation. Models (e.g., `Audio`) directly call `DB.postToDB()`, `DB.findOne()`, etc.
-
-**Target**: A `BaseRepository<T>` class that each entity repository extends. No more per-call `connectToDB()`.
-
-```typescript
-// src/repositories/base.repository.ts
-import { Model, FilterQuery, UpdateQuery, ProjectionType, QueryOptions } from 'mongoose';
-
-export class BaseRepository<T> {
-  constructor(protected model: Model<T>) {}
-
-  async create(data: Partial<T>): Promise<T> {
-    const doc = new this.model(data);
-    return doc.save();
-  }
-
-  async findById(id: string): Promise<T | null> {
-    return this.model.findById(id).lean().exec();
-  }
-
-  async findOne(filter: FilterQuery<T>): Promise<T | null> {
-    return this.model.findOne(filter).lean().exec();
-  }
-
-  async findMany(
-    filter: FilterQuery<T>,
-    projection?: ProjectionType<T>,
-    options?: QueryOptions
-  ): Promise<T[]> {
-    return this.model.find(filter, projection, options).lean().exec();
-  }
-
-  async updateById(id: string, update: UpdateQuery<T>): Promise<T | null> {
-    return this.model.findByIdAndUpdate(id, update, { new: true }).lean().exec();
-  }
-
-  async deleteById(id: string): Promise<boolean> {
-    const result = await this.model.deleteOne({ _id: id } as FilterQuery<T>);
-    return result.deletedCount > 0;
-  }
-
-  async distinct(field: string): Promise<unknown[]> {
-    return this.model.distinct(field).exec();
-  }
-
-  async countDocuments(filter: FilterQuery<T>): Promise<number> {
-    return this.model.countDocuments(filter).exec();
-  }
-}
-```
-
-### 3.4 Service Layer
-
-Each service encapsulates business logic and orchestrates repository calls.
-
-```typescript
-// src/services/audio.service.ts
-import { AudioRepository } from '../repositories/audio.repository';
-import { StorageService } from './storage.service';
-import { NotFoundError } from '../errors/not-found.error';
-
-export class AudioService {
-  constructor(
-    private audioRepo: AudioRepository,
-    private storageService: StorageService
-  ) {}
-
-  async createAudio(data: CreateAudioDto, file: UploadedFile): Promise<IAudio> {
-    const audio = await this.audioRepo.create(data);
-    try {
-      const uri = await this.storageService.uploadFile(file, audio._id);
-      return this.audioRepo.updateById(audio._id, { uri });
-    } catch (err) {
-      await this.audioRepo.deleteById(audio._id);
-      throw err;
-    }
-  }
-
-  async deleteAudio(id: string): Promise<void> {
-    const audio = await this.audioRepo.findById(id);
-    if (!audio) throw new NotFoundError('Audio not found');
-    await this.audioRepo.deleteById(id);
-    await this.storageService.deleteFile(audio.uri);
-  }
-  // ...
-}
-```
-
-### 3.5 Centralized Error Handling
-
-```typescript
-// src/errors/app-error.ts
-export class AppError extends Error {
-  constructor(
-    public message: string,
-    public statusCode: number,
-    public reason?: string,
-    public details?: unknown
-  ) {
-    super(message);
-    this.name = this.constructor.name;
-  }
-}
-
-export class NotFoundError extends AppError {
-  constructor(message = 'Resource not found') {
-    super(message, 404);
-  }
-}
-
-export class ValidationError extends AppError {
-  constructor(message = 'Validation error', details?: unknown) {
-    super(message, 400, 'Validation failed', details);
-  }
-}
-
-export class AuthorizationError extends AppError {
-  constructor(message = 'Access denied') {
-    super(message, 403);
-  }
-}
-
-export class ConflictError extends AppError {
-  constructor(message = 'Conflict') {
-    super(message, 409);
-  }
-}
-```
-
-```typescript
-// src/middleware/error-handler.middleware.ts
-import { Request, Response, NextFunction } from 'express';
-import { AppError } from '../errors/app-error';
-
-export const errorHandler = (err: Error, _req: Request, res: Response, _next: NextFunction): void => {
-  if (err instanceof AppError) {
-    res.status(err.statusCode).json({
-      success: false,
-      message: err.message,
-      reason: err.reason,
-      details: err.details,
-    });
-    return;
-  }
-
-  // Unexpected errors
-  console.error('Unhandled error:', err);
-  res.status(500).json({
-    success: false,
-    message: 'Internal server error',
-  });
-};
-```
-
-### 3.6 Validation with Zod
-
-Replace both the manual validators (`audio-request-validator.ts`) and Joi-based validators (`admin-request-validator.ts`) with Zod.
-
-```typescript
-// src/validators/audio.validator.ts
+// config/env.config.ts
 import { z } from 'zod';
-
-export const createAudioSchema = z.object({
-  theme: z.string().min(2).max(30),
-  author: z.string().min(1).max(30).optional().default('Inconnu'),
-  description: z.string().min(10).max(500),
-  keywords: z.string().min(10).max(500),
-  date: z.string().regex(/^\d{2}-\d{2}-\d{4}$/).optional(),
+const envSchema = z.object({
+  DB_CONNECTION: z.string().url(),
+  MONGODB_USERNAME: z.string().min(1),
+  MONGODB_PASSWORD: z.string().min(1),
+  MONGODB_DB_NAME: z.string().min(1),
+  ADMIN_TOKEN_SECRET: z.string().min(32),
+  S3_ACCESS_KEY: z.string().min(1),
+  S3_SECRET_ACCESS_KEY: z.string().min(1),
+  S3_ACCESS_POINT_ARN: z.string().min(1),
+  S3_HOST: z.string().url().optional(),
+  PORT: z.coerce.number().default(8080),
+  PROFILE: z.enum(['dev', 'prod']).default('dev'),
+  LOG_LEVEL: z.enum(['fatal','error','warn','info','debug','trace']).default('info'),
+  APP_HOST: z.string(),
+  // ... other vars
 });
-
-export type CreateAudioDto = z.infer<typeof createAudioSchema>;
+export const env = envSchema.parse(process.env); // Fails fast on missing/invalid
 ```
 
-```typescript
-// src/middleware/validate.middleware.ts
-import { Request, Response, NextFunction } from 'express';
-import { ZodSchema } from 'zod';
-import { ValidationError } from '../errors/app-error';
+### 4.3 DB Connection — Once at Startup
 
-export const validate = (schema: ZodSchema, source: 'body' | 'query' | 'params' = 'body') => {
-  return (req: Request, _res: Response, next: NextFunction): void => {
-    const result = schema.safeParse(req[source]);
-    if (!result.success) {
-      throw new ValidationError('Invalid request data', result.error.flatten());
-    }
-    req[source] = result.data; // Replace with parsed/transformed data
-    next();
-  };
+```typescript
+// config/database.config.ts
+import mongoose from 'mongoose';
+import { env } from './env.config.js';
+export const connectToDatabase = async () => {
+  await mongoose.connect(env.DB_CONNECTION, { authSource: 'admin', user: env.MONGODB_USERNAME, pass: env.MONGODB_PASSWORD, dbName: env.MONGODB_DB_NAME });
 };
 ```
 
-### 3.7 API Versioning
+### 4.4 Logging (Pino)
 
 ```typescript
-// src/routes/v1/index.ts
-import { Router } from 'express';
-import audioRoutes from './audio.routes';
-import adminRoutes from './admin.routes';
-import taskRoutes from './task.routes';
-import themeRoutes from './theme.routes';
-import analyticRoutes from './analytic.routes';
-
-const v1Router = Router();
-v1Router.use('/audios', audioRoutes);
-v1Router.use('/admins', adminRoutes);
-v1Router.use('/tasks', taskRoutes);
-v1Router.use('/themes', themeRoutes);
-v1Router.use('/analytics', analyticRoutes);
-
-export default v1Router;
+// config/logger.config.ts
+import pino from 'pino';
+import { env } from './env.config.js';
+export const logger = pino({
+  level: env.LOG_LEVEL,
+  transport: env.PROFILE === 'dev' ? { target: 'pino-pretty', options: { colorize: true } } : undefined,
+});
 ```
 
-```typescript
-// src/server.ts
-import v1Router from './routes/v1';
-// ...
-server.use('/api/v1', v1Router);
+### 4.5 Express 5 Server
 
-// Backward compatibility (temporary, remove after frontend migration)
-server.use('/audios', audioRoutes);
-server.use('/admins', adminRoutes);
+```typescript
+// server.ts
+import express from 'express';
+import cors from 'cors';
+import pinoHttp from 'pino-http';
+import { env } from './config/env.config.js';
+import { connectToDatabase } from './config/database.config.js';
+import { errorHandler } from './middleware/error-handler.middleware.js';
+import { logger } from './config/logger.config.js';
+import v1Router from './routes/v1/index.js';
+
+const app = express();
+app.use(pinoHttp({ logger }));
+app.use(cors({ origin: [env.APP_HOST], exposedHeaders: ['auth-token'] }));
+app.use(express.json());
+app.use('/api/v1', v1Router);
+app.get('/health', (_req, res) => res.json({ status: 'ok' }));
+app.use(errorHandler); // Must be last
+
+const start = async () => {
+  await connectToDatabase();
+  app.listen(env.PORT, () => logger.info(`Server on port ${env.PORT}`));
+};
+start().catch(err => { logger.fatal(err); process.exit(1); });
+export default app;
+```
+
+### 4.6 JWT with `jose`
+
+```typescript
+// services/auth.service.ts
+import { SignJWT, jwtVerify } from 'jose';
+export class AuthService {
+  private secret = new TextEncoder().encode(env.ADMIN_TOKEN_SECRET);
+
+  async createToken(payload: TokenPayload): Promise<string> {
+    return new SignJWT({ ...payload }).setProtectedHeader({ alg: 'HS256' }).setExpirationTime('24h').sign(this.secret);
+  }
+  async verifyToken(token: string): Promise<TokenPayload> {
+    const { payload } = await jwtVerify(token, this.secret);
+    return payload as TokenPayload;
+  }
+}
 ```
 
 ---
 
-## 4. Data Models & Database Design
+## 5. Data Models & Database Design
 
-### 4.1 Enums
-
-```typescript
-// src/types/enums.ts
-
-export enum AdminRole {
-  SYSTEM_ADMIN = 'SYSTEM_ADMIN',     // Level 0 — Full system access
-  PUBLISHER = 'PUBLISHER',           // Level 1 — Can publish, hard-delete
-  REVIEWER = 'REVIEWER',             // Level 2 — Can review, approve, reject
-  CONTRIBUTOR = 'CONTRIBUTOR',       // Level 3 — Can work on tasks
-}
-
-// Role hierarchy for permission checks
-export const ROLE_HIERARCHY: Record<AdminRole, number> = {
-  [AdminRole.SYSTEM_ADMIN]: 0,
-  [AdminRole.PUBLISHER]: 1,
-  [AdminRole.REVIEWER]: 2,
-  [AdminRole.CONTRIBUTOR]: 3,
-};
-
-export enum TaskStatus {
-  OPEN = 'OPEN',
-  IN_PROGRESS = 'IN_PROGRESS',
-  READY_FOR_REVIEW = 'READY_FOR_REVIEW',
-  IN_REVIEW = 'IN_REVIEW',
-  CORRECTIONS_NEEDED = 'CORRECTIONS_NEEDED',
-  APPROVED = 'APPROVED',
-  REJECTED = 'REJECTED',
-  PUBLISHED = 'PUBLISHED',
-}
-
-export enum AudioDraftStatus {
-  PENDING = 'PENDING',
-  DONE = 'DONE',
-  REJECTION_SUGGESTED = 'REJECTION_SUGGESTED',
-  APPROVED = 'APPROVED',
-  CORRECTIONS_NEEDED = 'CORRECTIONS_NEEDED',
-  REJECTED = 'REJECTED',
-}
-```
-
-### 4.2 Admin Model (Updated)
-
-**Current schema** has `isSuperAdmin: boolean`. This must be replaced with `role: AdminRole`.
+### 5.1 Enums
 
 ```typescript
-// src/models/admin.model.ts
-import mongoose, { Schema, Document } from 'mongoose';
-import { AdminRole } from '../types/enums';
-
-export interface IAdmin extends Document {
-  surname: string;
-  name: string;
-  email: string;
-  password: string;
-  role: AdminRole;
-  isActive: boolean;        // NEW — soft disable accounts
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-const AdminSchema = new Schema<IAdmin>(
-  {
-    surname: { type: String, required: true, trim: true, maxlength: 255 },
-    name: { type: String, required: true, trim: true, maxlength: 255 },
-    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-    password: { type: String, required: true },
-    role: {
-      type: String,
-      enum: Object.values(AdminRole),
-      required: true,
-      default: AdminRole.CONTRIBUTOR,
-    },
-    isActive: { type: Boolean, default: true },
-  },
-  { timestamps: true }  // auto createdAt, updatedAt
-);
-
-AdminSchema.index({ email: 1 }, { unique: true });
-AdminSchema.index({ role: 1 });
-
-export default mongoose.model<IAdmin>('Admin', AdminSchema);
+// types/enums.ts
+export enum AdminRole { SYSTEM_ADMIN='SYSTEM_ADMIN', PUBLISHER='PUBLISHER', REVIEWER='REVIEWER', CONTRIBUTOR='CONTRIBUTOR' }
+export const ROLE_HIERARCHY: Record<AdminRole, number> = { SYSTEM_ADMIN:0, PUBLISHER:1, REVIEWER:2, CONTRIBUTOR:3 };
+export enum TaskStatus { OPEN='OPEN', IN_PROGRESS='IN_PROGRESS', READY_FOR_REVIEW='READY_FOR_REVIEW', IN_REVIEW='IN_REVIEW', CORRECTIONS_NEEDED='CORRECTIONS_NEEDED', APPROVED='APPROVED', REJECTED='REJECTED', PUBLISHED='PUBLISHED' }
+export enum AudioDraftStatus { PENDING='PENDING', DONE='DONE', REJECTION_SUGGESTED='REJECTION_SUGGESTED', APPROVED='APPROVED', CORRECTIONS_NEEDED='CORRECTIONS_NEEDED', REJECTED='REJECTED' }
 ```
 
-**Migration note**: Existing admins with `isSuperAdmin: true` → `role: SYSTEM_ADMIN`. Others → `role: CONTRIBUTOR` (or `PUBLISHER` depending on their actual function). See [Section 10](#10-migration-strategy).
+### 5.2 Model Interfaces (DB-Agnostic, under `models/interfaces/`)
 
-### 4.3 Task Model (NEW)
+**IAdmin**: `id, surname, name, email, password, role: AdminRole, isActive: boolean, createdAt, updatedAt`
 
-```typescript
-// src/models/task.model.ts
-import mongoose, { Schema, Document, Types } from 'mongoose';
-import { TaskStatus } from '../types/enums';
+**ITask**: `id, description, sessionAuthor, sessionDate, status: TaskStatus, assignee: string|null, previousAssignee: string|null, createdBy, reviewedBy: string|null, contentState: IContentState, rejectionReason: string|null, taskRejectionSuggested: boolean, taskRejectionSuggestedReason: string|null, publishedAudioIds: string[], createdAt, updatedAt`
 
-export interface IContentState {
-  total: number;
-  done: number;
-  approved: number;
-  rejected: number;
-  correctionNeeded: number;
-  pending: number;
-}
+**IContentState**: `total, done, approved, rejected, correctionNeeded, pending` (all numbers)
 
-export interface ITask extends Document {
-  description: string;                    // Task-level description
-  sessionAuthor: string;                  // The scholar/author of the original session
-  sessionDate: Date;                      // Date of the original recording session
-  status: TaskStatus;
-  assignee: Types.ObjectId | null;        // Current worker (contributor or reviewer)
-  previousAssignee: Types.ObjectId | null;// Last contributor who worked on it
-  createdBy: Types.ObjectId;              // Admin who created the task (Publisher+)
-  reviewedBy: Types.ObjectId | null;      // Reviewer who last reviewed
-  contentState: IContentState;            // Denormalized counts
-  rejectionReason: string | null;         // If task-level rejection
-  taskRejectionSuggested: boolean;        // Contributor suggested task rejection
-  taskRejectionSuggestedReason: string | null;
-  publishedAudioIds: Types.ObjectId[];    // Links to published Audio docs (after publish)
-  createdAt: Date;
-  updatedAt: Date;
-}
+**IAudioDraft**: `id, task, uri, originalFileName, description, theme, keywords, status: AudioDraftStatus, isNewTheme: boolean, rejectionSuggestedReason, reviewComment, correctionComment, order: number, createdAt, updatedAt`
 
-const ContentStateSchema = new Schema<IContentState>(
-  {
-    total: { type: Number, default: 0 },
-    done: { type: Number, default: 0 },
-    approved: { type: Number, default: 0 },
-    rejected: { type: Number, default: 0 },
-    correctionNeeded: { type: Number, default: 0 },
-    pending: { type: Number, default: 0 },
-  },
-  { _id: false }
-);
+**ITheme**: `id, name, isValidated: boolean, createdBy, validatedBy: string|null, createdAt, updatedAt`
 
-const TaskSchema = new Schema<ITask>(
-  {
-    description: { type: String, required: true, maxlength: 1000 },
-    sessionAuthor: { type: String, required: true, trim: true },
-    sessionDate: { type: Date, required: true },
-    status: {
-      type: String,
-      enum: Object.values(TaskStatus),
-      default: TaskStatus.OPEN,
-    },
-    assignee: { type: Schema.Types.ObjectId, ref: 'Admin', default: null },
-    previousAssignee: { type: Schema.Types.ObjectId, ref: 'Admin', default: null },
-    createdBy: { type: Schema.Types.ObjectId, ref: 'Admin', required: true },
-    reviewedBy: { type: Schema.Types.ObjectId, ref: 'Admin', default: null },
-    contentState: { type: ContentStateSchema, default: () => ({}) },
-    rejectionReason: { type: String, default: null },
-    taskRejectionSuggested: { type: Boolean, default: false },
-    taskRejectionSuggestedReason: { type: String, default: null },
-    publishedAudioIds: [{ type: Schema.Types.ObjectId, ref: 'Audio' }],
-  },
-  { timestamps: true }
-);
+**IActivityLog**: `id, entityType: 'task'|'audio_draft'|'theme', entityId, action, performedBy, details: Record<string,unknown>, createdAt`
 
-// Indexes for common query patterns
-TaskSchema.index({ status: 1 });
-TaskSchema.index({ assignee: 1 });
-TaskSchema.index({ createdBy: 1 });
-TaskSchema.index({ status: 1, assignee: 1 });
-TaskSchema.index({ sessionAuthor: 1 });
-TaskSchema.index({ sessionDate: -1 });
+**IAudio** (updated): existing fields + `taskId: string|null` (link to source task after publish)
 
-export default mongoose.model<ITask>('Task', TaskSchema);
-```
+### 5.3 Mongoose Schemas (under `models/mongoose/`)
 
-### 4.4 AudioDraft Model (NEW)
+Each schema implements its interface, uses `timestamps: true`, transforms `_id` → `id` in `toJSON`/`toObject`.
 
-```typescript
-// src/models/audio-draft.model.ts
-import mongoose, { Schema, Document, Types } from 'mongoose';
-import { AudioDraftStatus } from '../types/enums';
+**Admin**: `isSuperAdmin` removed → `role: { type: String, enum: AdminRole, default: 'CONTRIBUTOR' }`, added `isActive: Boolean`.
 
-export interface IAudioDraft extends Document {
-  task: Types.ObjectId;                   // Parent task reference
-  uri: string;                            // S3 key for the audio file
-  originalFileName: string;               // Original file name for display
-  description: string;                    // French translation/summary
-  theme: string;
-  keywords: string;
-  status: AudioDraftStatus;
-  isNewTheme: boolean;                    // Flagged if contributor added a new theme
-  rejectionSuggestedReason: string | null;// Contributor's suggestion reason
-  reviewComment: string | null;           // Reviewer's feedback
-  correctionComment: string | null;       // Reason for CORRECTIONS_NEEDED
-  order: number;                          // Display order within the task
-  createdAt: Date;
-  updatedAt: Date;
-}
+**Task**: All ITask fields with ObjectId refs to Admin. ContentState as embedded subdocument. Indexes: `{status:1}`, `{assignee:1}`, `{status:1,assignee:1}`, `{sessionAuthor:1}`, `{sessionDate:-1}`.
 
-const AudioDraftSchema = new Schema<IAudioDraft>(
-  {
-    task: { type: Schema.Types.ObjectId, ref: 'Task', required: true, index: true },
-    uri: { type: String, required: true },
-    originalFileName: { type: String, required: true },
-    description: { type: String, default: '', maxlength: 500 },
-    theme: { type: String, default: '', maxlength: 30 },
-    keywords: { type: String, default: '', maxlength: 500 },
-    status: {
-      type: String,
-      enum: Object.values(AudioDraftStatus),
-      default: AudioDraftStatus.PENDING,
-    },
-    isNewTheme: { type: Boolean, default: false },
-    rejectionSuggestedReason: { type: String, default: null },
-    reviewComment: { type: String, default: null },
-    correctionComment: { type: String, default: null },
-    order: { type: Number, default: 0 },
-  },
-  { timestamps: true }
-);
+**AudioDraft**: All IAudioDraft fields with ObjectId ref to Task. Indexes: `{task:1,order:1}`, `{task:1,status:1}`.
 
-AudioDraftSchema.index({ task: 1, order: 1 });
-AudioDraftSchema.index({ task: 1, status: 1 });
+**Theme**: name unique + uppercase. Indexes: `{name:1}` unique, `{isValidated:1}`.
 
-export default mongoose.model<IAudioDraft>('AudioDraft', AudioDraftSchema);
-```
-
-### 4.5 Theme Model (NEW)
-
-Currently themes are just strings stored on Audio documents. For the new workflow, themes need to be a managed entity with validation status.
-
-```typescript
-// src/models/theme.model.ts
-import mongoose, { Schema, Document, Types } from 'mongoose';
-
-export interface ITheme extends Document {
-  name: string;                          // Theme name (uppercase, trimmed)
-  isValidated: boolean;                  // false = pending review
-  createdBy: Types.ObjectId;             // Admin who created/suggested it
-  validatedBy: Types.ObjectId | null;    // Reviewer who validated
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-const ThemeSchema = new Schema<ITheme>(
-  {
-    name: { type: String, required: true, unique: true, uppercase: true, trim: true },
-    isValidated: { type: Boolean, default: false },
-    createdBy: { type: Schema.Types.ObjectId, ref: 'Admin', required: true },
-    validatedBy: { type: Schema.Types.ObjectId, ref: 'Admin', default: null },
-  },
-  { timestamps: true }
-);
-
-ThemeSchema.index({ name: 1 }, { unique: true });
-ThemeSchema.index({ isValidated: 1 });
-
-export default mongoose.model<ITheme>('Theme', ThemeSchema);
-```
-
-**Migration note**: Extract distinct themes from existing Audio documents and seed the `themes` collection with `isValidated: true`.
-
-### 4.6 Activity Log Model (NEW)
-
-```typescript
-// src/models/activity-log.model.ts
-import mongoose, { Schema, Document, Types } from 'mongoose';
-
-export interface IActivityLog extends Document {
-  entityType: 'task' | 'audio_draft' | 'theme';
-  entityId: Types.ObjectId;
-  action: string;                        // e.g., 'STATUS_CHANGED', 'ASSIGNED', 'COMMENT_ADDED'
-  performedBy: Types.ObjectId;
-  details: Record<string, unknown>;      // Flexible payload (old/new status, comment, etc.)
-  createdAt: Date;
-}
-
-const ActivityLogSchema = new Schema<IActivityLog>(
-  {
-    entityType: { type: String, required: true, enum: ['task', 'audio_draft', 'theme'] },
-    entityId: { type: Schema.Types.ObjectId, required: true },
-    action: { type: String, required: true },
-    performedBy: { type: Schema.Types.ObjectId, ref: 'Admin', required: true },
-    details: { type: Schema.Types.Mixed, default: {} },
-  },
-  { timestamps: { createdAt: true, updatedAt: false } }
-);
-
-ActivityLogSchema.index({ entityType: 1, entityId: 1 });
-ActivityLogSchema.index({ performedBy: 1 });
-ActivityLogSchema.index({ createdAt: -1 });
-
-export default mongoose.model<IActivityLog>('ActivityLog', ActivityLogSchema);
-```
-
-### 4.7 Audio Model (Updated)
-
-Add an optional `taskId` reference field to link published audio back to its source task:
-
-```typescript
-// Add to existing AudioSchema:
-taskId: { type: Schema.Types.ObjectId, ref: 'Task', default: null, index: true },
-```
-
-### 4.8 Entity-Relationship Diagram
-
-```
-┌──────────┐     1:N      ┌──────────────┐
-│   Admin   │──────────────│     Task     │ (createdBy, assignee, previousAssignee, reviewedBy)
-└──────────┘              └──────┬───────┘
-                                 │ 1:N
-                                 ▼
-                          ┌──────────────┐
-                          │  AudioDraft  │
-                          └──────┬───────┘
-                                 │ (theme ref)
-                                 ▼
-                          ┌──────────────┐
-                          │    Theme     │
-                          └──────────────┘
-
-┌──────────────┐   published    ┌──────────┐
-│     Task     │───────────────▶│  Audio   │ (publishedAudioIds / audio.taskId)
-└──────────────┘                └──────────┘
-
-┌──────────────┐
-│ ActivityLog  │ (references Task, AudioDraft, or Theme by entityId)
-└──────────────┘
-```
-
-### 4.9 MongoDB Indexes Summary
-
-| Collection | Index | Purpose |
-|------------|-------|---------|
-| `admins` | `{ email: 1 }` unique | Login lookup |
-| `admins` | `{ role: 1 }` | Filter by role |
-| `tasks` | `{ status: 1 }` | Task list views |
-| `tasks` | `{ assignee: 1 }` | "My Tasks" view |
-| `tasks` | `{ status: 1, assignee: 1 }` | Backlog (OPEN + null assignee) |
-| `tasks` | `{ sessionAuthor: 1 }` | Filter by session author |
-| `tasks` | `{ sessionDate: -1 }` | Sort by session date |
-| `audiodrafts` | `{ task: 1, order: 1 }` | Ordered list within a task |
-| `audiodrafts` | `{ task: 1, status: 1 }` | Count by status per task |
-| `themes` | `{ name: 1 }` unique | Unique theme names |
-| `themes` | `{ isValidated: 1 }` | Filter unvalidated themes |
-| `activitylogs` | `{ entityType: 1, entityId: 1 }` | Activity for an entity |
-| `activitylogs` | `{ createdAt: -1 }` | Recent activity |
-| `audios` | `{ taskId: 1 }` | Find audios from a task |
+**ActivityLog**: timestamps with `createdAt` only. Indexes: `{entityType:1,entityId:1}`, `{createdAt:-1}`.
 
 ---
 
-## 5. API Design
-
-### 5.1 Base URL & Response Format
+## 6. API Design
 
 **Base URL**: `/api/v1`
 
-**Standard success response**:
-```json
-{
-  "success": true,
-  "data": { ... }
-}
-```
+### 6.1 Task Endpoints
 
-**Standard paginated response**:
-```json
-{
-  "success": true,
-  "data": [ ... ],
-  "pagination": {
-    "total": 142,
-    "skip": 0,
-    "limit": 20,
-    "hasMore": true
-  }
-}
-```
+| Method | Path | Min Role | Description |
+|--------|------|----------|-------------|
+| `POST` | `/tasks` | Publisher | Create task + upload audio files |
+| `GET` | `/tasks` | Contributor | List (filters: status, assignee, author, date, sort, pagination) |
+| `GET` | `/tasks/:taskId` | Contributor | Get detail |
+| `PATCH` | `/tasks/:taskId/assign` | Contributor | Self-assign from backlog |
+| `PATCH` | `/tasks/:taskId/unassign` | Reviewer | Unassign → OPEN |
+| `PATCH` | `/tasks/:taskId/reassign` | Reviewer | Reassign to another admin |
+| `PATCH` | `/tasks/:taskId/submit` | Contributor | Submit → READY_FOR_REVIEW |
+| `PATCH` | `/tasks/:taskId/pick-for-review` | Reviewer | Pick → IN_REVIEW |
+| `PATCH` | `/tasks/:taskId/approve` | Reviewer | Approve → APPROVED |
+| `PATCH` | `/tasks/:taskId/request-corrections` | Reviewer | → CORRECTIONS_NEEDED |
+| `PATCH` | `/tasks/:taskId/reject` | Reviewer | → REJECTED |
+| `PATCH` | `/tasks/:taskId/suggest-rejection` | Contributor | Flag for rejection |
+| `POST` | `/tasks/:taskId/publish` | Publisher | → PUBLISHED |
+| `POST` | `/tasks/:taskId/unpublish` | System Admin | → APPROVED |
+| `DELETE` | `/tasks/:taskId` | Publisher | Hard-delete |
+| `GET` | `/tasks/:taskId/activity-log` | Contributor | Activity log |
 
-**Standard error response**:
-```json
-{
-  "success": false,
-  "message": "Human-readable message",
-  "reason": "Machine-readable error code",
-  "details": { ... }
-}
-```
+### 6.2 AudioDraft Endpoints
 
-### 5.2 Task Endpoints
+| Method | Path | Min Role | Description |
+|--------|------|----------|-------------|
+| `GET` | `/tasks/:taskId/audio-drafts` | Contributor | List drafts |
+| `GET/PATCH` | `/tasks/:taskId/audio-drafts/:draftId` | Contributor | Get / Update metadata |
+| `PATCH` | `.../:draftId/mark-done` | Contributor | → DONE |
+| `PATCH` | `.../:draftId/suggest-rejection` | Contributor | → REJECTION_SUGGESTED |
+| `PATCH` | `.../:draftId/approve` | Reviewer | → APPROVED |
+| `PATCH` | `.../:draftId/request-corrections` | Reviewer | → CORRECTIONS_NEEDED |
+| `PATCH` | `.../:draftId/reject` | Reviewer | → REJECTED |
+| `GET` | `.../:draftId/stream` | Contributor | Stream audio file |
 
-| Method | Path | Auth | Min Role | Description |
-|--------|------|------|----------|-------------|
-| `POST` | `/tasks` | ✅ | Publisher | Create a task (upload audio files) |
-| `GET` | `/tasks` | ✅ | Contributor | List tasks (with filters) |
-| `GET` | `/tasks/:taskId` | ✅ | Contributor | Get task details |
-| `PATCH` | `/tasks/:taskId/assign` | ✅ | Contributor | Self-assign a task from backlog |
-| `PATCH` | `/tasks/:taskId/unassign` | ✅ | Reviewer | Unassign a task (back to OPEN) |
-| `PATCH` | `/tasks/:taskId/reassign` | ✅ | Reviewer | Reassign a task to a different admin |
-| `PATCH` | `/tasks/:taskId/submit` | ✅ | Contributor | Submit task for review (→ READY_FOR_REVIEW) |
-| `PATCH` | `/tasks/:taskId/pick-for-review` | ✅ | Reviewer | Pick task from review queue (→ IN_REVIEW) |
-| `PATCH` | `/tasks/:taskId/approve` | ✅ | Reviewer | Approve task (→ APPROVED) |
-| `PATCH` | `/tasks/:taskId/request-corrections` | ✅ | Reviewer | Send back for corrections (→ CORRECTIONS_NEEDED) |
-| `PATCH` | `/tasks/:taskId/reject` | ✅ | Reviewer | Reject task (→ REJECTED) |
-| `PATCH` | `/tasks/:taskId/suggest-rejection` | ✅ | Contributor | Suggest task rejection |
-| `POST` | `/tasks/:taskId/publish` | ✅ | Publisher | Publish task (→ PUBLISHED, creates Audio docs) |
-| `POST` | `/tasks/:taskId/unpublish` | ✅ | System Admin | Unpublish (removes published audios, → APPROVED) |
-| `DELETE` | `/tasks/:taskId` | ✅ | Publisher | Hard-delete task and its audio drafts |
-| `GET` | `/tasks/:taskId/activity-log` | ✅ | Contributor | Get activity log for a task |
+### 6.3 Theme Endpoints
 
-**Query parameters for `GET /tasks`**:
-```
-?status=OPEN,IN_PROGRESS    # Comma-separated statuses
-&assignee=<adminId>          # Filter by assignee
-&createdBy=<adminId>         # Filter by creator
-&sessionAuthor=<name>        # Filter by session author
-&minDate=2024-01-01           # Session date range
-&maxDate=2024-12-31
-&hasNewThemes=true            # Only tasks with new themes
-&hasSuggestedRejections=true  # Only tasks with rejection suggestions
-&sort=sessionDate             # Sort field
-&order=desc                   # Sort direction
-&skip=0&limit=20              # Pagination
-```
+`GET /themes`, `POST /themes` (Contributor+), `PATCH /themes/:id/validate` (Reviewer+), `PATCH /themes/:id` (Reviewer+), `DELETE /themes/:id` (Publisher+).
 
-**Shortcut views** (thin wrappers over `GET /tasks`):
-- `GET /tasks?status=OPEN&assignee=null` → **Backlog**
-- `GET /tasks?assignee=<currentUser>` → **My Tasks**
-- `GET /tasks?status=READY_FOR_REVIEW` → **Review Queue**
-- `GET /tasks?status=APPROVED` → **Approved** (ready to publish)
+### 6.4 Admin Endpoints (Updated)
 
-### 5.3 AudioDraft Endpoints
-
-| Method | Path | Auth | Min Role | Description |
-|--------|------|------|----------|-------------|
-| `GET` | `/tasks/:taskId/audio-drafts` | ✅ | Contributor | List audio drafts for a task |
-| `GET` | `/tasks/:taskId/audio-drafts/:draftId` | ✅ | Contributor | Get single audio draft |
-| `PATCH` | `/tasks/:taskId/audio-drafts/:draftId` | ✅ | Contributor | Update metadata (description, theme, keywords) |
-| `PATCH` | `/tasks/:taskId/audio-drafts/:draftId/mark-done` | ✅ | Contributor | Mark as DONE |
-| `PATCH` | `/tasks/:taskId/audio-drafts/:draftId/suggest-rejection` | ✅ | Contributor | Suggest rejection (with reason) |
-| `PATCH` | `/tasks/:taskId/audio-drafts/:draftId/approve` | ✅ | Reviewer | Approve audio draft |
-| `PATCH` | `/tasks/:taskId/audio-drafts/:draftId/request-corrections` | ✅ | Reviewer | Send back for corrections |
-| `PATCH` | `/tasks/:taskId/audio-drafts/:draftId/reject` | ✅ | Reviewer | Reject audio draft |
-| `GET` | `/tasks/:taskId/audio-drafts/:draftId/stream` | ✅ | Contributor | Stream audio file (for playback) |
-
-### 5.4 Theme Endpoints
-
-| Method | Path | Auth | Min Role | Description |
-|--------|------|------|----------|-------------|
-| `GET` | `/themes` | ✅ | Contributor | List all themes (with `isValidated` filter) |
-| `POST` | `/themes` | ✅ | Contributor | Create a new theme (auto-flagged if Contributor) |
-| `PATCH` | `/themes/:themeId/validate` | ✅ | Reviewer | Validate a theme |
-| `PATCH` | `/themes/:themeId` | ✅ | Reviewer | Update theme name (fix typos) |
-| `DELETE` | `/themes/:themeId` | ✅ | Publisher | Delete a theme |
-
-### 5.5 Admin Endpoints (Updated)
-
-| Method | Path | Auth | Min Role | Description |
-|--------|------|------|----------|-------------|
-| `POST` | `/admins` | ✅ | System Admin | Create admin (with `role` field) |
-| `GET` | `/admins` | ✅ | Reviewer | List admins |
-| `GET` | `/admins/:adminId` | ✅ | Contributor | Get admin profile |
-| `GET` | `/admins/me` | ✅ | Contributor | Get current user's profile |
-| `PUT` | `/admins/:adminId` | ✅ | System Admin | Update admin (incl. role change) |
-| `PUT` | `/admins/:adminId/password` | ✅ | Self | Change own password |
-| `DELETE` | `/admins/:adminId` | ✅ | System Admin | Deactivate admin |
-| `POST` | `/admins/login` | ❌ | — | Login |
-
-### 5.6 Audio Endpoints (Existing — Backward Compatible)
-
-No breaking changes. Add optional `taskId` to the response.
+`POST /admins` (SysAdmin), `GET /admins` (Reviewer+), `GET /admins/me`, `GET /admins/:id`, `PUT /admins/:id` (SysAdmin), `PUT /admins/:id/password` (self), `DELETE /admins/:id` (SysAdmin), `POST /admins/login` (public).
 
 ---
 
-## 6. Authentication & Authorization
+## 7. Authentication & Authorization
 
-### 6.1 JWT Payload Update
+### 7.1 JWT Payload
 
-**Current**:
-```typescript
-{ id: string, isSuperAdmin: boolean }
-```
+`{ id: string, role: AdminRole, email: string }` — signed with `jose`, 24h expiry, refreshed in response header.
 
-**Target**:
-```typescript
-{
-  id: string,
-  role: AdminRole,
-  email: string
-}
-```
-
-### 6.2 Auth Middleware
+### 7.2 RBAC Middleware
 
 ```typescript
-// src/middleware/auth.middleware.ts
-import { Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
-import { AuthenticatedRequest } from '../types/request.types';
-import { AppError } from '../errors/app-error';
-
-export const authenticate = (req: AuthenticatedRequest, _res: Response, next: NextFunction): void => {
-  const token = req.header('auth-token') || req.header('authorization')?.replace('Bearer ', '');
-  if (!token) throw new AppError('Authentication required', 401);
-
-  try {
-    const decoded = jwt.verify(token, process.env.ADMIN_TOKEN_SECRET!) as {
-      id: string;
-      role: string;
-      email: string;
-    };
-    req.user = decoded;
-
-    // Issue a refreshed token
-    const newToken = jwt.sign(
-      { id: decoded.id, role: decoded.role, email: decoded.email },
-      process.env.ADMIN_TOKEN_SECRET!,
-      { expiresIn: '24h' }
-    );
-    _res.header('auth-token', newToken);
-
-    next();
-  } catch {
-    throw new AppError('Invalid or expired token', 401);
-  }
+export const requireRole = (...roles: AdminRole[]) => (req, _res, next) => {
+  const userLevel = ROLE_HIERARCHY[req.user.role];
+  if (!roles.some(r => userLevel <= ROLE_HIERARCHY[r])) throw new AuthorizationError();
+  next();
 };
 ```
 
-### 6.3 RBAC Middleware
+### 7.3 Four-Eyes Principle
 
-```typescript
-// src/middleware/rbac.middleware.ts
-import { Response, NextFunction } from 'express';
-import { AuthenticatedRequest } from '../types/request.types';
-import { AdminRole, ROLE_HIERARCHY } from '../types/enums';
-import { AuthorizationError } from '../errors/app-error';
-
-/**
- * Checks if the authenticated user's role level is <= the required level.
- * Lower number = higher privilege. SYSTEM_ADMIN=0, PUBLISHER=1, REVIEWER=2, CONTRIBUTOR=3.
- */
-export const requireRole = (...allowedRoles: AdminRole[]) => {
-  return (req: AuthenticatedRequest, _res: Response, next: NextFunction): void => {
-    const userRole = req.user?.role as AdminRole;
-    if (!userRole) throw new AuthorizationError();
-
-    const userLevel = ROLE_HIERARCHY[userRole];
-    const isAllowed = allowedRoles.some(role => userLevel <= ROLE_HIERARCHY[role]);
-
-    if (!isAllowed) throw new AuthorizationError('Insufficient permissions');
-    next();
-  };
-};
-
-// Convenience helpers
-export const requireContributor = requireRole(AdminRole.CONTRIBUTOR);
-export const requireReviewer = requireRole(AdminRole.REVIEWER);
-export const requirePublisher = requireRole(AdminRole.PUBLISHER);
-export const requireSystemAdmin = requireRole(AdminRole.SYSTEM_ADMIN);
-```
-
-### 6.4 Four-Eyes Principle
-
-The four-eyes rule (reviewer cannot approve a task they worked on) is enforced in the **TaskService**, not in middleware, because it requires checking task-specific data:
-
-```typescript
-// In TaskService.approveTask():
-async approveTask(taskId: string, reviewerId: string, reviewerRole: AdminRole): Promise<ITask> {
-  const task = await this.taskRepo.findById(taskId);
-  if (!task) throw new NotFoundError('Task not found');
-
-  // Four-eyes: Reviewers cannot approve their own work
-  if (
-    ROLE_HIERARCHY[reviewerRole] >= ROLE_HIERARCHY[AdminRole.REVIEWER] &&
-    task.previousAssignee?.toString() === reviewerId
-  ) {
-    throw new AuthorizationError(
-      'Four-eyes principle: you cannot approve a task you previously worked on'
-    );
-  }
-  // ... proceed with approval
-}
-```
-
-Publishers and System Admins are exempt (their `ROLE_HIERARCHY` level is < REVIEWER).
+Enforced in TaskService: Reviewers cannot approve tasks they previously worked on. Publishers/SysAdmins exempt.
 
 ---
 
-## 7. Business Logic & Services
+## 8. Business Logic & Services
 
-### 7.1 Task Service — State Machine
-
-The `TaskService` enforces all status transition rules as defined in the functional documentation.
-
-**Allowed transitions**:
+### 8.1 Task State Machine
 
 ```
-OPEN → IN_PROGRESS                     (contributor assigns)
-IN_PROGRESS → READY_FOR_REVIEW         (contributor submits)
-IN_PROGRESS → OPEN                     (contributor unassigns self)
-READY_FOR_REVIEW → IN_REVIEW           (reviewer picks)
-READY_FOR_REVIEW → OPEN                (reviewer unassigns to backlog)
-IN_REVIEW → APPROVED                   (reviewer approves)
-IN_REVIEW → CORRECTIONS_NEEDED         (reviewer requests corrections)
-IN_REVIEW → REJECTED                   (reviewer rejects)
-IN_REVIEW → READY_FOR_REVIEW           (reviewer releases without decision)
-CORRECTIONS_NEEDED → IN_PROGRESS       (contributor picks up corrections)
-APPROVED → PUBLISHED                   (publisher publishes)
-PUBLISHED → APPROVED                   (system admin unpublishes)
+OPEN → IN_PROGRESS (assign)
+IN_PROGRESS → READY_FOR_REVIEW (submit) | OPEN (unassign self)
+READY_FOR_REVIEW → IN_REVIEW (pick) | OPEN (reviewer unassigns)
+IN_REVIEW → APPROVED | CORRECTIONS_NEEDED | REJECTED | READY_FOR_REVIEW (release)
+CORRECTIONS_NEEDED → IN_PROGRESS (re-pick)
+APPROVED → PUBLISHED (publish)
+PUBLISHED → APPROVED (unpublish, SysAdmin only)
+REJECTED → (terminal)
 ```
 
-```typescript
-// src/services/task.service.ts (key methods)
+### 8.2 Key Operations
 
-const VALID_TRANSITIONS: Record<TaskStatus, TaskStatus[]> = {
-  [TaskStatus.OPEN]: [TaskStatus.IN_PROGRESS],
-  [TaskStatus.IN_PROGRESS]: [TaskStatus.READY_FOR_REVIEW, TaskStatus.OPEN],
-  [TaskStatus.READY_FOR_REVIEW]: [TaskStatus.IN_REVIEW, TaskStatus.OPEN],
-  [TaskStatus.IN_REVIEW]: [
-    TaskStatus.APPROVED,
-    TaskStatus.CORRECTIONS_NEEDED,
-    TaskStatus.REJECTED,
-    TaskStatus.READY_FOR_REVIEW,
-  ],
-  [TaskStatus.CORRECTIONS_NEEDED]: [TaskStatus.IN_PROGRESS],
-  [TaskStatus.APPROVED]: [TaskStatus.PUBLISHED],
-  [TaskStatus.REJECTED]: [],         // Terminal
-  [TaskStatus.PUBLISHED]: [TaskStatus.APPROVED],  // Unpublish only
-};
+- **Create** (Publisher+): Validate, upload files to `drafts/<taskId>/`, create Task + AudioDrafts, update contentState
+- **Assign** (Contributor+): Assert OPEN + null assignee, set assignee, → IN_PROGRESS
+- **Submit** (Contributor+): Assert IN_PROGRESS + all drafts DONE/REJECTION_SUGGESTED, set previousAssignee, → READY_FOR_REVIEW
+- **Pick Review** (Reviewer+): Assert READY_FOR_REVIEW, four-eyes check, → IN_REVIEW
+- **Approve** (Reviewer+): Assert IN_REVIEW, all drafts APPROVED or REJECTED, → APPROVED
+- **Corrections** (Reviewer+): Assert IN_REVIEW, reassign to previousAssignee (or backlog), → CORRECTIONS_NEEDED
+- **Publish** (Publisher+): Assert APPROVED, for each APPROVED draft: copy S3 file, create Audio doc with taskId, → PUBLISHED
+- **Unpublish** (SysAdmin): Assert PUBLISHED, require confirmation, delete Audio docs + S3 files, → APPROVED
 
-private assertTransition(currentStatus: TaskStatus, targetStatus: TaskStatus): void {
-  const allowed = VALID_TRANSITIONS[currentStatus];
-  if (!allowed?.includes(targetStatus)) {
-    throw new ConflictError(
-      `Cannot transition from ${currentStatus} to ${targetStatus}`
-    );
-  }
-}
-```
+### 8.3 ContentState Recalculation
 
-### 7.2 Task Service — Key Operations
+Recalculated after every AudioDraft status change by aggregating draft statuses per task.
 
-#### Create Task (Publisher+)
+### 8.4 Theme Service
 
-1. Validate request (description, sessionAuthor, sessionDate, audio files)
-2. Upload each audio file to S3 (use a dedicated prefix: `drafts/<taskId>/<filename>`)
-3. Create `Task` document with status `OPEN`
-4. Create one `AudioDraft` per uploaded file with status `PENDING`
-5. Update `contentState.total` and `contentState.pending`
-6. Log activity
+`getOrCreate(name, createdById, role)`: normalize name, check duplicate, auto-validate if Reviewer+.
 
-#### Self-Assign Task (Contributor+)
+### 8.5 Storage Service
 
-1. Assert task status is `OPEN`
-2. Assert `assignee` is `null`
-3. Set `assignee` to current user, status → `IN_PROGRESS`
-4. Log activity
-
-#### Submit for Review (Contributor+)
-
-1. Assert task status is `IN_PROGRESS`
-2. Assert current user is the `assignee`
-3. Assert all audio drafts are in a terminal-for-contributor state (`DONE` or `REJECTION_SUGGESTED`)
-4. Set `previousAssignee` to current `assignee`
-5. Set `assignee` to `null`, status → `READY_FOR_REVIEW`
-6. Log activity
-
-#### Pick for Review (Reviewer+)
-
-1. Assert task status is `READY_FOR_REVIEW`
-2. Four-eyes check (if Reviewer role)
-3. Set `assignee` to current user, `reviewedBy` to current user, status → `IN_REVIEW`
-4. Log activity
-
-#### Approve Task (Reviewer+)
-
-1. Assert task status is `IN_REVIEW`
-2. Assert current user is `assignee`
-3. Four-eyes check
-4. All audio drafts must be either `APPROVED` or `REJECTED` (no `PENDING`, `DONE`, etc.)
-5. Status → `APPROVED`, clear `assignee`
-6. Log activity
-
-#### Request Corrections (Reviewer+)
-
-1. Assert task status is `IN_REVIEW`
-2. Require a correction comment
-3. Status → `CORRECTIONS_NEEDED`
-4. **Default**: Reassign to `previousAssignee`. **Optional**: reviewer can choose to set `assignee = null` (back to backlog as `OPEN`)
-5. Reset relevant audio draft statuses back to `PENDING` or `CORRECTIONS_NEEDED`
-6. Log activity
-
-#### Publish Task (Publisher+)
-
-1. Assert task status is `APPROVED`
-2. For each `APPROVED` audio draft:
-   a. Copy the audio file from `drafts/<taskId>/` to the main audio bucket location
-   b. Create a new `Audio` document (published) with metadata from the draft + `taskId` reference
-3. Store created `Audio` IDs in `task.publishedAudioIds`
-4. Task status → `PUBLISHED`
-5. Log activity
-
-#### Unpublish Task (System Admin only)
-
-1. Assert task status is `PUBLISHED`
-2. Require explicit confirmation (task name must match)
-3. For each `Audio` in `publishedAudioIds`:
-   a. Delete `Audio` document from DB
-   b. Delete audio file from S3 (main bucket location)
-4. Clear `publishedAudioIds`
-5. Task status → `APPROVED`
-6. Log activity
-
-### 7.3 ContentState Recalculation
-
-The `contentState` on a Task is a **denormalized aggregate** of its audio draft statuses. It must be recalculated every time an audio draft's status changes.
-
-```typescript
-async recalculateContentState(taskId: string): Promise<IContentState> {
-  const drafts = await this.audioDraftRepo.findMany({ task: taskId });
-  const state: IContentState = {
-    total: drafts.length,
-    pending: drafts.filter(d => d.status === AudioDraftStatus.PENDING).length,
-    done: drafts.filter(d =>
-      [AudioDraftStatus.DONE, AudioDraftStatus.REJECTION_SUGGESTED].includes(d.status)
-    ).length,
-    approved: drafts.filter(d => d.status === AudioDraftStatus.APPROVED).length,
-    rejected: drafts.filter(d => d.status === AudioDraftStatus.REJECTED).length,
-    correctionNeeded: drafts.filter(d => d.status === AudioDraftStatus.CORRECTIONS_NEEDED).length,
-  };
-  await this.taskRepo.updateById(taskId, { contentState: state });
-  return state;
-}
-```
-
-### 7.4 Theme Service
-
-```typescript
-// src/services/theme.service.ts
-export class ThemeService {
-  async createTheme(name: string, createdById: string, creatorRole: AdminRole): Promise<ITheme> {
-    const normalized = name.toUpperCase().trim();
-
-    // Check for existing theme (exact match or fuzzy)
-    const existing = await this.themeRepo.findOne({ name: normalized });
-    if (existing) throw new ConflictError(`Theme "${normalized}" already exists`);
-
-    const isValidated = ROLE_HIERARCHY[creatorRole] <= ROLE_HIERARCHY[AdminRole.REVIEWER];
-
-    return this.themeRepo.create({
-      name: normalized,
-      isValidated,
-      createdBy: createdById,
-      validatedBy: isValidated ? createdById : null,
-    });
-  }
-
-  async getOrCreateTheme(name: string, createdById: string, creatorRole: AdminRole): Promise<ITheme> {
-    const normalized = name.toUpperCase().trim();
-    const existing = await this.themeRepo.findOne({ name: normalized });
-    if (existing) return existing;
-    return this.createTheme(name, createdById, creatorRole);
-  }
-}
-```
-
-### 7.5 Storage Service
-
-Abstract S3 operations behind a service interface. This replaces the current `audio-file-handler.ts` + `s3-audio-file-uploader.ts`.
-
-```typescript
-// src/services/storage.service.ts
-export class StorageService {
-  private s3: S3;
-  private bucketName: string;
-
-  constructor() {
-    this.bucketName = process.env.S3_ACCESS_POINT_ARN!;
-    // S3 client init based on PROFILE env var
-  }
-
-  async uploadFile(data: Buffer, key: string): Promise<string> { ... }
-  async getFile(key: string, range?: { start: number; end: number }): Promise<Uint8Array> { ... }
-  async getFileMetadata(key: string): Promise<HeadObjectCommandOutput> { ... }
-  async deleteFile(key: string): Promise<void> { ... }
-  async downloadFile(key: string): Promise<PassThrough> { ... }
-  async copyFile(sourceKey: string, destKey: string): Promise<void> { ... }
-  async downloadBucket(): Promise<PassThrough> { ... }
-}
-```
-
-S3 key naming conventions:
-- **Draft audio files**: `drafts/<taskId>/<draftId>.<ext>`
-- **Published audio files**: `audios/<audioId>.<ext>` (same as current)
+S3 abstraction: `uploadFile`, `getFile`, `deleteFile`, `copyFile`, `getFileMetadata`.
+Keys: drafts → `drafts/<taskId>/<draftId>.<ext>`, published → `audios/<audioId>.<ext>`.
 
 ---
 
-## 8. Frontend Architecture
+## 9. Frontend Architecture
 
-### 8.1 Key Refactoring Decisions
+### 9.1 Key Decisions
 
-| Change | From | To | Reason |
-|--------|------|----|--------|
-| Component style | Class components | Functional components + hooks | Modern React, better code reuse |
-| State management | `location.state` for auth | React Context (`AuthContext`) | Survives page refresh, centralized |
-| HTTP client | Custom `fetch` wrapper | Same pattern but with token interceptor | Auto-attach token, auto-refresh |
-| Date library | `moment` | `date-fns` | Tree-shakeable, smaller bundle |
-| Routing | Flat routes | Nested routes with layout | Admin layout wraps all admin pages |
-| UI framework | MUI 5 (keep) | MUI 5 (keep, upgrade later) | Already in use, upgrade separately |
+| Aspect | Decision |
+|--------|----------|
+| Components | Functional + hooks (React 19) |
+| Auth state | React Context + localStorage |
+| Server state | TanStack Query 5 (caching, refetch, optimistic) |
+| Forms | React 19 Actions + `useActionState` |
+| Optimistic UI | `useOptimistic` |
+| Data loading | React Router 7 loaders (data ready on nav) |
+| Non-nav mutations | `useFetcher` from RR7 |
+| Dates | `date-fns` v4 |
+| UI | MUI 7 (Pigment CSS, React 19 support) |
+| Build | Vite 6 |
+| Client validation | Zod Mini (2KB) |
 
-### 8.2 Auth Context
+### 9.2 Auth Context
 
-```typescript
-// src/contexts/AuthContext.tsx
-interface AuthState {
-  user: { id: string; role: AdminRole; email: string; name: string } | null;
-  token: string | null;
-  isAuthenticated: boolean;
-}
+Stores user + token in state + localStorage. `login()`, `logout()` methods. Auto-redirect on 401.
 
-interface AuthContextType extends AuthState {
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
-}
-```
+### 9.3 Routing (RR7 Data Mode)
 
-Token is stored in `localStorage` (or `sessionStorage` for higher security). The `AuthContext` reads it on mount to restore sessions.
-
-### 8.3 Routing Structure
-
-```typescript
-const router = createBrowserRouter([
-  // Public routes
-  { path: '/', element: <HomePage /> },
-  { path: '/audio', element: <AudioLinkPage /> },
-
-  // Auth
-  { path: '/login', element: <LoginPage /> },
-
-  // Admin routes (protected, with layout)
-  {
-    path: '/admin',
-    element: <ProtectedRoute><AdminLayout /></ProtectedRoute>,
-    children: [
-      { index: true, element: <DashboardPage /> },
-      { path: 'tasks', element: <TaskListPage /> },
-      { path: 'tasks/create', element: <TaskCreatePage /> },
-      { path: 'tasks/:taskId', element: <TaskDetailPage /> },
-      { path: 'tasks/:taskId/drafts/:draftId', element: <AudioDraftWorkPage /> },
-      { path: 'audios/create', element: <AudioCreatePage /> },
-      { path: 'themes', element: <ThemeManagementPage /> },
-      { path: 'admins', element: <AdminManagementPage /> },
-    ],
-  },
-
-  { path: '*', element: <Navigate to="/" /> },
+```tsx
+createBrowserRouter([
+  { path: '/', lazy: () => import('./pages/public/HomePage') },
+  { path: '/login', lazy: () => import('./pages/auth/LoginPage') },
+  { path: '/admin', Component: AdminLayout, children: [
+    { index: true, lazy: () => import('./pages/admin/DashboardPage') },
+    { path: 'tasks', lazy: () => import('./pages/admin/TaskListPage'), loader: taskListLoader },
+    { path: 'tasks/create', lazy: () => import('./pages/admin/TaskCreatePage') },
+    { path: 'tasks/:taskId', lazy: () => import('./pages/admin/TaskDetailPage') },
+    { path: 'tasks/:taskId/drafts/:draftId', lazy: () => import('./pages/admin/AudioDraftWorkPage') },
+    // ... other admin routes
+  ]},
 ]);
 ```
 
-### 8.4 Key Frontend Pages
+### 9.4 TanStack Query Hooks
 
-#### Task List Page (`TaskListPage.tsx`)
+Custom hooks wrap TanStack Query for each entity: `useTaskList(filters)`, `useTask(id)`, `useAssignTask()`, etc. Queries auto-cache and refetch on window focus.
 
-- **Tab navigation**: Backlog | My Tasks | Review Queue | Approved | All Tasks
-- Each tab applies different default filters to the same `GET /tasks` endpoint
-- **Filters panel**: Status, Author, Assignee, Date range, Has new themes, Has suggested rejections
-- **Sort**: By date, progress, update time
-- **Task cards** showing: description, author, date, status badge, progress bar, assignee
-- **Actions**: Assign to me (backlog), Open task detail
+### 9.5 API Client
 
-#### Task Detail Page (`TaskDetailPage.tsx`)
-
-- **Header**: Task info, status, assignee, action buttons (submit, approve, etc.)
-- **Progress bar**: Visual representation of content state
-- **Audio draft list**: Cards for each draft with status badge, description preview, new theme badge
-- **Activity log**: Collapsible timeline
-- **Rejection suggestions**: Highlighted section if `taskRejectionSuggested` is true
-
-#### Audio Draft Work Page (`AudioDraftWorkPage.tsx`)
-
-- **Audio player**: Embedded player for the draft audio
-- **Form**: Description (textarea), Theme (autocomplete with new-theme detection), Keywords
-- **Status controls**: Mark as Done, Suggest Rejection (with reason input)
-- **Navigation**: Previous/Next draft buttons
-
-#### Task Create Page (`TaskCreatePage.tsx`)
-
-- **Form**: Session author (autocomplete), Session date, Description
-- **File upload zone**: Drag-and-drop or file picker for multiple audio files
-- **Preview**: List of selected files with ability to remove/reorder
-- **Submit**: Creates task + uploads all files
-
-### 8.5 API Client
-
-```typescript
-// src/api/client.ts
-const API_BASE = import.meta.env.VITE_API_SERVER_URL + '/api/v1';
-
-export const apiClient = {
-  async request<T>(method: string, path: string, data?: unknown): Promise<T> {
-    const token = localStorage.getItem('auth-token');
-    const headers: Record<string, string> = {};
-    if (token) headers['auth-token'] = token;
-    if (!(data instanceof FormData)) headers['Content-Type'] = 'application/json';
-
-    const res = await fetch(`${API_BASE}${path}`, {
-      method,
-      headers,
-      body: data instanceof FormData ? data : data ? JSON.stringify(data) : undefined,
-    });
-
-    // Refresh token from response
-    const newToken = res.headers.get('auth-token');
-    if (newToken) localStorage.setItem('auth-token', newToken);
-
-    if (!res.ok) {
-      const error = await res.json();
-      throw new ApiError(res.status, error.message, error.details);
-    }
-
-    return res.json();
-  },
-
-  get: <T>(path: string) => apiClient.request<T>('GET', path),
-  post: <T>(path: string, data: unknown) => apiClient.request<T>('POST', path, data),
-  patch: <T>(path: string, data?: unknown) => apiClient.request<T>('PATCH', path, data),
-  put: <T>(path: string, data: unknown) => apiClient.request<T>('PUT', path, data),
-  del: <T>(path: string) => apiClient.request<T>('DELETE', path),
-};
-```
+Fetch wrapper with: auto auth-token header, token refresh from response, 401 auto-logout, JSON/FormData handling.
 
 ---
 
-## 9. Infrastructure Changes
+## 10. Infrastructure Changes
 
-### 9.1 Docker Compose — Development
+### 10.1 Dockerfiles
 
-Add nothing new — MongoDB and MinIO already exist. The new collections are just created automatically by Mongoose.
+- Backend: `node:22-alpine`, multi-stage (build TS → run compiled JS). No `ts-node-dev`.
+- Frontend: `node:22-alpine`, multi-stage (vite build → serve static).
 
-### 9.2 MongoDB Migration Script
+### 10.2 Dev Scripts
 
-```javascript
-// infrastructure/database/migrate_admin_roles.js
+- Backend: `"dev": "tsx watch src/server.ts"`, `"build": "tsc"`, `"start": "node dist/server.js"`
+- Frontend: `"dev": "vite"`, `"build": "vite build"`
 
-// Step 1: Migrate isSuperAdmin → role
-db.admins.updateMany(
-  { isSuperAdmin: true },
-  { $set: { role: 'SYSTEM_ADMIN' }, $unset: { isSuperAdmin: '' } }
-);
-db.admins.updateMany(
-  { isSuperAdmin: { $ne: true } },
-  { $set: { role: 'CONTRIBUTOR' }, $unset: { isSuperAdmin: '' } }
-);
+### 10.3 Migration Script (`infrastructure/database/migrate_v2.js`)
 
-// Step 2: Add isActive field
-db.admins.updateMany(
-  { isActive: { $exists: false } },
-  { $set: { isActive: true } }
-);
+1. Admin roles: `isSuperAdmin:true` → `role:'SYSTEM_ADMIN'`, others → `role:'CONTRIBUTOR'`, add `isActive:true`, remove `isSuperAdmin`
+2. Seed themes from `db.audios.distinct('theme')`
+3. Add `taskId:null` to existing audios
+4. Create all new indexes
 
-// Step 3: Seed themes from existing audios
-db.audios.distinct('theme').forEach(function(theme) {
-  if (theme && theme.trim()) {
-    db.themes.insertOne({
-      name: theme.toUpperCase().trim(),
-      isValidated: true,
-      createdBy: ObjectId('<system-admin-id>'),
-      validatedBy: ObjectId('<system-admin-id>'),
-      createdAt: new Date(),
-      updatedAt: new Date()
-    });
-  }
-});
+### 10.4 S3 Structure
 
-// Step 4: Create indexes
-db.tasks.createIndex({ status: 1 });
-db.tasks.createIndex({ assignee: 1 });
-db.tasks.createIndex({ status: 1, assignee: 1 });
-db.tasks.createIndex({ sessionAuthor: 1 });
-db.tasks.createIndex({ sessionDate: -1 });
-db.audiodrafts.createIndex({ task: 1, order: 1 });
-db.audiodrafts.createIndex({ task: 1, status: 1 });
-db.themes.createIndex({ name: 1 }, { unique: true });
-db.themes.createIndex({ isValidated: 1 });
-db.activitylogs.createIndex({ entityType: 1, entityId: 1 });
-db.activitylogs.createIndex({ createdAt: -1 });
-db.audios.createIndex({ taskId: 1 });
-```
-
-### 9.3 S3 Bucket Structure
-
-```
-<bucket>/
-├── drafts/                      # NEW — Task audio draft files
-│   ├── <taskId>/
-│   │   ├── <draftId>.mp3
-│   │   ├── <draftId>.mp3
-│   │   └── ...
-│   └── ...
-├── <audioId>.mp3                # Existing — Published audio files
-├── <audioId>.mp3
-└── ...
-```
-
-No bucket changes needed — just a naming convention. The `StorageService` handles the path logic.
+`<bucket>/drafts/<taskId>/<draftId>.<ext>` (drafts), `<bucket>/audios/<audioId>.<ext>` (published).
 
 ---
 
-## 10. Migration Strategy
+## 11. Migration Strategy
 
-### 10.1 Phase Approach
-
-The migration follows a **backward-compatible incremental approach** to avoid breaking changes:
-
-1. **Phase 0** — Backend refactoring (new architecture without new features)
-   - Restructure folders
-   - Introduce service/repository layers
-   - Replace validators with Zod
-   - Centralize error handling
-   - Connect DB once at startup
-   - Keep existing API paths working
-
-2. **Phase 1** — Admin role migration
-   - Add `role` field to admin schema
-   - Run migration script (`isSuperAdmin → role`)
-   - Update JWT payload
-   - Add RBAC middleware
-   - Keep backward compat: `isSuperAdmin` still works in JWT until frontend is updated
-
-3. **Phase 2** — New models & APIs
-   - Add Task, AudioDraft, Theme, ActivityLog models
-   - Implement TaskService, ThemeService
-   - Add all new API endpoints under `/api/v1/`
-   - Existing `/audios`, `/admins` endpoints still work
-
-4. **Phase 3** — Frontend refactoring
-   - Migrate to functional components
-   - Add AuthContext
-   - Build admin dashboard and task pages
-   - Update API client to use `/api/v1/`
-
-5. **Phase 4** — Deprecate old paths
-   - Remove old route aliases
-   - Remove `isSuperAdmin` from codebase
-
-### 10.2 Data Migration Checklist
-
-| Step | Action | Reversible |
-|------|--------|------------|
-| 1 | Backup MongoDB | N/A |
-| 2 | Run `migrate_admin_roles.js` | Yes (keep `isSuperAdmin` temporarily) |
-| 3 | Seed themes collection from existing audios | Yes (drop collection) |
-| 4 | Create new indexes | Yes (drop indexes) |
-| 5 | Deploy new backend (both old + new routes active) | Yes (rollback deploy) |
-| 6 | Deploy new frontend | Yes (rollback deploy) |
-| 7 | Remove old route aliases | No (breaking for old clients) |
+| Phase | Scope | Breaking? |
+|-------|-------|-----------|
+| **0** | Backend refactoring: ESM, Express 5, layered arch, deps upgrade, keep old routes as aliases | No |
+| **1** | Admin role migration: schema + JWT + RBAC middleware | No (backward compat) |
+| **2** | New models + APIs: Task, AudioDraft, Theme, ActivityLog under `/api/v1/` | No (additive) |
+| **3** | Frontend rewrite: React 19, RR7, MUI 7, TanStack Query, functional components | No (new pages) |
+| **4** | Cleanup: remove old route aliases, remove `isSuperAdmin` | Yes (planned) |
 
 ---
 
-## 11. Environment Variables
-
-### 11.1 Updated `.env.sample`
+## 12. Environment Variables
 
 ```env
-# ─── Database ───
+# Database
 DB_CONNECTION=mongodb://localhost:27017
 MONGODB_USERNAME=root
 MONGODB_PASSWORD=mypass
 MONGODB_DB_NAME=samwaktou
 
-# ─── Auth ───
-ADMIN_TOKEN_SECRET=<your-secret>
-USER_TOKEN_SECRET=<your-secret>
+# Auth
+ADMIN_TOKEN_SECRET=<min-32-chars>
+USER_TOKEN_SECRET=<min-32-chars>
 
-# ─── S3 / Object Storage ───
-S3_ACCESS_KEY=<access-key>
-S3_SECRET_ACCESS_KEY=<secret-key>
-S3_ACCESS_POINT_ARN=<bucket-name-or-arn>
-S3_HOST=http://localhost:9000           # Only for dev (MinIO)
+# S3
+S3_ACCESS_KEY=, S3_SECRET_ACCESS_KEY=, S3_ACCESS_POINT_ARN=
+S3_HOST=http://localhost:9000  # Dev only (MinIO)
 S3_REGION=us-east-2
 
-# ─── Root Admin (seed — used only for initial setup) ───
-ROOT_ADMIN_ID=<objectid>
-ROOT_ADMIN_SURNAME=Super
-ROOT_ADMIN_NAME=Admin
-ROOT_ADMIN_EMAIL=admin@example.com
-ROOT_ADMIN_DATE=2024-01-01
-ROOT_ADMIN_PASSWORD=<bcrypt-hashed-password>
+# Server
+PORT=8080
+PROFILE=dev
+LOG_LEVEL=info
 
-# ─── CORS ───
-APP_HOST=http://localhost
+# CORS
+APP_HOST=http://localhost:3000
 APP_LOAD_BALANCER_HOST=
 APP_CORS_EXTRA_WHITLISTS=
 
-# ─── Profile ───
-PROFILE=dev                             # dev | prod
-
-# ─── Server ───
-PORT=8080                               # NEW — configurable via env
-LOG_LEVEL=info                          # NEW — for structured logging
+# Root Admin Seed
+ROOT_ADMIN_EMAIL=admin@example.com
+ROOT_ADMIN_PASSWORD=<password>
+ROOT_ADMIN_SURNAME=Super
+ROOT_ADMIN_NAME=Admin
 ```
 
-### 11.2 Frontend `.env.development`
-
-```env
-VITE_API_SERVER_URL=http://localhost:8080
-VITE_APP_URL=http://localhost:3000
-VITE_LOGIN_PATH=/login
-VITE_ADMIN_PATH=/admin
-VITE_CREATE_AUDIO_PATH=/admin/audios/create
-VITE_AUDIO_LINK_PATH=/audio
-```
+All validated at startup with Zod. Missing/invalid = server fails fast with clear error.
 
 ---
 
-## 12. Error Handling Strategy
+## 13. Error Handling Strategy
 
-### 12.1 Error Flow
+### 13.1 Custom Error Classes
 
-```
-Service throws AppError (or subclass)
-  → Controller doesn't catch (no try/catch needed)
-  → Express passes to error-handler middleware
-  → Middleware formats standardized response
-```
+`AppError(message, statusCode, reason?, details?)` → base class.
+Subclasses: `ValidationError` (400), `AuthorizationError` (403), `NotFoundError` (404), `ConflictError` (409).
 
-### 12.2 Error Codes Mapping
+### 13.2 Global Handler
 
-| Error Class | HTTP Status | When |
-|-------------|-------------|------|
-| `ValidationError` | 400 | Bad request data |
-| `AppError('...', 401)` | 401 | Missing/invalid token |
-| `AuthorizationError` | 403 | Insufficient role/permissions |
-| `NotFoundError` | 404 | Resource not found |
-| `ConflictError` | 409 | Invalid state transition, duplicate |
-| Unhandled `Error` | 500 | Unexpected errors |
+Express 5 auto-forwards rejected promises. Handler checks `instanceof AppError` for structured response, falls back to 500 for unexpected errors. All errors logged via Pino.
 
-### 12.3 Controller Pattern
-
-With centralized error handling, controllers become thin:
+### 13.3 Controller Pattern (no try/catch)
 
 ```typescript
-// src/controllers/task.controller.ts
-export class TaskController {
-  constructor(private taskService: TaskService) {}
-
-  createTask = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-    const task = await this.taskService.createTask(req.body, req.files, req.user!);
-    res.status(201).json({ success: true, data: task });
-  };
-
-  getTasks = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-    const result = await this.taskService.getTasks(req.query);
-    res.json({ success: true, ...result });
-  };
-
-  assignTask = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-    const task = await this.taskService.assignTask(req.params.taskId, req.user!.id);
-    res.json({ success: true, data: task });
-  };
-  // ... all methods follow the same pattern
+async createTask(req, res) {
+  const task = await this.taskService.createTask(req.body, req.files, req.user);
+  res.status(201).json({ success: true, data: task });
 }
+// If service throws → Express 5 catches → error handler responds
 ```
-
-Using `express-async-errors` (or wrapping with `asyncHandler`) ensures async errors propagate to the error handler.
 
 ---
 
-## 13. Testing Strategy
+## 14. Testing Strategy
 
-> **Note**: Full test implementation is deferred to a later phase. This section defines the strategy.
+### 14.1 Tools
 
-### 13.1 Test Structure
+`vitest` (runner), `supertest` (HTTP), `mongodb-memory-server` (in-memory DB), `@testing-library/react` (components).
+
+### 14.2 Structure
 
 ```
-backend/api/
-├── tests/
-│   ├── unit/
-│   │   ├── services/
-│   │   │   ├── task.service.test.ts
-│   │   │   ├── theme.service.test.ts
-│   │   │   └── audio.service.test.ts
-│   │   ├── middleware/
-│   │   │   ├── rbac.middleware.test.ts
-│   │   │   └── auth.middleware.test.ts
-│   │   └── validators/
-│   │       ├── task.validator.test.ts
-│   │       └── admin.validator.test.ts
-│   ├── integration/
-│   │   ├── task.api.test.ts
-│   │   ├── admin.api.test.ts
-│   │   └── theme.api.test.ts
-│   └── helpers/
-│       ├── db.helper.ts          # In-memory MongoDB (mongodb-memory-server)
-│       └── auth.helper.ts        # Token generation for tests
+backend/api/tests/
+├── unit/services/task.service.test.ts, theme.service.test.ts, ...
+├── unit/middleware/rbac.middleware.test.ts, auth.middleware.test.ts
+├── integration/task.api.test.ts, admin.api.test.ts, theme.api.test.ts
+└── helpers/db.helper.ts, auth.helper.ts
 ```
 
-### 13.2 Testing Tools
+### 14.3 Key Scenarios
 
-| Tool | Purpose |
-|------|---------|
-| `vitest` or `jest` | Test runner |
-| `mongodb-memory-server` | In-memory MongoDB for integration tests |
-| `supertest` | HTTP assertions for API tests |
-
-### 13.3 Key Test Scenarios
-
-**Task State Machine**:
-- Valid transitions succeed
-- Invalid transitions throw `ConflictError`
-- Four-eyes principle enforced for Reviewers
-- Four-eyes principle NOT enforced for Publishers/SystemAdmins
-
-**RBAC**:
-- Contributors cannot publish
-- Reviewers cannot hard-delete
-- Publishers cannot unpublish
-- System Admin can do everything
-
-**Theme Management**:
-- Contributor creates theme → `isValidated: false`
-- Reviewer creates theme → `isValidated: true`
-- Duplicate theme names rejected
-
-**Publish/Unpublish**:
-- Publish creates Audio documents + copies S3 files
-- Unpublish deletes Audio documents + S3 files + requires confirmation
+- **State machine**: All valid transitions succeed, invalid throw ConflictError
+- **Four-eyes**: Enforced for Reviewers, exempt for Publishers/SysAdmins
+- **RBAC**: Each role tested against endpoints
+- **Themes**: Contributor → unvalidated, Reviewer → validated, duplicates rejected
+- **Publish/Unpublish**: Audio docs + S3 files created/deleted correctly
 
 ---
 
-## 14. Implementation Phases
+## 15. Implementation Phases
 
 ### Phase 0 — Backend Refactoring (no new features)
-1. Restructure backend into layered architecture (folders, base classes)
-2. Replace `body-parser` with `express.json()`
-3. Move DB connection to startup
-4. Implement `BaseRepository`, migrate Audio and Admin to use it
-5. Replace manual validators + Joi with Zod
-6. Add centralized error handling middleware
-7. Add API versioning (`/api/v1/`)
-8. Add request logging middleware
-9. Keep existing routes as aliases for backward compatibility
+1. Upgrade Node.js 22, Express 5, TypeScript 5.8, Mongoose 8
+2. Switch to ESM (`"type": "module"`, NodeNext)
+3. Add Zod 4 env validation, replace Joi + manual validators
+4. Restructure into layered architecture (services, repositories with interfaces, controllers)
+5. Replace `body-parser`, `jsonwebtoken` → `jose`, `moment` → `date-fns`
+6. Add Pino logging, centralized error handler
+7. Add API versioning (`/api/v1/`), keep old routes as aliases
+8. Connect DB once at startup
+9. Enable `strictNullChecks: true`
 
 ### Phase 1 — Admin Role System
 1. Update Admin schema: `isSuperAdmin` → `role: AdminRole`
-2. Write and run migration script
-3. Update JWT payload to include `role`
-4. Implement `authenticate` + `requireRole` middleware
-5. Update all existing routes to use new middleware
-6. Update admin CRUD to handle roles
+2. Run migration script
+3. Update JWT payload, implement RBAC middleware
+4. Update all routes to use new middleware
 
 ### Phase 2 — Task & AudioDraft Backend
-1. Create Task, AudioDraft, Theme, ActivityLog models
-2. Implement repositories for each
-3. Implement `TaskService` with full state machine
-4. Implement `ThemeService`
-5. Update `StorageService` with `copyFile` and draft key convention
-6. Implement all Task, AudioDraft, Theme API endpoints
-7. Implement publish/unpublish logic
-8. Seed themes from existing audio data
+1. Create Task, AudioDraft, Theme, ActivityLog models + repository interfaces + Mongoose impls
+2. Implement TaskService (full state machine), ThemeService
+3. Update StorageService with `copyFile` and draft key convention
+4. Implement all new API endpoints
+5. Implement publish/unpublish logic
+6. Seed themes from existing audio data
 
-### Phase 3 — Frontend Refactoring
-1. Set up AuthContext, API client, routing structure
-2. Migrate Login page to functional component
-3. Build AdminLayout (sidebar, topbar)
-4. Build DashboardPage
-5. Build TaskListPage with tabs and filters
-6. Build TaskDetailPage
-7. Build AudioDraftWorkPage
-8. Build TaskCreatePage (multi-file upload)
-9. Build ThemeManagementPage
-10. Migrate existing audio browsing pages to functional components
+### Phase 3 — Frontend Rewrite
+1. Upgrade React 19, React Router 7, MUI 7, Vite 6, add TanStack Query
+2. Replace `moment` → `date-fns`, `lodash` → native/lodash-es
+3. Set up AuthContext, API client with interceptors
+4. Migrate Login, existing pages to functional components
+5. Build AdminLayout (sidebar, topbar)
+6. Build TaskListPage, TaskDetailPage, AudioDraftWorkPage, TaskCreatePage
+7. Build ThemeManagementPage, AdminManagementPage
+8. Implement React 19 Actions, useOptimistic for status changes
 
 ### Phase 4 — Polish & Cleanup
 1. Remove backward-compatible route aliases
-2. Remove `isSuperAdmin` from codebase
-3. Final testing and QA
-4. Update documentation
+2. Remove `isSuperAdmin` from entire codebase
+3. Write tests (vitest + supertest + mongodb-memory-server)
+4. Final QA, update all documentation
 
 ---
 
