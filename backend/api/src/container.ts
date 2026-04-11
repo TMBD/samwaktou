@@ -20,12 +20,19 @@ import { MongoAdminRepository } from './repositories/mongoose/admin.repository.i
 import { MongoAudioRepository } from './repositories/mongoose/audio.repository.impl.js';
 import { MongoUserRepository } from './repositories/mongoose/user.repository.impl.js';
 import { MongoAnalyticRepository } from './repositories/mongoose/analytic.repository.impl.js';
+import { MongoTaskRepository } from './repositories/mongoose/task.repository.impl.js';
+import { MongoAudioDraftRepository } from './repositories/mongoose/audio-draft.repository.impl.js';
+import { MongoThemeRepository } from './repositories/mongoose/theme.repository.impl.js';
+import { MongoActivityLogRepository } from './repositories/mongoose/activity-log.repository.impl.js';
 
 import { AdminService } from './services/admin.service.js';
 import { AudioService } from './services/audio.service.js';
 import { UserService } from './services/user.service.js';
 import { AnalyticService } from './services/analytic.service.js';
 import { StorageService } from './services/storage.service.js';
+import { ThemeService } from './services/theme.service.js';
+import { ActivityLogService } from './services/activity-log.service.js';
+import { TaskService } from './services/task.service.js';
 
 import {
   createVerifyAdminToken,
@@ -37,6 +44,9 @@ import { createAdminRouter } from './routes/v1/admin.routes.js';
 import { createAudioRouter } from './routes/v1/audio.routes.js';
 import { createUserRouter } from './routes/v1/user.routes.js';
 import { createAnalyticRouter } from './routes/v1/analytic.routes.js';
+import { createTaskRouter } from './routes/v1/task.routes.js';
+import { createAudioDraftRouter } from './routes/v1/audio-draft.routes.js';
+import { createThemeRouter } from './routes/v1/theme.routes.js';
 
 /**
  * Build the entire object graph and return the assembled Express routers.
@@ -49,6 +59,10 @@ export function createContainer() {
   const audioRepo = new MongoAudioRepository();
   const userRepo = new MongoUserRepository();
   const analyticRepo = new MongoAnalyticRepository();
+  const taskRepo = new MongoTaskRepository();
+  const draftRepo = new MongoAudioDraftRepository();
+  const themeRepo = new MongoThemeRepository();
+  const activityLogRepo = new MongoActivityLogRepository();
 
   /* ── 2. Services (business-logic layer) ────────────────────────────── */
   const adminService = new AdminService(adminRepo);
@@ -56,6 +70,16 @@ export function createContainer() {
   const userService = new UserService(userRepo);
   const analyticService = new AnalyticService(analyticRepo);
   const storageService = new StorageService();
+  const themeService = new ThemeService(themeRepo);
+  const activityLogService = new ActivityLogService(activityLogRepo);
+  const taskService = new TaskService(
+    taskRepo,
+    draftRepo,
+    audioRepo,
+    storageService,
+    themeService,
+    activityLogService,
+  );
 
   /* ── 3. Auth middleware (depends on services) ──────────────────────── */
   const verifyAdminToken = createVerifyAdminToken(adminService);
@@ -67,6 +91,9 @@ export function createContainer() {
   const audioRouter = createAudioRouter(audioService, storageService, verifyAdminToken);
   const userRouter = createUserRouter(userService, verifyAdminToken, verifyUserToken, verifyTokenForDeleteUser);
   const analyticRouter = createAnalyticRouter(analyticService);
+  const taskRouter = createTaskRouter(taskService, activityLogService, verifyAdminToken);
+  const audioDraftRouter = createAudioDraftRouter(draftRepo, taskService, activityLogService, storageService, verifyAdminToken);
+  const themeRouter = createThemeRouter(themeService, activityLogService, verifyAdminToken);
 
   return {
     routers: {
@@ -74,6 +101,9 @@ export function createContainer() {
       audioRouter,
       userRouter,
       analyticRouter,
+      taskRouter,
+      audioDraftRouter,
+      themeRouter,
     },
   };
 }

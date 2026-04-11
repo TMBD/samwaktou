@@ -18,6 +18,8 @@ export interface AudioDocument extends Document {
   /** Space-separated keywords for full-text search. */
   keywords: string;
   date: Date;
+  /** ID of the source task (null for legacy / manual uploads). */
+  taskId: mongoose.Types.ObjectId | null;
 }
 
 const AudioSchema = new Schema<AudioDocument>({
@@ -27,6 +29,7 @@ const AudioSchema = new Schema<AudioDocument>({
   description: { type: String, required: true,  minlength: 1, maxlength: 1000 },
   keywords:    { type: String, required: true,  minlength: 1, maxlength: 500 },
   date:        { type: Date,   default: () => new Date() },
+  taskId:      { type: Schema.Types.ObjectId, ref: 'Task', default: null },
 });
 
 /** Compiled Mongoose model — maps to the "audios" MongoDB collection. */

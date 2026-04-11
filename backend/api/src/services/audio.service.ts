@@ -57,6 +57,7 @@ export class AudioService {
       description: data.description,
       keywords: data.keywords,
       date: parsedDate,
+      taskId: null, // Manual uploads are not linked to a task.
     };
 
     return this.audioRepo.create(toCreate);

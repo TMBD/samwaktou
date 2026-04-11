@@ -23,6 +23,7 @@ import {
   DeleteObjectCommand,
   HeadObjectCommand,
   ListObjectsV2Command,
+  CopyObjectCommand,
 } from '@aws-sdk/client-s3';
 import type { HeadObjectCommandOutput, DeleteObjectCommandOutput } from '@aws-sdk/client-s3';
 import archiver from 'archiver';
@@ -192,6 +193,133 @@ export class StorageService {
     const stream = response.Body as Readable;
     stream.pipe(passThrough);
     return passThrough;
+  }
+
+  /* ── Key-based operations (for drafts & publish workflow) ────────────── */
+
+  /**
+   * Upload a file buffer to S3 using a **full key** (no automatic prefix).
+   *
+   * Unlike {@link uploadFile}, which prepends `AUDIO_FILE_LOCATION`, this
+   * method stores the file at the exact key provided by the caller.
+   * Used for draft uploads: `drafts/<taskId>/<draftId>.<ext>`.
+   *
+   * @param data - Raw file content as a Node.js `Buffer`.
+   * @param key  - Complete S3 object key (e.g. "drafts/abc123/def456.mp3").
+   * @returns The same key that was passed in (for convenience).
+   */
+  async uploadByKey(data: Buffer, key: string): Promise<string> {
+    const client = getS3Client();
+
+    await client.send(
+      new PutObjectCommand({
+        Bucket: getBucketName(),
+        Key: key,
+        Body: data,
+      }),
+    );
+
+    return key;
+  }
+
+  /**
+   * Download a byte range of a file using a **full key** (no automatic prefix).
+   *
+   * @param key       - Complete S3 object key.
+   * @param startByte - First byte of the range (inclusive).
+   * @param endByte   - Last byte of the range (inclusive).
+   * @returns The requested byte slice as a `Uint8Array`.
+   */
+  async getFileByKey(key: string, startByte: number, endByte: number): Promise<Uint8Array> {
+    const client = getS3Client();
+
+    const response = await client.send(
+      new GetObjectCommand({
+        Bucket: getBucketName(),
+        Key: key,
+        Range: `bytes=${startByte}-${endByte}`,
+      }),
+    );
+
+    const stream = response.Body as Readable;
+    const chunks: Buffer[] = [];
+    for await (const chunk of stream) {
+      chunks.push(Buffer.from(chunk as Uint8Array));
+    }
+    return new Uint8Array(Buffer.concat(chunks));
+  }
+
+  /**
+   * Retrieve S3 object metadata using a **full key** (no automatic prefix).
+   */
+  async getFileMetadataByKey(key: string): Promise<HeadObjectCommandOutput> {
+    const client = getS3Client();
+
+    return client.send(
+      new HeadObjectCommand({
+        Bucket: getBucketName(),
+        Key: key,
+      }),
+    );
+  }
+
+  /**
+   * Download a complete file as a readable stream using a **full key**.
+   */
+  async downloadFileByKey(key: string): Promise<PassThrough> {
+    const client = getS3Client();
+
+    const response = await client.send(
+      new GetObjectCommand({
+        Bucket: getBucketName(),
+        Key: key,
+      }),
+    );
+
+    const passThrough = new PassThrough();
+    const stream = response.Body as Readable;
+    stream.pipe(passThrough);
+    return passThrough;
+  }
+
+  /**
+   * Delete a single object from S3 using a **full key** (no automatic prefix).
+   * Used to clean up draft files or published audio files.
+   */
+  async deleteByKey(key: string): Promise<DeleteObjectCommandOutput> {
+    const client = getS3Client();
+
+    return client.send(
+      new DeleteObjectCommand({
+        Bucket: getBucketName(),
+        Key: key,
+      }),
+    );
+  }
+
+  /**
+   * Copy an S3 object from one key to another **within the same bucket**.
+   *
+   * Used during the publish workflow to promote a draft file to the
+   * published audio prefix without re-downloading / re-uploading.
+   *
+   * @param sourceKey      - Full key of the source object (e.g. "drafts/abc/def.mp3").
+   * @param destinationKey - Full key of the destination (e.g. "files/audios/xyz.mp3").
+   * @returns The destination key (for convenience).
+   */
+  async copyFile(sourceKey: string, destinationKey: string): Promise<string> {
+    const client = getS3Client();
+    const bucket = getBucketName();
+
+    await client.send(
+      new CopyObjectCommand({
+        Bucket: bucket,
+        CopySource: `${bucket}/${sourceKey}`,
+        Key: destinationKey,
+      }),
+    );
+
+    return destinationKey;
   }
 
   /**

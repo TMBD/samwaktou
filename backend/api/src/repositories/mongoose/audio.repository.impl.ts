@@ -27,6 +27,7 @@ function toEntity(doc: AudioDocument): IAudio {
     description: doc.description,
     keywords: doc.keywords,
     date: doc.date,
+    taskId: doc.taskId?.toString() ?? null,
   };
 }
 

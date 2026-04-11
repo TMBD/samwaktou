@@ -22,6 +22,8 @@ export interface IAudio {
   keywords: string;
   /** Date the audio was recorded or published. */
   date: Date;
+  /** ID of the source task that produced this audio (null for legacy/manual uploads). */
+  taskId: string | null;
 }
 
 /** Fields required when creating a new audio entry (all except the auto-generated `id`). */

@@ -79,6 +79,9 @@ export function createApp() {
   app.use('/api/v1/audio', routers.audioRouter);
   app.use('/api/v1/user', routers.userRouter);
   app.use('/api/v1/analytic', routers.analyticRouter);
+  app.use('/api/v1/tasks', routers.taskRouter);
+  app.use('/api/v1/tasks/:taskId/drafts', routers.audioDraftRouter);
+  app.use('/api/v1/themes', routers.themeRouter);
 
   /* ── 6. Backward-compatible aliases (legacy paths) ─────────────────── */
   app.use('/admin', routers.adminRouter);
