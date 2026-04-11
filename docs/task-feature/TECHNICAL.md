@@ -93,7 +93,7 @@ backend/api/src/
 | **JWT** | `jsonwebtoken` | **`jose`** | ESM-native, Web Crypto API, lighter, Edge-compatible |
 | **React** | 18.3 | **React 19** | `useActionState`, `useOptimistic`, `use()`, Actions, `ref` as prop |
 | **Router** | React Router 6.23 | **React Router 7** | Data mode with `loader`/`action`, `useFetcher`, `useNavigation`, lazy routes |
-| **UI** | MUI 5.15 | **MUI 7** | Pigment CSS (zero-runtime), React 19 support, container queries |
+| **UI** | MUI 5.15 | **Mantine 7** | Lighter (~30% less than MUI), built-in `@mantine/form` with Zod, `@mantine/hooks`, `@mantine/dates`, `@mantine/notifications`, CSS Modules, React 19 support, excellent admin/dashboard components |
 | **Build** | Vite 5.2 | **Vite 6** | Rolldown bundler, faster builds |
 | **Server State** | None | **TanStack Query 5** | Caching, background refetch, optimistic updates, devtools |
 | **Testing** | None | **Vitest** + `supertest` + `mongodb-memory-server` | ESM-native, Vite-compatible, fast |
@@ -101,13 +101,13 @@ backend/api/src/
 
 ### 2.2 Packages to Remove
 
-`body-parser`, `@hapi/joi`, `moment`, `jsonwebtoken`, `ts-node-dev`, `@types/jsonwebtoken`, `lodash` (full — replace with `lodash-es` or native), `web-vitals`.
+`body-parser`, `@hapi/joi`, `moment`, `jsonwebtoken`, `ts-node-dev`, `@types/jsonwebtoken`, `lodash` (full — replace with `lodash-es` or native), `web-vitals`, `@mui/material`, `@mui/icons-material`, `@mui/x-date-pickers`, `@emotion/react`, `@emotion/styled`.
 
 ### 2.3 Packages to Add
 
 **Backend**: `zod` v4, `pino`, `pino-http`, `pino-pretty` (dev), `jose`, `date-fns`, `tsx` (dev), `vitest` (dev), `supertest` (dev), `mongodb-memory-server` (dev).
 
-**Frontend**: `@tanstack/react-query` v5, `@tanstack/react-query-devtools` (dev), `zod/mini`, `date-fns`, `vitest` (dev).
+**Frontend**: `@mantine/core`, `@mantine/hooks`, `@mantine/form`, `@mantine/dates`, `@mantine/notifications`, `@tabler/icons-react`, `@tanstack/react-query` v5, `@tanstack/react-query-devtools` (dev), `zod/mini`, `date-fns`, `vitest` (dev).
 
 ### 2.4 Key Features We Must Leverage
 
@@ -263,7 +263,7 @@ frontend/samwaktou-react-app/src/
 │   └── audio/AudioCard.tsx, AudioPlayer.tsx
 ├── types/task.types.ts, admin.types.ts, audio.types.ts, api.types.ts
 ├── utils/date.utils.ts, format.utils.ts
-└── styles/theme.ts             # MUI 7 theme
+└── styles/theme.ts             # Mantine 7 theme
 ```
 
 ---
@@ -541,7 +541,7 @@ Keys: drafts → `drafts/<taskId>/<draftId>.<ext>`, published → `audios/<audio
 | Data loading | React Router 7 loaders (data ready on nav) |
 | Non-nav mutations | `useFetcher` from RR7 |
 | Dates | `date-fns` v4 |
-| UI | MUI 7 (Pigment CSS, React 19 support) |
+| UI | Mantine 7 (`@mantine/core`, `@mantine/form` with Zod, `@mantine/dates`, `@mantine/notifications`, `@tabler/icons-react`) |
 | Build | Vite 6 |
 | Client validation | Zod Mini (2KB) |
 
@@ -608,7 +608,7 @@ Fetch wrapper with: auto auth-token header, token refresh from response, 401 aut
 | **0** | Backend refactoring: ESM, Express 5, layered arch, deps upgrade, keep old routes as aliases | No |
 | **1** | Admin role migration: schema + JWT + RBAC middleware | No (backward compat) |
 | **2** | New models + APIs: Task, AudioDraft, Theme, ActivityLog under `/api/v1/` | No (additive) |
-| **3** | Frontend rewrite: React 19, RR7, MUI 7, TanStack Query, functional components | No (new pages) |
+| **3** | Frontend rewrite: React 19, RR7, Mantine 7, TanStack Query, functional components | No (new pages) |
 | **4** | Cleanup: remove old route aliases, remove `isSuperAdmin` | Yes (planned) |
 
 ---
@@ -729,7 +729,7 @@ backend/api/tests/
 6. Seed themes from existing audio data
 
 ### Phase 3 — Frontend Rewrite
-1. Upgrade React 19, React Router 7, MUI 7, Vite 6, add TanStack Query
+1. Upgrade React 19, React Router 7, Mantine 7, Vite 6, add TanStack Query
 2. Replace `moment` → `date-fns`, `lodash` → native/lodash-es
 3. Set up AuthContext, API client with interceptors
 4. Migrate Login, existing pages to functional components
