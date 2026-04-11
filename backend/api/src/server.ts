@@ -1,53 +1,60 @@
-import express from 'express';
-import bodyParser from 'body-parser';
-import expressFileupload from 'express-fileupload';
-import cors, { CorsOptions } from 'cors';
+/**
+ * @file server.ts
+ * @description Application entry point.
+ *
+ * Orchestrates the startup sequence:
+ * 1. Validate environment variables (fail-fast on misconfiguration).
+ * 2. Open a persistent MongoDB connection.
+ * 3. Build the Express application via `createApp()`.
+ * 4. Bind the HTTP server to the configured port.
+ * 5. Register POSIX signal handlers for graceful shutdown.
+ *
+ * If any step in `main()` throws, the process exits with code 1 and a
+ * `fatal`-level Pino log so the container orchestrator can restart it.
+ */
 
-import {SERVEUR_CONFIG, AUDIO_FILE_PARAMS} from './config/server.config';
-import audioRoutes from './routes/audio.router';
-import adminRoutes from './routes/admin.router';
-import userRoutes from './routes/user.router';
-import analyticRoutes from './routes/analytic.router';
+import { validateEnv, getEnv } from './config/env.config.js';
+import { logger } from './lib/logger.js';
+import { connectDatabase, disconnectDatabase } from './lib/database.js';
+import { createApp } from './app.js';
 
+/**
+ * Boot the application.  Each numbered step must succeed before the next
+ * one runs; an unhandled error in any step is caught by the top-level
+ * `.catch()` and results in a fatal log + `process.exit(1)`.
+ */
+async function main(): Promise<void> {
+  // 1. Validate environment — throws on missing or malformed variables.
+  validateEnv();
+  const env = getEnv();
 
-//Herokou 
-//Azur 
-const server = express();
+  // 2. Open a persistent MongoDB connection (used by all repositories).
+  await connectDatabase();
 
-//MIDDLEWARES
-server.use(bodyParser.json());
-server.use(expressFileupload({
-    limits: { fileSize: AUDIO_FILE_PARAMS.MAX_FILE_SIZE},
-    abortOnLimit: true
-}));
+  // 3. Assemble Express app (middleware + DI-wired routes).
+  const app = createApp();
 
-//Configure cors and whitelist
-let whitelist = [process.env.APP_HOST, process.env.APP_LOAD_BALANCER_HOST]
-process.env.APP_CORS_EXTRA_WHITLISTS?.split(" ").filter(host => host).map(host => whitelist.push(host));
-const corsOptions : CorsOptions = {
-    origin: function (origin, callback) {
-        if(!origin) callback(null, true);
-        else {
-            const url = new URL(origin);
-            const host = url.protocol + "//" + url.hostname;
-            if (whitelist.indexOf(host) !== -1 || !origin) {
-                callback(null, true);
-            }
-            else {
-                callback(new Error('Not allowed by CORS'));
-            }
-        }
-    }
+  // 4. Start the HTTP server on the configured port.
+  const port = parseInt(env.PORT, 10);
+  const server = app.listen(port, () => {
+    logger.info(`Server running on port ${port}`);
+  });
+
+  // 5. Graceful shutdown: stop accepting new connections, then close the DB.
+  const shutdown = async (signal: string) => {
+    logger.info(`${signal} received. Shutting down gracefully...`);
+    server.close(async () => {
+      await disconnectDatabase();
+      process.exit(0);
+    });
+  };
+
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
 }
 
-server.use(cors(corsOptions));
-
-
-//ROUTES
-server.use("/audios", audioRoutes);
-server.use("/admins", adminRoutes);
-server.use("/users", userRoutes);
-server.use("/analytics", analyticRoutes);
-
-//Listening at the port defined in the server_config
-server.listen(SERVEUR_CONFIG.PORT);
+/* ── Top-level bootstrap ─────────────────────────────────────────────── */
+main().catch((err) => {
+  logger.fatal({ err }, 'Failed to start server');
+  process.exit(1);
+});
