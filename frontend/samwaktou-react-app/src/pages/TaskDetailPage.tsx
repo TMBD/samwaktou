@@ -385,13 +385,20 @@ export function TaskDetailPage() {
         {drafts.length > 0 && (
           <Stack gap="md">
             {drafts.map((draft) => (
-              <Card key={draft.id} p="sm" withBorder>
+              <Card
+                key={draft.id}
+                p="sm"
+                withBorder
+                style={{ cursor: 'pointer' }}
+                onClick={() => navigate(`/admin/tasks/${task.id}/drafts/${draft.id}`)}
+              >
                 <Group justify="space-between" mb="xs">
                   <Group gap="xs">
                     <IconPlayerPlay size={14} stroke={1.5} />
                     <Text size="sm" fw={500}>
                       {draft.originalFileName}
                     </Text>
+                    <IconEdit size={14} stroke={1.5} style={{ opacity: 0.5 }} />
                   </Group>
                   <DraftStatusBadge status={draft.status} size="sm" />
                 </Group>

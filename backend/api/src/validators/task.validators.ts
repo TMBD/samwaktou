@@ -20,7 +20,7 @@ import { PAGINATION } from '../config/constants.js';
 export const audioDraftMetaSchema = z.object({
   description: z.string().min(1).max(1000),
   theme: z.string().min(1).max(200),
-  keywords: z.string().min(1).max(500),
+  keywords: z.string().max(500).default(''),
 });
 
 /**

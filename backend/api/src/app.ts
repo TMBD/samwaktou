@@ -81,6 +81,7 @@ export function createApp() {
   app.use('/api/v1/tasks', routers.taskRouter);
   app.use('/api/v1/tasks/:taskId/drafts', routers.audioDraftRouter);
   app.use('/api/v1/themes', routers.themeRouter);
+  app.use('/api/v1/authors', routers.authorRouter);
 
   /* ── 6. Centralised error handler (must be registered last) ────────── */
   app.use(errorHandler);

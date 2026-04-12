@@ -205,7 +205,7 @@ export class TaskService {
         originalFileName: file.name,
         description: file.meta.description,
         theme: theme.name,
-        keywords: file.meta.keywords,
+        keywords: file.meta.keywords ? file.meta.keywords.split(/[,\s]+/).filter(Boolean) : [],
         status: AudioDraftStatus.PENDING,
         isNewTheme: isNew,
         rejectionSuggestedReason: null,
@@ -492,7 +492,7 @@ export class TaskService {
         theme: draft.theme,
         author: task.sessionAuthor,
         description: draft.description,
-        keywords: draft.keywords,
+        keywords: draft.keywords.join(' '),
         date: task.sessionDate,
         taskId: task.id,
       };

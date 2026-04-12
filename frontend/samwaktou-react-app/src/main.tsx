@@ -50,6 +50,7 @@ import { TaskDetailPage } from '@/pages/TaskDetailPage';
 import { ThemeManagementPage } from '@/pages/ThemeManagementPage';
 import { AdminManagementPage } from '@/pages/AdminManagementPage';
 import { AudioDraftWorkPage } from '@/pages/AudioDraftWorkPage';
+import { AuthorManagementPage } from '@/pages/AuthorManagementPage';
 
 /* ── TanStack Query client ────────────────────────────────────────────── */
 
@@ -89,6 +90,7 @@ const router = createBrowserRouter([
 
           /* Theme & Admin management */
           { path: '/admin/themes', element: <ThemeManagementPage /> },
+          { path: '/admin/authors', element: <AuthorManagementPage /> },
           { path: '/admin/admins', element: <AdminManagementPage /> },
         ],
       },

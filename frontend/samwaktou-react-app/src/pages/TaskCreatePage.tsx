@@ -18,9 +18,9 @@ import {
   Card,
   Group,
   List,
+  Select,
   Stack,
   Text,
-  TextInput,
   Textarea,
   Title,
 } from '@mantine/core';
@@ -29,6 +29,7 @@ import { Dropzone } from '@mantine/dropzone';
 import { useForm } from '@mantine/form';
 import { IconArrowLeft, IconMusic, IconTrash, IconUpload, IconX } from '@tabler/icons-react';
 import { useCreateTask } from '@/hooks/useTasks';
+import { useAuthors } from '@/hooks/useAuthors';
 import { toISODateString } from '@/utils/date.utils';
 
 /* ── Form values ──────────────────────────────────────────────────────── */
@@ -47,6 +48,13 @@ export function TaskCreatePage() {
 
   const [files, setFiles] = useState<File[]>([]);
 
+  /* ── Authors dropdown data ──────────────────────────────────────────── */
+  const { data: authorsData } = useAuthors({ limit: 200 });
+  const authorOptions = (authorsData?.data ?? []).map((a) => ({
+    value: a.name,
+    label: a.name,
+  }));
+
   /* ── Form setup ───────────────────────────────────────────────────── */
   const form = useForm<CreateTaskFormValues>({
     initialValues: {
@@ -56,7 +64,7 @@ export function TaskCreatePage() {
     },
     validate: {
       description: (v) => (v.trim().length < 3 ? 'La description est trop courte (min 3 car.)' : null),
-      sessionAuthor: (v) => (v.trim().length < 2 ? 'L\'auteur est requis' : null),
+      sessionAuthor: (v) => (!v || v.trim().length < 2 ? 'L\'auteur est requis' : null),
       sessionDate: (v) => (!v ? 'La date de session est requise' : null),
     },
   });
@@ -117,9 +125,12 @@ export function TaskCreatePage() {
             />
 
             {/* Session author */}
-            <TextInput
+            <Select
               label="Auteur de la session"
-              placeholder="Nom du conférencier"
+              placeholder="Sélectionner un auteur"
+              data={authorOptions}
+              searchable
+              nothingFoundMessage="Aucun auteur trouvé"
               {...form.getInputProps('sessionAuthor')}
             />
 

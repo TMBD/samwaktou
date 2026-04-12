@@ -137,6 +137,10 @@ export const PAGINATION = {
   THEME_MAX_LIMIT: 200,
   THEME_DEFAULT_LIMIT: 50,
   THEME_DEFAULT_SKIP: 0,
+
+  AUTHOR_MAX_LIMIT: 200,
+  AUTHOR_DEFAULT_LIMIT: 50,
+  AUTHOR_DEFAULT_SKIP: 0,
 } as const;
 
 /* ── Date handling ────────────────────────────────────────────────────── */

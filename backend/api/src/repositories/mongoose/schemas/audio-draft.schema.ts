@@ -41,11 +41,11 @@ export interface AudioDraftDocument extends Document {
 const AudioDraftSchema = new Schema<AudioDraftDocument>(
   {
     task: { type: Schema.Types.ObjectId, ref: 'Task', required: true },
-    uri:  { type: String, required: true },
+    uri:  { type: String, default: '' },
     originalFileName: { type: String, required: true, maxlength: 500 },
     description: { type: String, required: true, minlength: 1, maxlength: 1000 },
     theme:       { type: String, required: true, minlength: 1, maxlength: 200 },
-    keywords:    { type: String, required: true, minlength: 1, maxlength: 500 },
+    keywords:    { type: String, default: '', maxlength: 500 },
     status: {
       type: String,
       enum: Object.values(AudioDraftStatus),

@@ -92,6 +92,9 @@ export function useUpdateDraft() {
     }) => draftApi.updateDraft(taskId, draftId, payload),
     onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: draftKeys.list(variables.taskId) });
+      qc.invalidateQueries({
+        queryKey: draftKeys.detail(variables.taskId, variables.draftId),
+      });
       qc.invalidateQueries({ queryKey: taskKeys.detail(variables.taskId) });
       notifications.show({
         title: 'Succès',
@@ -119,6 +122,9 @@ export function useReviewDraft() {
     }) => draftApi.reviewDraft(taskId, draftId, payload),
     onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: draftKeys.list(variables.taskId) });
+      qc.invalidateQueries({
+        queryKey: draftKeys.detail(variables.taskId, variables.draftId),
+      });
       qc.invalidateQueries({ queryKey: taskKeys.detail(variables.taskId) });
       notifications.show({
         title: 'Succès',

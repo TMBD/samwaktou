@@ -36,6 +36,8 @@ export interface AudioDraftUpdatePayload {
   description?: string;
   theme?: string;
   keywords?: string[];
+  status?: AudioDraftStatus;
+  rejectionSuggestedReason?: string;
 }
 
 /** Payload for PATCH /tasks/:taskId/drafts/:draftId/review. */

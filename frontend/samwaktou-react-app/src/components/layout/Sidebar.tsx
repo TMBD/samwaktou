@@ -14,6 +14,7 @@ import {
   IconListCheck,
   IconPlus,
   IconTags,
+  IconUser,
   IconUsers,
 } from '@tabler/icons-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -51,6 +52,12 @@ const NAV_ITEMS: NavItem[] = [
     icon: <IconTags size={20} stroke={1.5} />,
     path: '/admin/themes',
     minRole: AdminRole.CONTRIBUTOR,
+  },
+  {
+    label: 'Auteurs',
+    icon: <IconUser size={20} stroke={1.5} />,
+    path: '/admin/authors',
+    minRole: AdminRole.REVIEWER,
   },
   {
     label: 'Administrateurs',

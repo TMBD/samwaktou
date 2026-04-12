@@ -27,7 +27,7 @@ function toEntity(doc: AudioDraftDocument): IAudioDraft {
     originalFileName: doc.originalFileName,
     description: doc.description,
     theme: doc.theme,
-    keywords: doc.keywords,
+    keywords: doc.keywords ? doc.keywords.split(/[,\s]+/).filter(Boolean) : [],
     status: doc.status,
     isNewTheme: doc.isNewTheme,
     rejectionSuggestedReason: doc.rejectionSuggestedReason,
@@ -44,13 +44,14 @@ function toEntity(doc: AudioDraftDocument): IAudioDraft {
 export class MongoAudioDraftRepository implements IAudioDraftRepository {
   /** @inheritdoc */
   async create(data: IAudioDraftCreate): Promise<IAudioDraft> {
-    const doc = await AudioDraftModel.create(data);
+    const doc = await AudioDraftModel.create({ ...data, keywords: Array.isArray(data.keywords) ? data.keywords.join(' ') : data.keywords });
     return toEntity(doc);
   }
 
   /** @inheritdoc */
   async createMany(data: IAudioDraftCreate[]): Promise<IAudioDraft[]> {
-    const docs = await AudioDraftModel.insertMany(data);
+    const mapped = data.map(d => ({ ...d, keywords: Array.isArray(d.keywords) ? d.keywords.join(' ') : d.keywords }));
+    const docs = await AudioDraftModel.insertMany(mapped);
     return docs.map((d) => toEntity(d as unknown as AudioDraftDocument));
   }
 
@@ -76,7 +77,7 @@ export class MongoAudioDraftRepository implements IAudioDraftRepository {
   async updateById(id: string, data: IAudioDraftUpdate): Promise<IAudioDraft | null> {
     const doc = await AudioDraftModel.findByIdAndUpdate(
       id,
-      { $set: data },
+      { $set: { ...data, ...(data.keywords !== undefined && { keywords: Array.isArray(data.keywords) ? data.keywords.join(' ') : data.keywords }) } },
       { new: true, runValidators: true },
     ).lean<AudioDraftDocument>();
 

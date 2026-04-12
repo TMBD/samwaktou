@@ -11,7 +11,7 @@
  * - Draft status badge + navigation back to the parent task.
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ActionIcon,
@@ -30,12 +30,19 @@ import {
   Title,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
-import { IconArrowLeft, IconCheck, IconX } from '@tabler/icons-react';
+import {
+  IconArrowLeft,
+  IconCheck,
+  IconCircleCheck,
+  IconExclamationCircle,
+  IconSparkles,
+  IconX,
+} from '@tabler/icons-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTask } from '@/hooks/useTasks';
 import { useAudioDraft, useUpdateDraft, useReviewDraft } from '@/hooks/useAudioDrafts';
 import { useThemes } from '@/hooks/useThemes';
-import { AudioDraftStatus, TaskStatus } from '@/types';
+import { AdminRole, AudioDraftStatus, TaskStatus } from '@/types';
 import type { AudioDraftReviewPayload } from '@/types';
 import { DraftStatusBadge } from '@/components/draft/DraftStatusBadge';
 import { AudioPlayer } from '@/components/draft/AudioPlayer';
@@ -55,7 +62,7 @@ interface MetadataFormValues {
 export function AudioDraftWorkPage() {
   const { taskId, draftId } = useParams<{ taskId: string; draftId: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, hasRole } = useAuth();
 
   /* ── Data fetching ────────────────────────────────────────────────── */
   const { data: taskRes, isLoading: taskLoading } = useTask(taskId);
@@ -73,24 +80,30 @@ export function AudioDraftWorkPage() {
   /* ── Local UI state ───────────────────────────────────────────────── */
   const [reviewComment, setReviewComment] = useState('');
   const [correctionComment, setCorrectionComment] = useState('');
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [showRejectionInput, setShowRejectionInput] = useState(false);
 
   /* ── Metadata form ────────────────────────────────────────────────── */
   const metaForm = useForm<MetadataFormValues>({
     initialValues: {
-      description: draft?.description ?? '',
-      theme: draft?.theme ?? '',
-      keywords: draft?.keywords ?? [],
+      description: '',
+      theme: '',
+      keywords: [],
     },
   });
 
-  /* Sync form when draft data arrives */
-  if (draft && metaForm.values.description === '' && draft.description) {
-    metaForm.setValues({
-      description: draft.description,
-      theme: draft.theme,
-      keywords: [...draft.keywords],
-    });
-  }
+  /* Sync form when draft data arrives or is refreshed after mutation */
+  const lastSyncedAt = useRef<string | null>(null);
+  useEffect(() => {
+    if (draft && draft.updatedAt !== lastSyncedAt.current) {
+      lastSyncedAt.current = draft.updatedAt;
+      metaForm.setValues({
+        description: draft.description ?? '',
+        theme: draft.theme ?? '',
+        keywords: draft.keywords ? [...draft.keywords] : [],
+      });
+    }
+  }, [draft]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ── Derived state ────────────────────────────────────────────────── */
   const isAssignee = task?.assignee === user?.id;
@@ -102,8 +115,29 @@ export function AudioDraftWorkPage() {
   const canReview =
     isReviewer && task?.status === TaskStatus.IN_REVIEW;
 
-  /* Theme options for Select */
-  const themeOptions = themes.map((t) => ({ value: t.name, label: t.name }));
+  /* Theme options for Select with dynamic creation */
+  const isReviewerOrAbove = hasRole(AdminRole.REVIEWER);
+  const [themeSearch, setThemeSearch] = useState('');
+
+  const baseThemeOptions = themes.map((t) => ({ value: t.name, label: t.name }));
+  const themeOptions = (() => {
+    const opts = [...baseThemeOptions];
+    // If the current form value is custom (not in existing themes), add it so Select displays it
+    const currentVal = metaForm.values.theme;
+    if (currentVal && !themes.some((t) => t.name === currentVal)) {
+      opts.push({ value: currentVal, label: currentVal });
+    }
+    // If the user is typing a search that doesn't match any option, offer to create it
+    const searchUpper = themeSearch.trim().toUpperCase();
+    if (
+      searchUpper.length > 0 &&
+      !opts.some((o) => o.value === searchUpper) &&
+      !themes.some((t) => t.name === searchUpper)
+    ) {
+      opts.push({ value: searchUpper, label: `+ Créer « ${searchUpper} »` });
+    }
+    return opts;
+  })();
 
   /* ── Handlers ─────────────────────────────────────────────────────── */
   const handleSaveMetadata = useCallback(
@@ -113,9 +147,9 @@ export function AudioDraftWorkPage() {
         taskId,
         draftId,
         payload: {
-          description: values.description.trim() || undefined,
+          description: values.description.trim(),
           theme: values.theme || undefined,
-          keywords: values.keywords.length > 0 ? values.keywords : undefined,
+          keywords: values.keywords,
         },
       });
     },
@@ -192,20 +226,36 @@ export function AudioDraftWorkPage() {
                   <Textarea
                     label="Description"
                     placeholder="Description du contenu audio…"
-                    minRows={2}
+                    minRows={4}
+                    maxRows={12}
+                    autosize
+                    resize="vertical"
                     disabled={!canEdit}
                     {...metaForm.getInputProps('description')}
                   />
 
                   <Select
                     label="Thème"
-                    placeholder="Sélectionner un thème"
+                    placeholder="Sélectionner ou saisir un nouveau thème"
                     data={themeOptions}
                     searchable
                     clearable
+                    nothingFoundMessage="Tapez pour créer un nouveau thème"
                     disabled={!canEdit}
+                    onSearchChange={setThemeSearch}
                     {...metaForm.getInputProps('theme')}
                   />
+                  {metaForm.values.theme &&
+                    !themes.some((t) => t.name === metaForm.values.theme) && (
+                      <Group gap={4} mt={-8}>
+                        <IconSparkles size={14} stroke={1.5} color="var(--mantine-color-cyan-6)" />
+                        <Text size="xs" c={isReviewerOrAbove ? 'green' : 'yellow'}>
+                          {isReviewerOrAbove
+                            ? 'Nouveau thème — sera créé et validé automatiquement.'
+                            : 'Nouveau thème — sera soumis à validation par un réviseur.'}
+                        </Text>
+                      </Group>
+                    )}
 
                   <TagsInput
                     label="Mots-clés"
@@ -220,6 +270,122 @@ export function AudioDraftWorkPage() {
                         Enregistrer
                       </Button>
                     </Group>
+                  )}
+
+                  {/* Status actions for assignees — available as long as the task is not submitted */}
+                  {canEdit && (
+                    <>
+                      <Divider label="Statut du brouillon" labelPosition="center" />
+
+                      {/* Rejection reason input — shown when suggesting rejection */}
+                      {(draft.status === AudioDraftStatus.PENDING || draft.status === AudioDraftStatus.DONE) && (
+                        <Stack gap="xs">
+                          <Textarea
+                            label="Raison du rejet suggéré"
+                            placeholder="Expliquez pourquoi ce brouillon devrait être rejeté…"
+                            minRows={2}
+                            value={rejectionReason}
+                            onChange={(e) => setRejectionReason(e.currentTarget.value)}
+                            style={{ display: showRejectionInput ? undefined : 'none' }}
+                          />
+                          <Group gap="xs">
+                            {draft.status !== AudioDraftStatus.DONE && (
+                              <Button
+                                size="xs"
+                                color="teal"
+                                variant="light"
+                                leftSection={<IconCircleCheck size={14} stroke={1.5} />}
+                                loading={updateMut.isPending}
+                                onClick={() => {
+                                  if (!taskId || !draftId) return;
+                                  updateMut.mutate({ taskId, draftId, payload: { status: AudioDraftStatus.DONE } });
+                                }}
+                              >
+                                Marquer comme terminé
+                              </Button>
+                            )}
+                            {draft.status === AudioDraftStatus.DONE && (
+                              <Button
+                                size="xs"
+                                color="gray"
+                                variant="light"
+                                loading={updateMut.isPending}
+                                onClick={() => {
+                                  if (!taskId || !draftId) return;
+                                  updateMut.mutate({ taskId, draftId, payload: { status: AudioDraftStatus.PENDING } });
+                                }}
+                              >
+                                Remettre en attente
+                              </Button>
+                            )}
+                            {!showRejectionInput ? (
+                              <Button
+                                size="xs"
+                                color="yellow"
+                                variant="light"
+                                leftSection={<IconExclamationCircle size={14} stroke={1.5} />}
+                                onClick={() => setShowRejectionInput(true)}
+                              >
+                                Suggérer le rejet
+                              </Button>
+                            ) : (
+                              <Group gap="xs">
+                                <Button
+                                  size="xs"
+                                  color="yellow"
+                                  leftSection={<IconExclamationCircle size={14} stroke={1.5} />}
+                                  loading={updateMut.isPending}
+                                  disabled={!rejectionReason.trim()}
+                                  onClick={() => {
+                                    if (!taskId || !draftId || !rejectionReason.trim()) return;
+                                    updateMut.mutate(
+                                      {
+                                        taskId,
+                                        draftId,
+                                        payload: {
+                                          status: AudioDraftStatus.REJECTION_SUGGESTED,
+                                          rejectionSuggestedReason: rejectionReason.trim(),
+                                        },
+                                      },
+                                      { onSuccess: () => { setShowRejectionInput(false); setRejectionReason(''); } },
+                                    );
+                                  }}
+                                >
+                                  Confirmer le rejet
+                                </Button>
+                                <Button
+                                  size="xs"
+                                  variant="default"
+                                  onClick={() => { setShowRejectionInput(false); setRejectionReason(''); }}
+                                >
+                                  Annuler
+                                </Button>
+                              </Group>
+                            )}
+                          </Group>
+                        </Stack>
+                      )}
+
+                      {draft.status === AudioDraftStatus.REJECTION_SUGGESTED && (
+                        <Stack gap="xs">
+                          <Alert color="yellow" variant="light" title="Rejet suggéré">
+                            {draft.rejectionSuggestedReason || 'Aucune raison fournie.'}
+                          </Alert>
+                          <Button
+                            size="xs"
+                            color="gray"
+                            variant="light"
+                            loading={updateMut.isPending}
+                            onClick={() => {
+                              if (!taskId || !draftId) return;
+                              updateMut.mutate({ taskId, draftId, payload: { status: AudioDraftStatus.PENDING } });
+                            }}
+                          >
+                            Remettre en attente
+                          </Button>
+                        </Stack>
+                      )}
+                    </>
                   )}
                 </Stack>
               </form>

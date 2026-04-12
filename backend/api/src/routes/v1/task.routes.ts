@@ -65,41 +65,59 @@ export function createTaskRouter(
     requireRole(AdminRole.PUBLISHER),
     async (req: AuthenticatedRequest, res, next) => {
       try {
-        // Parse the JSON metadata — may arrive as a string when using multipart.
+        // Parse the JSON metadata — may arrive as a string when using multipart,
+        // or as flat FormData fields from the frontend.
         const body = typeof req.body.metadata === 'string'
           ? JSON.parse(req.body.metadata)
           : req.body;
 
-        // Validate the metadata with Zod.
-        const parsed = createTaskSchema.parse(body);
-
         // Collect uploaded files from express-fileupload.
+        // The frontend sends files under "audioFiles", legacy clients may use "audio".
         const rawFiles = (req as unknown as {
           files?: Record<string, { data: Buffer; name: string; mimetype: string } |
             Array<{ data: Buffer; name: string; mimetype: string }>>;
         }).files;
 
-        if (!rawFiles?.audio) {
+        const rawAudio = rawFiles?.audioFiles ?? rawFiles?.audio;
+        if (!rawAudio) {
           throw AppError.badRequest('Au moins un fichier audio est requis.');
         }
 
         // Normalise to an array (single file comes as an object, multiple as array).
-        const fileArray = Array.isArray(rawFiles.audio)
-          ? rawFiles.audio
-          : [rawFiles.audio];
-
-        // Validate that the number of files matches the drafts metadata count.
-        if (fileArray.length !== parsed.drafts.length) {
-          throw AppError.badRequest(
-            `Le nombre de fichiers (${fileArray.length}) ne correspond pas au nombre de métadonnées de brouillons (${parsed.drafts.length}).`,
-          );
-        }
+        const fileArray = Array.isArray(rawAudio) ? rawAudio : [rawAudio];
 
         // Validate MIME types.
         for (const f of fileArray) {
           if (!f.mimetype.includes('audio')) {
             throw AppError.badRequest(`Le fichier "${f.name}" n'est pas un fichier audio valide.`);
           }
+        }
+
+        // If drafts metadata was not provided (frontend simple form),
+        // auto-generate placeholder metadata from the uploaded files.
+        if (!body.drafts) {
+          body.drafts = fileArray.map((f) => ({
+            description: body.description || f.name,
+            theme: 'NON CLASSÉ',
+            keywords: '',
+          }));
+        }
+
+        // Validate the metadata with Zod.
+        const result = createTaskSchema.safeParse(body);
+        if (!result.success) {
+          throw AppError.badRequest(
+            'Données invalides. Veuillez renseigner correctement tous les champs.',
+            result.error.issues.map((i) => ({ field: i.path.join('.'), message: i.message })),
+          );
+        }
+        const parsed = result.data;
+
+        // Validate that the number of files matches the drafts metadata count.
+        if (fileArray.length !== parsed.drafts.length) {
+          throw AppError.badRequest(
+            `Le nombre de fichiers (${fileArray.length}) ne correspond pas au nombre de métadonnées de brouillons (${parsed.drafts.length}).`,
+          );
         }
 
         // Build UploadedFile array by pairing files with their metadata.
@@ -120,7 +138,7 @@ export function createTaskRouter(
           { id: req.authData!.id, role: req.authData!.role },
         );
 
-        res.status(HTTP_CODE.CREATED).json(task);
+        res.status(HTTP_CODE.CREATED).json({ success: true, data: task });
       } catch (err) { next(err); }
     },
   );
@@ -145,7 +163,16 @@ export function createTaskRouter(
         };
 
         const result = await taskService.findMany(filter as Parameters<TaskService['findMany']>[0], skip, limit);
-        res.json(result);
+        res.json({
+          success: true,
+          data: result.data,
+          pagination: {
+            total: result.total,
+            skip,
+            limit,
+            hasMore: skip + result.data.length < result.total,
+          },
+        });
       } catch (err) { next(err); }
     },
   );
@@ -158,7 +185,7 @@ export function createTaskRouter(
     async (req: AuthenticatedRequest, res, next) => {
       try {
         const task = await taskService.findById(req.params.taskId);
-        res.json(task);
+        res.json({ success: true, data: task });
       } catch (err) { next(err); }
     },
   );
@@ -171,7 +198,7 @@ export function createTaskRouter(
     async (req: AuthenticatedRequest, res, next) => {
       try {
         const task = await taskService.assign(req.params.taskId, req.authData!.id);
-        res.json(task);
+        res.json({ success: true, data: task });
       } catch (err) { next(err); }
     },
   );
@@ -184,7 +211,7 @@ export function createTaskRouter(
     async (req: AuthenticatedRequest, res, next) => {
       try {
         const task = await taskService.unassign(req.params.taskId, req.authData!.id);
-        res.json(task);
+        res.json({ success: true, data: task });
       } catch (err) { next(err); }
     },
   );
@@ -199,7 +226,7 @@ export function createTaskRouter(
       try {
         const { assigneeId } = req.body;
         const task = await taskService.reassign(req.params.taskId, assigneeId, req.authData!.id);
-        res.json(task);
+        res.json({ success: true, data: task });
       } catch (err) { next(err); }
     },
   );
@@ -212,7 +239,7 @@ export function createTaskRouter(
     async (req: AuthenticatedRequest, res, next) => {
       try {
         const task = await taskService.submit(req.params.taskId, req.authData!.id);
-        res.json(task);
+        res.json({ success: true, data: task });
       } catch (err) { next(err); }
     },
   );
@@ -229,7 +256,7 @@ export function createTaskRouter(
           req.authData!.id,
           req.authData!.role,
         );
-        res.json(task);
+        res.json({ success: true, data: task });
       } catch (err) { next(err); }
     },
   );
@@ -246,7 +273,7 @@ export function createTaskRouter(
           req.authData!.id,
           req.authData!.role,
         );
-        res.json(task);
+        res.json({ success: true, data: task });
       } catch (err) { next(err); }
     },
   );
@@ -259,7 +286,7 @@ export function createTaskRouter(
     async (req: AuthenticatedRequest, res, next) => {
       try {
         const task = await taskService.requestCorrections(req.params.taskId, req.authData!.id);
-        res.json(task);
+        res.json({ success: true, data: task });
       } catch (err) { next(err); }
     },
   );
@@ -277,7 +304,7 @@ export function createTaskRouter(
           req.authData!.id,
           req.body.reason,
         );
-        res.json(task);
+        res.json({ success: true, data: task });
       } catch (err) { next(err); }
     },
   );
@@ -295,7 +322,7 @@ export function createTaskRouter(
           req.authData!.id,
           req.body.reason,
         );
-        res.json(task);
+        res.json({ success: true, data: task });
       } catch (err) { next(err); }
     },
   );
@@ -308,7 +335,7 @@ export function createTaskRouter(
     async (req: AuthenticatedRequest, res, next) => {
       try {
         const task = await taskService.publish(req.params.taskId, req.authData!.id);
-        res.json(task);
+        res.json({ success: true, data: task });
       } catch (err) { next(err); }
     },
   );
@@ -321,7 +348,7 @@ export function createTaskRouter(
     async (req: AuthenticatedRequest, res, next) => {
       try {
         const task = await taskService.unpublish(req.params.taskId, req.authData!.id);
-        res.json(task);
+        res.json({ success: true, data: task });
       } catch (err) { next(err); }
     },
   );
@@ -339,9 +366,9 @@ export function createTaskRouter(
     },
   );
 
-  /* ── GET /:taskId/activity  — task activity log (Contributor+) ─────── */
+  /* ── GET /:taskId/activity-log  — task activity log (Contributor+) ── */
   router.get(
-    '/:taskId/activity',
+    '/:taskId/activity-log',
     verifyAdminToken,
     requireRole(AdminRole.CONTRIBUTOR),
     async (req: AuthenticatedRequest, res, next) => {
@@ -349,7 +376,11 @@ export function createTaskRouter(
         // Ensure the task exists before returning its logs.
         await taskService.findById(req.params.taskId);
         const logs = await activityLogService.findByEntity('task', req.params.taskId, 0, 100);
-        res.json(logs);
+        res.json({
+          success: true,
+          data: logs,
+          pagination: { total: logs.length, skip: 0, limit: 100, hasMore: false },
+        });
       } catch (err) { next(err); }
     },
   );

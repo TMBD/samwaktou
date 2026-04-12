@@ -33,6 +33,7 @@ import type { IAudioDraftRepository } from '../../repositories/interfaces/index.
 import type { TaskService } from '../../services/task.service.js';
 import type { ActivityLogService } from '../../services/activity-log.service.js';
 import type { StorageService } from '../../services/storage.service.js';
+import type { ThemeService } from '../../services/theme.service.js';
 
 /**
  * Factory that creates and returns the audio-draft router.
@@ -51,6 +52,7 @@ export function createAudioDraftRouter(
   taskService: TaskService,
   activityLogService: ActivityLogService,
   storageService: StorageService,
+  themeService: ThemeService,
   verifyAdminToken: (req: AuthenticatedRequest, res: Response, next: NextFunction) => void,
 ): Router {
   // `mergeParams: true` gives access to `:taskId` from the parent router.
@@ -66,7 +68,11 @@ export function createAudioDraftRouter(
         // Ensure the parent task exists.
         await taskService.findById(req.params.taskId);
         const drafts = await draftRepo.findByTask(req.params.taskId);
-        res.json(drafts);
+        res.json({
+          success: true,
+          data: drafts,
+          pagination: { total: drafts.length, skip: 0, limit: drafts.length, hasMore: false },
+        });
       } catch (err) { next(err); }
     },
   );
@@ -82,7 +88,7 @@ export function createAudioDraftRouter(
         if (!draft || draft.task !== req.params.taskId) {
           throw AppError.notFound('Brouillon audio introuvable.');
         }
-        res.json(draft);
+        res.json({ success: true, data: draft });
       } catch (err) { next(err); }
     },
   );
@@ -100,7 +106,20 @@ export function createAudioDraftRouter(
           throw AppError.notFound('Brouillon audio introuvable.');
         }
 
-        const updated = await draftRepo.updateById(req.params.draftId, req.body);
+        // Build the update payload, handling theme creation if needed.
+        const { isNewTheme: _ignore, ...updatePayload } = req.body;
+
+        if (updatePayload.theme) {
+          const { theme: themeEntity, isNew } = await themeService.getOrCreate(
+            updatePayload.theme,
+            req.authData!.id,
+            req.authData!.role,
+          );
+          updatePayload.theme = themeEntity.name;
+          updatePayload.isNewTheme = isNew;
+        }
+
+        const updated = await draftRepo.updateById(req.params.draftId, updatePayload);
         if (!updated) {
           throw AppError.notFound('Brouillon introuvable après mise à jour.');
         }
@@ -117,7 +136,7 @@ export function createAudioDraftRouter(
           { fields: Object.keys(req.body) },
         );
 
-        res.json(updated);
+        res.json({ success: true, data: updated });
       } catch (err) { next(err); }
     },
   );
@@ -157,7 +176,7 @@ export function createAudioDraftRouter(
           },
         );
 
-        res.json(updated);
+        res.json({ success: true, data: updated });
       } catch (err) { next(err); }
     },
   );

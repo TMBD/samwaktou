@@ -16,3 +16,4 @@ export type { ITaskRepository, TaskFilters } from './task.repository.js';
 export type { IAudioDraftRepository, AudioDraftFilters } from './audio-draft.repository.js';
 export type { IThemeRepository } from './theme.repository.js';
 export type { IActivityLogRepository } from './activity-log.repository.js';
+export type { IAuthorRepository } from './author.repository.js';

@@ -24,6 +24,7 @@ import { MongoTaskRepository } from './repositories/mongoose/task.repository.imp
 import { MongoAudioDraftRepository } from './repositories/mongoose/audio-draft.repository.impl.js';
 import { MongoThemeRepository } from './repositories/mongoose/theme.repository.impl.js';
 import { MongoActivityLogRepository } from './repositories/mongoose/activity-log.repository.impl.js';
+import { MongoAuthorRepository } from './repositories/mongoose/author.repository.impl.js';
 
 import { AdminService } from './services/admin.service.js';
 import { AudioService } from './services/audio.service.js';
@@ -33,6 +34,7 @@ import { StorageService } from './services/storage.service.js';
 import { ThemeService } from './services/theme.service.js';
 import { ActivityLogService } from './services/activity-log.service.js';
 import { TaskService } from './services/task.service.js';
+import { AuthorService } from './services/author.service.js';
 
 import {
   createVerifyAdminToken,
@@ -47,6 +49,7 @@ import { createAnalyticRouter } from './routes/v1/analytic.routes.js';
 import { createTaskRouter } from './routes/v1/task.routes.js';
 import { createAudioDraftRouter } from './routes/v1/audio-draft.routes.js';
 import { createThemeRouter } from './routes/v1/theme.routes.js';
+import { createAuthorRouter } from './routes/v1/author.routes.js';
 
 /**
  * Build the entire object graph and return the assembled Express routers.
@@ -63,6 +66,7 @@ export function createContainer() {
   const draftRepo = new MongoAudioDraftRepository();
   const themeRepo = new MongoThemeRepository();
   const activityLogRepo = new MongoActivityLogRepository();
+  const authorRepo = new MongoAuthorRepository();
 
   /* ── 2. Services (business-logic layer) ────────────────────────────── */
   const adminService = new AdminService(adminRepo);
@@ -72,6 +76,7 @@ export function createContainer() {
   const storageService = new StorageService();
   const themeService = new ThemeService(themeRepo);
   const activityLogService = new ActivityLogService(activityLogRepo);
+  const authorService = new AuthorService(authorRepo);
   const taskService = new TaskService(
     taskRepo,
     draftRepo,
@@ -92,8 +97,9 @@ export function createContainer() {
   const userRouter = createUserRouter(userService, verifyAdminToken, verifyUserToken, verifyTokenForDeleteUser);
   const analyticRouter = createAnalyticRouter(analyticService);
   const taskRouter = createTaskRouter(taskService, activityLogService, verifyAdminToken);
-  const audioDraftRouter = createAudioDraftRouter(draftRepo, taskService, activityLogService, storageService, verifyAdminToken);
+  const audioDraftRouter = createAudioDraftRouter(draftRepo, taskService, activityLogService, storageService, themeService, verifyAdminToken);
   const themeRouter = createThemeRouter(themeService, activityLogService, verifyAdminToken);
+  const authorRouter = createAuthorRouter(authorService, verifyAdminToken);
 
   return {
     routers: {
@@ -104,6 +110,7 @@ export function createContainer() {
       taskRouter,
       audioDraftRouter,
       themeRouter,
+      authorRouter,
     },
   };
 }

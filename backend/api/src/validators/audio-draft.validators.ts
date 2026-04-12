@@ -19,21 +19,25 @@ import { AudioDraftStatus } from '../config/constants.js';
  * and to mark a draft as DONE or REJECTION_SUGGESTED.
  */
 export const updateDraftSchema = z.object({
-  description: z.string().min(1).max(1000).optional(),
-  theme: z.string().min(1).max(200).optional(),
-  keywords: z.string().min(1).max(500).optional(),
-  status: z.enum([AudioDraftStatus.DONE, AudioDraftStatus.REJECTION_SUGGESTED]).optional(),
+  description: z.string().max(1000).optional(),
+  theme: z.string().max(200).optional(),
+  keywords: z.array(z.string().max(200)).max(50).optional(),
+  isNewTheme: z.boolean().optional(),
+  status: z.enum([AudioDraftStatus.PENDING, AudioDraftStatus.DONE, AudioDraftStatus.REJECTION_SUGGESTED]).optional(),
   rejectionSuggestedReason: z.string().min(1).max(2000).optional(),
 }).refine(
   (data) => Object.values(data).some((v) => v !== undefined),
   { message: 'Au moins un champ doit être fourni.' },
+).refine(
+  (data) => data.status !== AudioDraftStatus.REJECTION_SUGGESTED || (data.rejectionSuggestedReason && data.rejectionSuggestedReason.trim().length > 0),
+  { message: 'Une raison est requise pour suggérer le rejet.', path: ['rejectionSuggestedReason'] },
 );
 
 /**
  * Schema for `PATCH /tasks/:taskId/drafts/:draftId/review` — reviewer action on a draft.
  *
  * Reviewers can approve, reject, or request corrections on individual drafts.
- * A `reviewComment` is optional for approvals but recommended for rejections.
+ * A `reviewComment` is required when rejecting for audit purposes.
  */
 export const reviewDraftSchema = z.object({
   status: z.enum([
@@ -43,4 +47,7 @@ export const reviewDraftSchema = z.object({
   ]),
   reviewComment: z.string().max(2000).optional(),
   correctionComment: z.string().max(2000).optional(),
-});
+}).refine(
+  (data) => data.status !== AudioDraftStatus.REJECTED || (data.reviewComment && data.reviewComment.trim().length > 0),
+  { message: 'Un commentaire est requis pour rejeter un brouillon.', path: ['reviewComment'] },
+);

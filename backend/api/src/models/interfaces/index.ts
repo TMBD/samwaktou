@@ -18,3 +18,4 @@ export type { ITask, ITaskCreate, ITaskUpdate, IContentState } from './task.inte
 export type { IAudioDraft, IAudioDraftCreate, IAudioDraftUpdate } from './audio-draft.interface.js';
 export type { ITheme, IThemeCreate, IThemeUpdate } from './theme.interface.js';
 export type { IActivityLog, IActivityLogCreate, ActivityEntityType } from './activity-log.interface.js';
+export type { IAuthor, IAuthorCreate, IAuthorUpdate } from './author.interface.js';

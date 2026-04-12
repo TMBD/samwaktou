@@ -11,7 +11,7 @@
  * - Human-readable error messages (French, matching the existing UX).
  */
 
-import type { ApiResponse, PaginatedResponse, ApiErrorResponse } from '@/types';
+import type { ApiResponse, PaginatedResponse } from '@/types';
 
 /* ── Configuration ────────────────────────────────────────────────────── */
 
@@ -84,11 +84,15 @@ async function handleErrorResponse(res: Response): Promise<never> {
   let details: Record<string, unknown> | undefined;
 
   try {
-    const body = (await res.json()) as ApiErrorResponse;
+    const body = await res.json();
+    // Backend may return { error: { message } } or flat { message, details }.
     if (body?.error?.message) {
       message = body.error.message;
       reason = body.error.reason;
       details = body.error.details;
+    } else if (body?.message) {
+      message = body.message;
+      details = body.details;
     }
   } catch {
     // JSON parsing failed — use status-based fallbacks.
@@ -244,4 +248,4 @@ export function buildQuery(params: Record<string, unknown>): string {
 
 /* ── Re-exports for convenience ───────────────────────────────────────── */
 
-export { AUTH_STORAGE_KEY };
+export { AUTH_STORAGE_KEY, getStoredToken };

@@ -53,7 +53,8 @@ export interface AuthenticatedRequest extends Request {
  * @throws {AppError} 401 if the header is missing.
  */
 function extractToken(req: Request): string {
-  const header = req.header('auth-token');
+  const header = req.header('auth-token')
+    || (typeof req.query?.token === 'string' ? req.query.token : undefined);
   if (!header) {
     throw AppError.unauthorized('Accès refusé. Aucun token fourni.');
   }

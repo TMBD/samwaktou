@@ -67,7 +67,7 @@ export function createThemeRouter(
           isValidated: theme.isValidated,
         });
 
-        res.status(HTTP_CODE.CREATED).json(theme);
+        res.status(HTTP_CODE.CREATED).json({ success: true, data: theme });
       } catch (err) { next(err); }
     },
   );
@@ -88,7 +88,16 @@ export function createThemeRouter(
         };
 
         const result = await themeService.findMany(filter, skip, limit);
-        res.json(result);
+        res.json({
+          success: true,
+          data: result.data,
+          pagination: {
+            total: result.total,
+            skip,
+            limit,
+            hasMore: skip + result.data.length < result.total,
+          },
+        });
       } catch (err) { next(err); }
     },
   );
@@ -101,7 +110,7 @@ export function createThemeRouter(
     async (req: AuthenticatedRequest, res, next) => {
       try {
         const theme = await themeService.findById(req.params.themeId);
-        res.json(theme);
+        res.json({ success: true, data: theme });
       } catch (err) { next(err); }
     },
   );
@@ -123,7 +132,7 @@ export function createThemeRouter(
           newName: theme.name,
         });
 
-        res.json(theme);
+        res.json({ success: true, data: theme });
       } catch (err) { next(err); }
     },
   );
@@ -145,7 +154,7 @@ export function createThemeRouter(
           newName: theme.name,
         });
 
-        res.json(theme);
+        res.json({ success: true, data: theme });
       } catch (err) { next(err); }
     },
   );
@@ -161,7 +170,7 @@ export function createThemeRouter(
 
         await activityLogService.logThemeAction(theme.id, 'THEME_VALIDATED', req.authData!.id);
 
-        res.json(theme);
+        res.json({ success: true, data: theme });
       } catch (err) { next(err); }
     },
   );

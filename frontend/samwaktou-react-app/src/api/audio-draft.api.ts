@@ -5,7 +5,7 @@
  * All endpoints are nested under `/tasks/:taskId/drafts`.
  */
 
-import { get, getList, patch, buildQuery } from './client';
+import { get, getList, patch, buildQuery, getStoredToken } from './client';
 import type { AudioDraft, AudioDraftUpdatePayload, AudioDraftReviewPayload } from '@/types';
 
 /* ── Queries ──────────────────────────────────────────────────────────── */
@@ -48,7 +48,9 @@ export async function reviewDraft(
  */
 export function getDraftStreamUrl(taskId: string, draftId: string): string {
   const base = import.meta.env.VITE_API_SERVER_URL ?? 'http://localhost:8080';
-  return `${base}/api/v1/tasks/${taskId}/drafts/${draftId}/stream`;
+  const token = getStoredToken();
+  const qs = token ? `?token=${encodeURIComponent(token)}` : '';
+  return `${base}/api/v1/tasks/${taskId}/drafts/${draftId}/stream${qs}`;
 }
 
 /* ── Query helpers ────────────────────────────────────────────────────── */

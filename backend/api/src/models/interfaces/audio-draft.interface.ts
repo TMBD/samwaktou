@@ -26,8 +26,8 @@ export interface IAudioDraft {
   description: string;
   /** Theme name (upper-cased). References the Theme collection conceptually. */
   theme: string;
-  /** Space-separated search keywords. */
-  keywords: string;
+  /** Search keywords (array of individual keyword strings). */
+  keywords: string[];
   /** Current position in the audio-draft review cycle. */
   status: AudioDraftStatus;
   /** Whether this draft introduces a theme that doesn't exist yet. */
