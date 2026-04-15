@@ -30,9 +30,9 @@ export function login(payload: LoginPayload): Promise<LoginResponse> {
 
 /* ── CRUD ──────────────────────────────────────────────────────────────── */
 
-/** GET /admin — List all admins. */
+/** GET /admin — List all admins (high limit to ensure lookup maps are complete). */
 export async function getAdmins() {
-  return getList<Admin>('/admin');
+  return getList<Admin>('/admin?limit=100');
 }
 
 /** GET /admin/me — Get the current admin profile. */

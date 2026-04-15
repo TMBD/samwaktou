@@ -122,9 +122,18 @@ export function useCreateTask() {
   });
 }
 
-/** Self-assign a task. */
+/** Assign a task (self-assign when no assigneeId, assign-to-other for Publisher+). */
 export function useAssignTask() {
-  return useTaskTransition(taskApi.assignTask, 'Tâche assignée.');
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ taskId, assigneeId }: { taskId: string; assigneeId?: string }) =>
+      taskApi.assignTask(taskId, assigneeId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: taskKeys.all });
+      notifications.show({ title: 'Succès', message: 'Tâche assignée.', color: 'green' });
+    },
+    onError: showError,
+  });
 }
 
 /** Unassign a task → OPEN. */

@@ -56,9 +56,9 @@ export async function createTask(payload: TaskCreatePayload, files: File[]) {
 
 /* ── State transitions ────────────────────────────────────────────────── */
 
-/** PATCH /tasks/:id/assign — Self-assign a task. */
-export async function assignTask(id: string) {
-  return patch<Task>(`/tasks/${id}/assign`);
+/** PATCH /tasks/:id/assign — Assign a task. Self-assign when no assigneeId given. */
+export async function assignTask(id: string, assigneeId?: string) {
+  return patch<Task>(`/tasks/${id}/assign`, assigneeId ? { assigneeId } : undefined);
 }
 
 /** PATCH /tasks/:id/unassign — Unassign a task → OPEN. */

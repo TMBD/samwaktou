@@ -10,9 +10,9 @@
  * ```
  * OPEN → IN_PROGRESS (assign)
  * IN_PROGRESS → READY_FOR_REVIEW (submit) | OPEN (unassign)
- * READY_FOR_REVIEW → IN_REVIEW (pick) | OPEN (unassign by reviewer)
+ * READY_FOR_REVIEW → IN_REVIEW (pick) | OPEN (unassign)
  * IN_REVIEW → APPROVED | CORRECTIONS_NEEDED | REJECTED
- * CORRECTIONS_NEEDED → IN_PROGRESS (re-pick by contributor)
+ * CORRECTIONS_NEEDED → CORRECTIONS_NEEDED (assign/unassign) | IN_PROGRESS (reassign)
  * APPROVED → PUBLISHED (publish)
  * PUBLISHED → APPROVED (unpublish, SysAdmin only)
  * REJECTED → (terminal)
@@ -234,47 +234,58 @@ export class TaskService {
   /* ── State transitions ─────────────────────────────────────────────── */
 
   /**
-   * Self-assign an OPEN task to the requesting contributor.
-   * Transition: OPEN → IN_PROGRESS
+   * Assign an unassigned task to a contributor.
+   * Transition: OPEN → IN_PROGRESS | CORRECTIONS_NEEDED → CORRECTIONS_NEEDED
    */
   async assign(taskId: string, adminId: string): Promise<ITask> {
     const task = await this.findById(taskId);
-    assertStatus(task, TaskStatus.OPEN);
+    assertStatus(task, TaskStatus.OPEN, TaskStatus.CORRECTIONS_NEEDED);
 
     if (task.assignee) {
       throw AppError.conflict('Cette tâche est déjà assignée.');
     }
 
+    // Preserve CORRECTIONS_NEEDED context; OPEN transitions to IN_PROGRESS.
+    const newStatus = task.status === TaskStatus.CORRECTIONS_NEEDED
+      ? TaskStatus.CORRECTIONS_NEEDED
+      : TaskStatus.IN_PROGRESS;
+
     const updated = await this.taskRepo.updateById(taskId, {
-      status: TaskStatus.IN_PROGRESS,
+      status: newStatus,
       assignee: adminId,
     });
 
     await this.activityLog.logTaskAction(taskId, 'TASK_ASSIGNED', adminId, {
       oldStatus: task.status,
-      newStatus: TaskStatus.IN_PROGRESS,
+      newStatus,
     });
 
     return updated!;
   }
 
   /**
-   * Unassign a task back to the backlog.
-   * Transition: IN_PROGRESS | READY_FOR_REVIEW → OPEN
+   * Unassign a task.
+   * CORRECTIONS_NEEDED stays in CORRECTIONS_NEEDED (unassigned, awaiting pick-up).
+   * Other statuses revert to OPEN.
    */
   async unassign(taskId: string, adminId: string): Promise<ITask> {
     const task = await this.findById(taskId);
-    assertStatus(task, TaskStatus.IN_PROGRESS, TaskStatus.READY_FOR_REVIEW);
+    assertStatus(task, TaskStatus.IN_PROGRESS, TaskStatus.READY_FOR_REVIEW, TaskStatus.CORRECTIONS_NEEDED);
+
+    // Preserve CORRECTIONS_NEEDED so the task doesn't lose its review context.
+    const newStatus = task.status === TaskStatus.CORRECTIONS_NEEDED
+      ? TaskStatus.CORRECTIONS_NEEDED
+      : TaskStatus.OPEN;
 
     const updated = await this.taskRepo.updateById(taskId, {
-      status: TaskStatus.OPEN,
+      status: newStatus,
       previousAssignee: task.assignee,
       assignee: null,
     });
 
     await this.activityLog.logTaskAction(taskId, 'TASK_UNASSIGNED', adminId, {
       oldStatus: task.status,
-      newStatus: TaskStatus.OPEN,
+      newStatus,
       previousAssignee: task.assignee,
     });
 
@@ -283,11 +294,11 @@ export class TaskService {
 
   /**
    * Reassign a task to a different admin.
-   * Transition: IN_PROGRESS → IN_PROGRESS (new assignee)
+   * Transition: IN_PROGRESS | CORRECTIONS_NEEDED → IN_PROGRESS (new assignee)
    */
   async reassign(taskId: string, newAssigneeId: string, adminId: string): Promise<ITask> {
     const task = await this.findById(taskId);
-    assertStatus(task, TaskStatus.IN_PROGRESS, TaskStatus.READY_FOR_REVIEW);
+    assertStatus(task, TaskStatus.IN_PROGRESS, TaskStatus.READY_FOR_REVIEW, TaskStatus.CORRECTIONS_NEEDED);
 
     const updated = await this.taskRepo.updateById(taskId, {
       status: TaskStatus.IN_PROGRESS,

@@ -27,6 +27,7 @@ import {
 import { IconPlus } from '@tabler/icons-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTasks } from '@/hooks/useTasks';
+import { useAdminMap } from '@/hooks/useAdminMap';
 import { AdminRole, type TaskFilters as TaskFiltersType } from '@/types';
 import { formatDate, formatRelative } from '@/utils/date.utils';
 import { TaskStatusBadge } from '@/components/task/TaskStatusBadge';
@@ -55,6 +56,7 @@ export function TaskListPage() {
 
   /* ── Data fetching ────────────────────────────────────────────────── */
   const { data, isLoading, isError } = useTasks(filters);
+  const { resolveAdmin, resolveAdminInfo } = useAdminMap();
 
   const tasks = data?.data ?? [];
   const total = data?.pagination?.total ?? 0;
@@ -125,6 +127,7 @@ export function TaskListPage() {
                 <Table.Th>Description</Table.Th>
                 <Table.Th>Auteur</Table.Th>
                 <Table.Th>Date session</Table.Th>
+                <Table.Th>Assigné à</Table.Th>
                 <Table.Th>Statut</Table.Th>
                 <Table.Th>Progression</Table.Th>
                 <Table.Th>Mis à jour</Table.Th>
@@ -147,6 +150,15 @@ export function TaskListPage() {
                   </Table.Td>
                   <Table.Td>
                     <Text size="sm">{formatDate(task.sessionDate)}</Text>
+                  </Table.Td>
+                  <Table.Td>
+                    {task.assignee ? (
+                      <Tooltip label={resolveAdminInfo(task.assignee)?.email ?? ''}>
+                        <Text size="sm">{resolveAdmin(task.assignee)}</Text>
+                      </Tooltip>
+                    ) : (
+                      <Text size="xs" c="dimmed" fs="italic">Non assigné</Text>
+                    )}
                   </Table.Td>
                   <Table.Td>
                     <TaskStatusBadge status={task.status} />

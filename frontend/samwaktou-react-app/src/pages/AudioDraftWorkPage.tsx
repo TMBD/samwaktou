@@ -35,6 +35,7 @@ import {
   IconCheck,
   IconCircleCheck,
   IconExclamationCircle,
+  IconInfoCircle,
   IconSparkles,
   IconX,
 } from '@tabler/icons-react';
@@ -42,7 +43,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { useTask } from '@/hooks/useTasks';
 import { useAudioDraft, useUpdateDraft, useReviewDraft } from '@/hooks/useAudioDrafts';
 import { useThemes } from '@/hooks/useThemes';
+import { useAdminMap } from '@/hooks/useAdminMap';
 import { AdminRole, AudioDraftStatus, TaskStatus } from '@/types';
+import { getTaskStatusLabel } from '@/utils/format.utils';
 import type { AudioDraftReviewPayload } from '@/types';
 import { DraftStatusBadge } from '@/components/draft/DraftStatusBadge';
 import { AudioPlayer } from '@/components/draft/AudioPlayer';
@@ -106,6 +109,7 @@ export function AudioDraftWorkPage() {
   }, [draft]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ── Derived state ────────────────────────────────────────────────── */
+  const { resolveAdmin } = useAdminMap();
   const isAssignee = task?.assignee === user?.id;
   const isReviewer = task?.reviewedBy === user?.id;
   const canEdit =
@@ -114,6 +118,20 @@ export function AudioDraftWorkPage() {
       task?.status === TaskStatus.CORRECTIONS_NEEDED);
   const canReview =
     isReviewer && task?.status === TaskStatus.IN_REVIEW;
+
+  /** Human-readable reason explaining why the user cannot edit. */
+  const readOnlyReason: string | null = (() => {
+    if (canEdit) return null;
+    if (!task) return null;
+    if (!task.assignee) {
+      return 'Cette tâche n\u2019est assignée à personne. Assignez-vous la tâche depuis la page de détail pour pouvoir modifier les brouillons.';
+    }
+    if (!isAssignee) {
+      return `Vous n\u2019êtes pas l\u2019assigné de cette tâche. Elle est actuellement assignée à ${resolveAdmin(task.assignee)}.`;
+    }
+    // Assignee but wrong task status
+    return `La tâche est au statut « ${getTaskStatusLabel(task.status)} ». Les modifications ne sont possibles que lorsque la tâche est en cours ou en corrections.`;
+  })();
 
   /* Theme options for Select with dynamic creation */
   const isReviewerOrAbove = hasRole(AdminRole.REVIEWER);
@@ -209,6 +227,18 @@ export function AudioDraftWorkPage() {
         </Group>
         <DraftStatusBadge status={draft.status} size="lg" />
       </Group>
+
+      {/* Read-only explanation */}
+      {readOnlyReason && (
+        <Alert
+          icon={<IconInfoCircle size={18} stroke={1.5} />}
+          color="blue"
+          variant="light"
+          title="Consultation seule"
+        >
+          {readOnlyReason}
+        </Alert>
+      )}
 
       <Grid>
         {/* ── Left: audio + metadata ─────────────────────────────────── */}

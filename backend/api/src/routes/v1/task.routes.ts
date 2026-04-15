@@ -190,26 +190,59 @@ export function createTaskRouter(
     },
   );
 
-  /* ── PATCH /:taskId/assign  — self-assign (Contributor+) ───────────── */
+  /* ── PATCH /:taskId/assign  — self-assign (Contributor+) or assign to someone (Publisher+) */
   router.patch(
     '/:taskId/assign',
     verifyAdminToken,
     requireRole(AdminRole.CONTRIBUTOR),
     async (req: AuthenticatedRequest, res, next) => {
       try {
-        const task = await taskService.assign(req.params.taskId, req.authData!.id);
+        const callerRole = req.authData!.role;
+        const callerIsPublisherPlus =
+          callerRole === AdminRole.SYSTEM_ADMIN || callerRole === AdminRole.PUBLISHER;
+
+        // Publisher+ may assign to someone else via body.assigneeId
+        let targetAdminId = req.authData!.id;
+        if (req.body?.assigneeId) {
+          if (!callerIsPublisherPlus) {
+            throw AppError.forbidden('Seuls les éditeurs ou administrateurs système peuvent assigner une tâche à un autre utilisateur.');
+          }
+          targetAdminId = req.body.assigneeId;
+        }
+
+        const task = await taskService.assign(req.params.taskId, targetAdminId);
+
+        // Log who performed the action (may differ from the assignee)
+        if (targetAdminId !== req.authData!.id) {
+          await activityLogService.logTaskAction(req.params.taskId, 'TASK_ASSIGNED_BY_ADMIN', req.authData!.id, {
+            assignedTo: targetAdminId,
+          });
+        }
+
         res.json({ success: true, data: task });
       } catch (err) { next(err); }
     },
   );
 
-  /* ── PATCH /:taskId/unassign  — unassign (Contributor+) ────────────── */
+  /* ── PATCH /:taskId/unassign  — unassign self (Contributor+) or anyone (Publisher+) */
   router.patch(
     '/:taskId/unassign',
     verifyAdminToken,
     requireRole(AdminRole.CONTRIBUTOR),
     async (req: AuthenticatedRequest, res, next) => {
       try {
+        const callerRole = req.authData!.role;
+        const callerIsPublisherPlus =
+          callerRole === AdminRole.SYSTEM_ADMIN || callerRole === AdminRole.PUBLISHER;
+
+        // Contributor can only unassign themselves
+        if (!callerIsPublisherPlus) {
+          const currentTask = await taskService.findById(req.params.taskId);
+          if (currentTask.assignee !== req.authData!.id) {
+            throw AppError.forbidden('Vous ne pouvez désassigner que vous-même.');
+          }
+        }
+
         const task = await taskService.unassign(req.params.taskId, req.authData!.id);
         res.json({ success: true, data: task });
       } catch (err) { next(err); }

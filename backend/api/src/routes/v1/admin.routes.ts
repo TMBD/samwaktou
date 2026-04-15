@@ -17,7 +17,7 @@
  * | POST   | /login             | public       | Admin login               |
  * | POST   | /                  | SYSTEM_ADMIN | Create admin              |
  * | GET    | /me                | CONTRIBUTOR  | Get current admin profile |
- * | GET    | /                  | REVIEWER     | List admins (paginated)   |
+ * | GET    | /                  | CONTRIBUTOR  | List admins (paginated)   |
  * | GET    | /:adminId          | CONTRIBUTOR  | Get single admin          |
  * | PUT    | /password/:adminId | self         | Change own password       |
  * | PUT    | /:adminId          | SYSTEM_ADMIN | Update admin profile      |
@@ -88,11 +88,11 @@ export function createAdminRouter(
     },
   );
 
-  /* ── GET /  — list admins with optional filters & pagination (REVIEWER+) */
+  /* ── GET /  — list admins with optional filters & pagination (any admin) */
   router.get(
     '/',
     verifyAdminToken,
-    requireRole(AdminRole.REVIEWER),
+    requireRole(AdminRole.CONTRIBUTOR),
     async (req, res, next) => {
       try {
         const skip = Number(req.query.skip) || PAGINATION.ADMIN_DEFAULT_SKIP;

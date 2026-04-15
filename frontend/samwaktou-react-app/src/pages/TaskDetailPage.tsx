@@ -24,6 +24,7 @@ import {
   Group,
   Menu,
   Paper,
+  Select,
   Stack,
   Text,
   Textarea,
@@ -58,6 +59,8 @@ import {
   useDeleteTask,
 } from '@/hooks/useTasks';
 import { useAudioDrafts } from '@/hooks/useAudioDrafts';
+import { useAdmins } from '@/hooks/useAdmins';
+import { useAdminMap } from '@/hooks/useAdminMap';
 import { AdminRole, TaskStatus } from '@/types';
 import { formatDate, formatDateTime, formatRelative } from '@/utils/date.utils';
 import { TaskStatusBadge } from '@/components/task/TaskStatusBadge';
@@ -84,6 +87,8 @@ export function TaskDetailPage() {
   const drafts = draftsRes?.data ?? [];
   const logs = logRes?.data ?? [];
 
+  const { resolveAdmin, resolveAdminInfo } = useAdminMap();
+
   /* ── Mutations ────────────────────────────────────────────────────── */
   const assignMut = useAssignTask();
   const unassignMut = useUnassignTask();
@@ -96,15 +101,21 @@ export function TaskDetailPage() {
   const unpublishMut = useUnpublishTask();
   const deleteMut = useDeleteTask();
 
+  /* ── Admin list (for Publisher+ assign-to dropdown) ─────────────── */
+  const { data: adminsRes } = useAdmins();
+  const adminList = adminsRes?.data ?? [];
+
   /* ── Local UI state ───────────────────────────────────────────────── */
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
+  const [selectedAssignee, setSelectedAssignee] = useState<string | null>(null);
 
   /* ── Helpers ──────────────────────────────────────────────────────── */
   const isAssignee = task?.assignee === user?.id;
   const isReviewer = task?.reviewedBy === user?.id;
   const isCreator = task?.createdBy === user?.id;
+  const isPublisherPlus = hasRole(AdminRole.PUBLISHER);
 
   const handleReject = useCallback(() => {
     if (!taskId || !rejectionReason.trim()) return;
@@ -154,29 +165,71 @@ export function TaskDetailPage() {
 
         {/* Action buttons — contextual to task status + user role */}
         <Group gap="xs">
-          {/* Assign (OPEN → IN_PROGRESS) */}
-          {task.status === TaskStatus.OPEN && hasRole(AdminRole.CONTRIBUTOR) && (
+          {/* Self-assign (OPEN or unassigned CORRECTIONS_NEEDED) */}
+          {(task.status === TaskStatus.OPEN ||
+            (task.status === TaskStatus.CORRECTIONS_NEEDED && !task.assignee)) &&
+            hasRole(AdminRole.CONTRIBUTOR) && (
             <Button
               size="xs"
               leftSection={<IconUserPlus size={14} stroke={1.5} />}
-              onClick={() => assignMut.mutate(taskId!)}
+              onClick={() => assignMut.mutate({ taskId: taskId! })}
               loading={assignMut.isPending}
             >
               S&apos;assigner
             </Button>
           )}
 
-          {/* Unassign (IN_PROGRESS → OPEN, only assignee) */}
-          {task.status === TaskStatus.IN_PROGRESS && isAssignee && (
-            <Button
-              size="xs"
-              variant="light"
-              onClick={() => unassignMut.mutate(taskId!)}
-              loading={unassignMut.isPending}
-            >
-              Se désassigner
-            </Button>
+          {/* Assign to someone (OPEN or unassigned CORRECTIONS_NEEDED, Publisher+ only) */}
+          {(task.status === TaskStatus.OPEN ||
+            (task.status === TaskStatus.CORRECTIONS_NEEDED && !task.assignee)) &&
+            isPublisherPlus && (
+            <Group gap="xs">
+              <Select
+                size="xs"
+                placeholder="Assigner à…"
+                data={adminList.map((a) => ({
+                  value: a.id,
+                  label: `${a.surname} ${a.name}`.trim(),
+                }))}
+                value={selectedAssignee}
+                onChange={setSelectedAssignee}
+                searchable
+                clearable
+                w={200}
+              />
+              <Button
+                size="xs"
+                variant="light"
+                leftSection={<IconUserPlus size={14} stroke={1.5} />}
+                disabled={!selectedAssignee}
+                loading={assignMut.isPending}
+                onClick={() => {
+                  if (!selectedAssignee) return;
+                  assignMut.mutate(
+                    { taskId: taskId!, assigneeId: selectedAssignee },
+                    { onSuccess: () => setSelectedAssignee(null) },
+                  );
+                }}
+              >
+                Assigner
+              </Button>
+            </Group>
           )}
+
+          {/* Unassign — assignee can self-unassign, Publisher+ can unassign anyone */}
+          {(task.status === TaskStatus.IN_PROGRESS ||
+            task.status === TaskStatus.READY_FOR_REVIEW ||
+            task.status === TaskStatus.CORRECTIONS_NEEDED) &&
+            (isAssignee || isPublisherPlus) && (
+              <Button
+                size="xs"
+                variant="light"
+                onClick={() => unassignMut.mutate(taskId!)}
+                loading={unassignMut.isPending}
+              >
+                {isAssignee ? 'Se désassigner' : 'Désassigner'}
+              </Button>
+            )}
 
           {/* Submit for review (IN_PROGRESS/CORRECTIONS_NEEDED → READY_FOR_REVIEW) */}
           {(task.status === TaskStatus.IN_PROGRESS ||
@@ -363,10 +416,22 @@ export function TaskDetailPage() {
               <Divider />
 
               <Text size="xs" c="dimmed">Assigné à</Text>
-              <Text size="sm">{task.assignee ?? '— non assigné —'}</Text>
+              {task.assignee ? (
+                <Tooltip label={resolveAdminInfo(task.assignee)?.email ?? ''}>
+                  <Text size="sm">{resolveAdmin(task.assignee)}</Text>
+                </Tooltip>
+              ) : (
+                <Text size="sm" c="dimmed" fs="italic">— non assigné —</Text>
+              )}
 
               <Text size="xs" c="dimmed">Réviseur</Text>
-              <Text size="sm">{task.reviewedBy ?? '— aucun —'}</Text>
+              {task.reviewedBy ? (
+                <Tooltip label={resolveAdminInfo(task.reviewedBy)?.email ?? ''}>
+                  <Text size="sm">{resolveAdmin(task.reviewedBy)}</Text>
+                </Tooltip>
+              ) : (
+                <Text size="sm" c="dimmed" fs="italic">— aucun —</Text>
+              )}
             </Stack>
           </Card>
         </Grid.Col>
@@ -443,7 +508,7 @@ export function TaskDetailPage() {
               {logs.map((log) => (
                 <Timeline.Item key={log.id} title={log.action}>
                   <Text size="xs" c="dimmed">
-                    {formatDateTime(log.createdAt)} — {log.performedBy}
+                    {formatDateTime(log.createdAt)} — {resolveAdmin(log.performedBy)}
                   </Text>
                 </Timeline.Item>
               ))}
